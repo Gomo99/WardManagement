@@ -1,0 +1,18 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Treatment
+@{
+    ViewData["Title"] = "Treatment Details";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Treatment Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Treatment Details</h1><p>@Model.Admission?.Patient.FullName</p></div>
+    <a asp-action="TreatmentsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <table style="width:100%; font-size:.89rem;">
+            <tr><td style="font-weight:500;">Type:</td><td>@Model.TreatmentType</td></tr>
+            <tr><td style="font-weight:500;">Date:</td><td>@Model.TreatmentDate.ToString("g")</td></tr>
+            <tr><td style="font-weight:500;">Notes:</td><td>@Model.Notes</td></tr>
+        </table>
+    </div>
+</div>

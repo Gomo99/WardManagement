@@ -1,0 +1,39 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Receive & Verify Script";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/AllScripts'>All Scripts</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Receive</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Receive Medication</h1>
+        <p>Verify and confirm delivery</p>
+    </div>
+    <a asp-action="AllScripts" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:500px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clipboard-check"></i> Verify Against Script</span></div>
+        <div class="card-body">
+            <div style="background:var(--gray-50); border-radius:8px; padding:14px; margin-bottom:20px;">
+                <h4>@Model.Medication?.Name</h4>
+                <table style="font-size:.875rem;">
+                    <tr><td>Patient:</td><td>@Model.Admission?.Patient.FullName</td></tr>
+                    <tr><td>Dosage:</td><td>@Model.Dosage</td></tr>
+                    <tr><td>Frequency:</td><td>@Model.Frequency</td></tr>
+                    <tr><td>Duration:</td><td>@Model.Duration</td></tr>
+                    <tr><td>Prescribed:</td><td>@Model.PrescribedDate.ToString("g")</td></tr>
+                </table>
+            </div>
+
+            <p>Confirm that the medication received from pharmacy matches the prescription above.</p>
+
+            <form asp-action="ReceiveScriptConfirmed" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Confirm Receipt & Mark Delivered</button>
+            </form>
+        </div>
+    </div>
+</div>

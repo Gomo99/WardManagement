@@ -1,0 +1,47 @@
+﻿@using WARDMANAGEMENTSYSTEM.AppStatus
+@model WARDMANAGEMENTSYSTEM.Models.MedicationAdministration
+@{
+    ViewData["Title"] = "Administration Details";
+    ViewData["Breadcrumb"] = "<a href='/NursingSister/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Administration Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Administration Details</h1>
+        <p>@Model.Admission?.Patient.FullName</p>
+    </div>
+    <a asp-action="MedicationAdministrationsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <table style="width:100%; font-size:.89rem;">
+            <tr><td style="font-weight:500;">Date:</td><td>@Model.DateAdministered.ToString("g")</td></tr>
+            <tr><td style="font-weight:500;">Medication:</td><td>@Model.Medication?.Name</td></tr>
+            <tr><td style="font-weight:500;">Schedule:</td><td>@(Model.Medication?.Schedule?.ToString() ?? "Non‑scheduled")</td></tr>
+            <tr><td style="font-weight:500;">Dosage:</td><td>@Model.Dosage</td></tr>
+            <tr><td style="font-weight:500;">Notes:</td><td>@Model.Notes</td></tr>
+            <tr><td style="font-weight:500;">Status:</td><td>@Model.IsActive</td></tr>
+        </table>
+    </div>
+
+    <div class="card-footer" style="padding:12px 20px; background:var(--gray-50); border-top:1px solid var(--gray-100);">
+        @if (Model.IsActive == Status.Active)
+        {
+            <form asp-action="DeleteMedicationAdministration" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this administration record?')">
+                    <i class="fa-solid fa-ban"></i> Deactivate
+                </button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="RestoreMedicationAdministration" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm" style="background:var(--success); color:#fff;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore
+                </button>
+            </form>
+        }
+    </div>
+</div>

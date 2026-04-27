@@ -1,0 +1,85 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.ConsumableOrder>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Received Orders";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/Orders'>Orders</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Received Orders</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Received Orders</h1>
+        <p>@Model.Count() completed deliveries</p>
+    </div>
+    <a asp-action="Orders" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> All Orders</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-boxes-packing" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No received orders yet</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumable</th>
+                        <th>Qty Received</th>
+                        <th>Received Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td>@order.Consumable?.Name</td>
+                            <td>@order.QuantityReceived</td>
+                            <td>@(order.ReceivedDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                            <td><span class="badge badge-success">@order.OrderStatus</span></td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                    <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                    <a asp-action="EditReceivedOrder" asp-route-orderId="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                    @if (order.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteReceivedOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Deactivate this received order? Stock will be reversed.')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreReceivedOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

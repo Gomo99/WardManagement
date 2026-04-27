@@ -1,26 +1,34 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
+using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     public class AdminController : Controller
     {
         private readonly WardDbContext _context;
+        private readonly IEmailService _emailService; // <-- new
 
-        public AdminController(WardDbContext context)
+        public AdminController(WardDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+            ViewBag.TotalEmployees = await _context.Employees.CountAsync();
+            ViewBag.ActiveWards = await _context.Wards.CountAsync(w => w.IsActive == Status.Active);
+            ViewBag.TotalBeds = await _context.Beds.CountAsync();
+            ViewBag.MedicationsCount = await _context.Medications.CountAsync();
             return View();
         }
 
@@ -29,13 +37,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST (optional filter by role or status via query string)
+        // ===============================================================
+        //  EMPLOYEES – CRUD + SOFT DELETE
+        // ===============================================================
+
         public async Task<IActionResult> Employees(UserRole? role, Status? status)
         {
             var query = _context.Employees.AsQueryable();
 
             if (role.HasValue)
                 query = query.Where(e => e.Role == role.Value);
-
             if (status.HasValue)
                 query = query.Where(e => e.IsActive == status.Value);
 
@@ -57,16 +68,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View();
         }
 
-        // CREATE – POST
+        // CREATE – POST (with auto-generated password)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateEmployee(Employee employee)
         {
-            // Remove navigation / non‑editable properties from validation
+            // Remove fields that are not submitted by the form
             ModelState.Remove("EmployeeID");
             ModelState.Remove("FullName");
-            ModelState.Remove("IsActive");        // set manually
-            ModelState.Remove("PasswordHash");    // not set here
+            ModelState.Remove("IsActive");
+            ModelState.Remove("PasswordHash");
             ModelState.Remove("EmailVerificationTokenHash");
             ModelState.Remove("EmailVerificationTokenExpires");
             ModelState.Remove("IsTwoFactorEnabled");
@@ -88,13 +99,40 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(employee);
             }
 
+            // 1. Generate a random temporary password
+            string tempPassword = GenerateRandomPassword(12);
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+
+            // 2. Set remaining fields
+            employee.PasswordHash = hashedPassword;
             employee.IsActive = Status.Active;
+            employee.MustChangePassword = true;    // force change on first login
             employee.FailedLoginAttempts = 0;
 
             _context.Employees.Add(employee);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Employee created successfully.";
+            // 3. Email the temporary password
+            try
+            {
+                string subject = "Your Ward Management System Account";
+                string body = $@"
+                    <h3>Welcome, {employee.FirstName} {employee.LastName}!</h3>
+                    <p>Your account has been created. Use the following credentials to log in:</p>
+                    <p><strong>Email:</strong> {employee.Email}</p>
+                    <p><strong>Temporary Password:</strong> {tempPassword}</p>
+                    <p><em>You will be required to change your password after your first login.</em></p>
+                    <p>Please visit <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>the login page</a>.</p>";
+
+                await _emailService.SendEmailAsync(employee.Email, subject, body);
+                TempData["SuccessMessage"] = $"Employee created. Temporary password emailed to {employee.Email}.";
+            }
+            catch (Exception ex)
+            {
+                // Email sending failed, still show success but warn
+                TempData["SuccessMessage"] = $"Employee created, but email delivery failed ({ex.Message}).";
+            }
+
             return RedirectToAction(nameof(Employees));
         }
 
@@ -109,14 +147,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(employee);
         }
 
-        // EDIT – POST
+        // EDIT – POST (password is never edited)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditEmployee(int id, Employee posted)
         {
             if (id != posted.EmployeeID) return BadRequest();
 
-            // Keep these fields untouched
+            // Keep password and security fields untouched
             ModelState.Remove("PasswordHash");
             ModelState.Remove("EmailVerificationTokenHash");
             ModelState.Remove("EmailVerificationTokenExpires");
@@ -166,7 +204,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS
+        // DETAILS, DELETE, RESTORE are unchanged (but listed below for completeness)
         public async Task<IActionResult> DetailsEmployee(int id)
         {
             var employee = await _context.Employees.FindAsync(id);
@@ -174,32 +212,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(employee);
         }
 
-        // SOFT DELETE – POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
-
             employee.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Employee deactivated (soft deleted).";
+            TempData["SuccessMessage"] = "Employee deactivated.";
             return RedirectToAction(nameof(Employees));
         }
 
-        // RESTORE – POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreEmployee(int id)
         {
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
-
             employee.IsActive = Status.Active;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Employee reactivated.";
             return RedirectToAction(nameof(Employees));
         }
@@ -932,6 +964,21 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             TempData["SuccessMessage"] = "Hospital info reactivated.";
             return RedirectToAction(nameof(HospitalInfo));
+        }
+
+
+
+
+        private static string GenerateRandomPassword(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+            byte[] data = RandomNumberGenerator.GetBytes(length);
+            var result = new char[length];
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = chars[data[i] % chars.Length];
+            }
+            return new string(result);
         }
     }
 }

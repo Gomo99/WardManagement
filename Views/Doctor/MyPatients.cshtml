@@ -1,0 +1,64 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Admission>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "My Patients";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>My Patients</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>My Patients</h1>
+        <p>@Model.Count() active admission(s)</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-bed-pulse" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy);">No active patients</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Bed / Ward</th>
+                        <th>Admission Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adm in Model)
+                    {
+                        <tr>
+                            <td>@adm.Patient.FullName</td>
+                            <td>@adm.Bed?.BedNumberWithWard</td>
+                            <td>@adm.AdmissionDate.ToString("dd MMM yyyy")</td>
+                            <td><span class="badge badge-success">@adm.IsActive</span></td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                    <a asp-action="PatientFolder" asp-route-admissionId="@adm.Id" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-folder-open"></i> Folder
+                                    </a>
+                                    <a asp-action="ScheduleVisit" asp-route-admissionId="@adm.Id" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-calendar-plus"></i> Schedule Visit
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

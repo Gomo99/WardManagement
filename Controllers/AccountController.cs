@@ -32,46 +32,48 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _twoFactorService = twoFactorService;
         }
 
-        // --------------------------------------------------------------------------------
-        //  HELPER METHODS
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  HELPERS
+        // ======================================================================
         private void SetSuccess(string message) => TempData[SuccessMessageKey] = message;
         private void SetError(string message) => TempData[ErrorMessageKey] = message;
 
         private int? GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
                 return null;
-            return userId;
+            return id;
         }
 
-        private ClaimsPrincipal BuildEmployeeClaims(Employee employee)
+        private string? GetCurrentUserRole() => User.FindFirstValue(ClaimTypes.Role);
+
+        private ClaimsPrincipal BuildEmployeeClaims(Employee emp)
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, employee.EmployeeID.ToString()),
-                new Claim(ClaimTypes.Name, employee.Email),
-                new Claim(ClaimTypes.Email, employee.Email),
-                new Claim(ClaimTypes.GivenName, employee.FirstName),
-                new Claim(ClaimTypes.Surname, employee.LastName),
-                new Claim(ClaimTypes.Role, employee.Role.ToString())
+                new Claim(ClaimTypes.NameIdentifier, emp.EmployeeID.ToString()),
+                new Claim(ClaimTypes.Name, emp.Email),
+                new Claim(ClaimTypes.Email, emp.Email),
+                new Claim(ClaimTypes.GivenName, emp.FirstName),
+                new Claim(ClaimTypes.Surname, emp.LastName),
+                new Claim(ClaimTypes.Role, emp.Role.ToString())
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             return new ClaimsPrincipal(identity);
         }
 
-        private ClaimsPrincipal BuildPatientClaims(Models.Patient patient)
+        private ClaimsPrincipal BuildPatientClaims(Patient pat)
         {
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, patient.Id.ToString()),
-        new Claim(ClaimTypes.Name, patient.Email),
-        new Claim(ClaimTypes.Email, patient.Email),
-        new Claim(ClaimTypes.GivenName, patient.FirstName),
-        new Claim(ClaimTypes.Surname, patient.LastName),
-        new Claim(ClaimTypes.Role, UserRole.PATIENT.ToString())
-    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, pat.Id.ToString()),
+                new Claim(ClaimTypes.Name, pat.Email),
+                new Claim(ClaimTypes.Email, pat.Email),
+                new Claim(ClaimTypes.GivenName, pat.FirstName),
+                new Claim(ClaimTypes.Surname, pat.LastName),
+                new Claim(ClaimTypes.Role, UserRole.PATIENT.ToString())
+            };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             return new ClaimsPrincipal(identity);
         }
@@ -92,7 +94,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         {
             if (role == null && User.Identity?.IsAuthenticated == true)
             {
-                var roleStr = User.FindFirstValue(ClaimTypes.Role);
+                var roleStr = GetCurrentUserRole();
                 Enum.TryParse<UserRole>(roleStr, out var parsed);
                 role = parsed;
             }
@@ -107,7 +109,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 UserRole.WARDADMIN => RedirectToAction("Dashboard", "WardAdminController"),
                 UserRole.SCRIPTMANAGER => RedirectToAction("Dashboard", "ScriptManagerController"),
                 UserRole.CONSUMABLESMANAGER => RedirectToAction("Dashboard", "ConsumablesManagerController"),
-                _ => RedirectToAction("Login", "Account")
+                _ => RedirectToAction("Login", "AccountController")
             };
         }
 
@@ -118,36 +120,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToDashboard(role);
         }
 
-        private static string HashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
+        private static string HashPassword(string pw) => BCrypt.Net.BCrypt.HashPassword(pw);
+        private static bool VerifyPassword(string pw, string hash) =>
+            !string.IsNullOrEmpty(hash) && (hash.StartsWith("$2") ? BCrypt.Net.BCrypt.Verify(pw, hash) : pw == hash);
 
-        private static bool VerifyAndUpgradePassword(string password, ref string storedHash)
+        private static bool VerifyAndUpgradePassword(string pw, ref string storedHash)
         {
             if (string.IsNullOrEmpty(storedHash)) return false;
-            if (storedHash.StartsWith("$2"))
-                return BCrypt.Net.BCrypt.Verify(password, storedHash);
-            if (password == storedHash)
+            if (storedHash.StartsWith("$2")) return BCrypt.Net.BCrypt.Verify(pw, storedHash);
+            if (pw == storedHash)
             {
-                storedHash = BCrypt.Net.BCrypt.HashPassword(password);
+                storedHash = HashPassword(pw);
                 return true;
             }
             return false;
         }
 
-        private static bool VerifyPassword(string password, string hash)
-        {
-            if (string.IsNullOrEmpty(hash)) return false;
-            if (hash.StartsWith("$2")) return BCrypt.Net.BCrypt.Verify(password, hash);
-            return password == hash;
-        }
-
-        private static bool IsPasswordComplex(string password)
-        {
-            if (string.IsNullOrEmpty(password) || password.Length < 8) return false;
-            bool hasUpper = Regex.IsMatch(password, @"[A-Z]");
-            bool hasDigit = Regex.IsMatch(password, @"\d");
-            bool hasSpecial = Regex.IsMatch(password, @"[^a-zA-Z0-9\s]");
-            return hasUpper && hasDigit && hasSpecial;
-        }
+        private static bool IsPasswordComplex(string pw) =>
+            !string.IsNullOrEmpty(pw) && pw.Length >= 8 &&
+            Regex.IsMatch(pw, @"[A-Z]") && Regex.IsMatch(pw, @"\d") &&
+            Regex.IsMatch(pw, @"[^a-zA-Z0-9\s]");
 
         private static int CountRecoveryCodes(string? json)
         {
@@ -156,28 +148,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             catch { return 0; }
         }
 
+        // ---- Device helpers ----
         private string GetOrCreateDeviceId()
         {
-            if (Request.Cookies.TryGetValue(DeviceIdCookieName, out var existingId))
-                return existingId;
-
+            if (Request.Cookies.TryGetValue(DeviceIdCookieName, out var existing))
+                return existing;
             var newId = Guid.NewGuid().ToString("N");
-            var cookieOptions = new CookieOptions
+            Response.Cookies.Append(DeviceIdCookieName, newId, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddYears(1)
-            };
-            Response.Cookies.Append(DeviceIdCookieName, newId, cookieOptions);
+            });
             return newId;
         }
 
-        private async Task<UserDevice> GetOrCreateDeviceRecord(int userId, string userType, string deviceId, string? ipAddress)
+        private async Task<UserDevice> GetOrCreateDeviceRecord(int userId, string userType, string deviceId, string? ip)
         {
             var device = await _context.UserDevices
                 .FirstOrDefaultAsync(d => d.DeviceId == deviceId && d.UserId == userId && d.UserType == userType);
-
             if (device == null)
             {
                 device = new UserDevice
@@ -186,7 +176,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     UserType = userType,
                     DeviceId = deviceId,
                     DeviceName = Request.Headers["User-Agent"].ToString(),
-                    IpAddress = ipAddress,
+                    IpAddress = ip,
                     IsTrusted = false,
                     FirstSeen = DateTime.Now,
                     LastSeen = DateTime.Now
@@ -196,15 +186,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             else
             {
                 device.LastSeen = DateTime.Now;
-                device.IpAddress = ipAddress;
+                device.IpAddress = ip;
             }
             await _context.SaveChangesAsync();
             return device;
         }
 
-        // --------------------------------------------------------------------------------
-        //  LOGIN
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  LOGIN (Employee & Patient)
+        // ======================================================================
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)
         {
@@ -220,121 +210,97 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            // 1. Try Employee
-            var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.Email == model.UserNameorEmail);
-
-            if (employee != null)
+            // --- Employee ---
+            var emp = await _context.Employees.FirstOrDefaultAsync(e => e.Email == model.UserNameorEmail);
+            if (emp != null)
             {
-                if (employee.IsActive != Status.Active)
-                {
-                    SetError("Account is inactive.");
-                    return View(model);
-                }
-                if (employee.LockoutEnd.HasValue && employee.LockoutEnd > DateTime.Now)
-                {
-                    SetError($"Account locked. Try again after {employee.LockoutEnd:HH:mm}.");
-                    return View(model);
-                }
+                if (emp.IsActive != Status.Active) { SetError("Account is inactive."); return View(model); }
+                if (emp.LockoutEnd.HasValue && emp.LockoutEnd > DateTime.Now)
+                { SetError($"Account locked. Try again after {emp.LockoutEnd:HH:mm}."); return View(model); }
 
-                string passwordHash = employee.PasswordHash;
-                bool passwordValid = VerifyAndUpgradePassword(model.Password, ref passwordHash);
-                if (passwordHash != employee.PasswordHash)
-                    employee.PasswordHash = passwordHash;
-
-                if (!passwordValid)
+                string hash = emp.PasswordHash;
+                bool ok = VerifyAndUpgradePassword(model.Password, ref hash);
+                if (hash != emp.PasswordHash) emp.PasswordHash = hash;
+                if (!ok)
                 {
-                    employee.FailedLoginAttempts++;
-                    if (employee.FailedLoginAttempts >= 5)
-                    {
-                        employee.LockoutEnd = DateTime.Now.AddMinutes(15);
-                        employee.FailedLoginAttempts = 0;
-                        SetError("Too many failed attempts. Account locked for 15 minutes.");
-                    }
-                    else
-                    {
-                        SetError($"Invalid email or password. {5 - employee.FailedLoginAttempts} attempt(s) remaining.");
-                    }
+                    emp.FailedLoginAttempts++;
+                    if (emp.FailedLoginAttempts >= 5)
+                    { emp.LockoutEnd = DateTime.Now.AddMinutes(15); emp.FailedLoginAttempts = 0; SetError("Too many failed attempts. Locked 15 min."); }
+                    else SetError($"Invalid credentials. {5 - emp.FailedLoginAttempts} attempts left.");
                     await _context.SaveChangesAsync();
                     return View(model);
                 }
-
-                employee.FailedLoginAttempts = 0;
-                employee.LockoutEnd = null;
+                emp.FailedLoginAttempts = 0; emp.LockoutEnd = null;
                 await _context.SaveChangesAsync();
 
                 string deviceId = GetOrCreateDeviceId();
-                var device = await GetOrCreateDeviceRecord(employee.EmployeeID, "Employee", deviceId,
+                var device = await GetOrCreateDeviceRecord(emp.EmployeeID, "Employee", deviceId,
                     HttpContext.Connection.RemoteIpAddress?.ToString());
 
-                if (employee.IsTwoFactorEnabled && !string.IsNullOrEmpty(employee.TwoFactorSecretKey))
+                if (emp.IsTwoFactorEnabled && !string.IsNullOrEmpty(emp.TwoFactorSecretKey))
                 {
                     if (device.IsTrusted)
                     {
-                        await SignInAsync(BuildEmployeeClaims(employee), model.RememberMe);
-                        if (employee.MustChangePassword)
-                            return RedirectToAction("ChangePassword");
-                        return RedirectToSavedUrl(returnUrl, employee.Role);
+                        await SignInAsync(BuildEmployeeClaims(emp), model.RememberMe);
+                        if (emp.MustChangePassword) return RedirectToAction("ChangePassword");
+                        return RedirectToSavedUrl(returnUrl, emp.Role);
                     }
-                    TempData["2fa_pending_id"] = employee.EmployeeID.ToString();
+                    TempData["2fa_pending_id"] = emp.EmployeeID.ToString();
                     TempData["2fa_pending_type"] = "Employee";
                     TempData["2fa_remember_me"] = model.RememberMe.ToString();
                     TempData["2fa_return_url"] = returnUrl ?? string.Empty;
                     return RedirectToAction("TwoFactorChallenge");
                 }
 
-                await SignInAsync(BuildEmployeeClaims(employee), model.RememberMe);
-                if (employee.MustChangePassword)
-                    return RedirectToAction("ChangePassword");
-                return RedirectToSavedUrl(returnUrl, employee.Role);
+                await SignInAsync(BuildEmployeeClaims(emp), model.RememberMe);
+                if (emp.MustChangePassword) return RedirectToAction("ChangePassword");
+                return RedirectToSavedUrl(returnUrl, emp.Role);
             }
 
-            // 2. Try Patient
-            var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => p.Email == model.UserNameorEmail);
-
-            if (patient != null)
+            // --- Patient ---
+            var pat = await _context.Patients.FirstOrDefaultAsync(p => p.Email == model.UserNameorEmail);
+            if (pat != null)
             {
-                if (patient.IsActive != Status.Active)
-                {
-                    SetError("Account is inactive.");
-                    return View(model);
-                }
-                if (patient.LockoutEnd.HasValue && patient.LockoutEnd > DateTime.Now)
-                {
-                    SetError($"Account locked. Try again after {patient.LockoutEnd:HH:mm}.");
-                    return View(model);
-                }
+                if (pat.IsActive != Status.Active) { SetError("Account is inactive."); return View(model); }
+                if (pat.LockoutEnd.HasValue && pat.LockoutEnd > DateTime.Now)
+                { SetError($"Account locked. Try again after {pat.LockoutEnd:HH:mm}."); return View(model); }
 
-                string patientPasswordHash = patient.PasswordHash;
-                bool passwordValid = VerifyAndUpgradePassword(model.Password, ref patientPasswordHash);
-                if (patientPasswordHash != patient.PasswordHash)
-                    patient.PasswordHash = patientPasswordHash;
-
-                if (!passwordValid)
+                string hash = pat.PasswordHash;
+                bool ok = VerifyAndUpgradePassword(model.Password, ref hash);
+                if (hash != pat.PasswordHash) pat.PasswordHash = hash;
+                if (!ok)
                 {
-                    patient.FailedLoginAttempts++;
-                    if (patient.FailedLoginAttempts >= 5)
-                    {
-                        patient.LockoutEnd = DateTime.Now.AddMinutes(15);
-                        patient.FailedLoginAttempts = 0;
-                        SetError("Too many failed attempts. Account locked for 15 minutes.");
-                    }
-                    else
-                    {
-                        SetError($"Invalid email or password. {5 - patient.FailedLoginAttempts} attempt(s) remaining.");
-                    }
+                    pat.FailedLoginAttempts++;
+                    if (pat.FailedLoginAttempts >= 5)
+                    { pat.LockoutEnd = DateTime.Now.AddMinutes(15); pat.FailedLoginAttempts = 0; SetError("Too many failed attempts. Locked 15 min."); }
+                    else SetError($"Invalid credentials. {5 - pat.FailedLoginAttempts} attempts left.");
                     await _context.SaveChangesAsync();
                     return View(model);
                 }
-
-                patient.FailedLoginAttempts = 0;
-                patient.LockoutEnd = null;
+                pat.FailedLoginAttempts = 0; pat.LockoutEnd = null;
                 await _context.SaveChangesAsync();
 
-                await SignInAsync(BuildPatientClaims(patient), model.RememberMe);
-                if (patient.MustChangePassword)
-                    return RedirectToAction("ChangePassword");
+                string deviceId = GetOrCreateDeviceId();
+                var device = await GetOrCreateDeviceRecord(pat.Id, "Patient", deviceId,
+                    HttpContext.Connection.RemoteIpAddress?.ToString());
+
+                if (pat.IsTwoFactorEnabled && !string.IsNullOrEmpty(pat.TwoFactorSecretKey))
+                {
+                    if (device.IsTrusted)
+                    {
+                        await SignInAsync(BuildPatientClaims(pat), model.RememberMe);
+                        if (pat.MustChangePassword) return RedirectToAction("ChangePassword");
+                        return RedirectToSavedUrl(returnUrl, UserRole.PATIENT);
+                    }
+                    TempData["2fa_pending_id"] = pat.Id.ToString();
+                    TempData["2fa_pending_type"] = "Patient";
+                    TempData["2fa_remember_me"] = model.RememberMe.ToString();
+                    TempData["2fa_return_url"] = returnUrl ?? string.Empty;
+                    return RedirectToAction("TwoFactorChallenge");
+                }
+
+                await SignInAsync(BuildPatientClaims(pat), model.RememberMe);
+                if (pat.MustChangePassword) return RedirectToAction("ChangePassword");
                 return RedirectToSavedUrl(returnUrl, UserRole.PATIENT);
             }
 
@@ -342,14 +308,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(model);
         }
 
-        // --------------------------------------------------------------------------------
-        //  TWO-FACTOR CHALLENGE
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  TWO‑FACTOR CHALLENGE (for both Employee and Patient)
+        // ======================================================================
         [HttpGet]
         public IActionResult TwoFactorChallenge()
         {
-            if (TempData["2fa_pending_id"] == null)
-                return RedirectToAction("Login");
+            if (TempData["2fa_pending_id"] == null) return RedirectToAction("Login");
             var model = new TwoFactorChallengeViewModel
             {
                 ReturnUrl = TempData["2fa_return_url"]?.ToString() ?? string.Empty
@@ -368,88 +333,146 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var rememberMe = TempData["2fa_remember_me"]?.ToString() == "True";
             var returnUrl = TempData["2fa_return_url"]?.ToString();
 
-            if (string.IsNullOrEmpty(pendingId) || pendingType != "Employee")
+            if (string.IsNullOrEmpty(pendingId) || string.IsNullOrEmpty(pendingType))
                 return RedirectToAction("Login");
-            if (!int.TryParse(pendingId, out int employeeId))
+            if (!int.TryParse(pendingId, out int userId))
                 return RedirectToAction("Login");
 
-            var employee = await _context.Employees.FindAsync(employeeId);
-            if (employee == null) return RedirectToAction("Login");
+            // Retrieve the correct entity
+            string? secretKey = null;
+            string? recoveryJson = null;
+            UserRole role = UserRole.PATIENT; // default
+            if (pendingType == "Employee")
+            {
+                var e = await _context.Employees.FindAsync(userId);
+                if (e == null) return RedirectToAction("Login");
+                secretKey = e.TwoFactorSecretKey;
+                recoveryJson = e.TwoFactorRecoveryCodes;
+                role = e.Role;
+            }
+            else if (pendingType == "Patient")
+            {
+                var p = await _context.Patients.FindAsync(userId);
+                if (p == null) return RedirectToAction("Login");
+                secretKey = p.TwoFactorSecretKey;
+                recoveryJson = p.TwoFactorRecoveryCodes;
+                role = UserRole.PATIENT;
+            }
+            else return RedirectToAction("Login");
 
             bool isValid = false;
-            if (model.UseRecoveryCode)
+            if (model.UseRecoveryCode && !string.IsNullOrEmpty(model.RecoveryCode))
             {
-                if (!string.IsNullOrEmpty(model.RecoveryCode))
+                isValid = _twoFactorService.VerifyRecoveryCode(recoveryJson ?? string.Empty,
+                    model.RecoveryCode, out string updated);
+                if (isValid)
                 {
-                    isValid = _twoFactorService.VerifyRecoveryCode(
-                        employee.TwoFactorRecoveryCodes ?? string.Empty,
-                        model.RecoveryCode,
-                        out string updatedJson);
-                    if (isValid) employee.TwoFactorRecoveryCodes = updatedJson;
+                    if (pendingType == "Employee")
+                        (_context.Employees.Find(userId))!.TwoFactorRecoveryCodes = updated;
+                    else
+                        (_context.Patients.Find(userId))!.TwoFactorRecoveryCodes = updated;
                 }
             }
-            else
+            else if (!string.IsNullOrEmpty(model.Code))
             {
-                if (!string.IsNullOrEmpty(model.Code))
-                    isValid = _twoFactorService.VerifyCode(employee.TwoFactorSecretKey!, model.Code);
+                isValid = _twoFactorService.VerifyCode(secretKey!, model.Code);
             }
 
             if (!isValid)
             {
                 SetError("Invalid authentication code. Please try again.");
-                TempData["2fa_pending_id"] = employee.EmployeeID.ToString();
-                TempData["2fa_pending_type"] = "Employee";
+                TempData["2fa_pending_id"] = userId.ToString();
+                TempData["2fa_pending_type"] = pendingType;
                 TempData["2fa_remember_me"] = rememberMe.ToString();
                 TempData["2fa_return_url"] = returnUrl ?? string.Empty;
                 return View(model);
             }
 
+            // Trust device
             if (model.TrustDevice)
             {
                 string deviceId = GetOrCreateDeviceId();
                 var device = await _context.UserDevices
-                    .FirstOrDefaultAsync(d => d.DeviceId == deviceId && d.UserId == employeeId && d.UserType == "Employee");
+                    .FirstOrDefaultAsync(d => d.DeviceId == deviceId && d.UserId == userId && d.UserType == pendingType);
                 if (device != null) device.IsTrusted = true;
             }
 
             await _context.SaveChangesAsync();
-            await SignInAsync(BuildEmployeeClaims(employee), rememberMe);
 
-            TempData.Remove("2fa_pending_id");
-            TempData.Remove("2fa_pending_type");
-            TempData.Remove("2fa_remember_me");
-            TempData.Remove("2fa_return_url");
+            // Build claims and sign in
+            ClaimsPrincipal principal;
+            if (pendingType == "Employee")
+            {
+                var emp = await _context.Employees.FindAsync(userId);
+                principal = BuildEmployeeClaims(emp!);
+            }
+            else
+            {
+                var pat = await _context.Patients.FindAsync(userId);
+                principal = BuildPatientClaims(pat!);
+            }
+            await SignInAsync(principal, rememberMe);
 
-            if (employee.MustChangePassword)
-                return RedirectToAction("ChangePassword");
-            return RedirectToSavedUrl(returnUrl, employee.Role);
+            TempData.Remove("2fa_pending_id"); TempData.Remove("2fa_pending_type");
+            TempData.Remove("2fa_remember_me"); TempData.Remove("2fa_return_url");
+
+            // Check MustChangePassword after login
+            if (pendingType == "Employee")
+            {
+                var e = await _context.Employees.FindAsync(userId);
+                if (e!.MustChangePassword) return RedirectToAction("ChangePassword");
+            }
+            else
+            {
+                var p = await _context.Patients.FindAsync(userId);
+                if (p!.MustChangePassword) return RedirectToAction("ChangePassword");
+            }
+
+            return RedirectToSavedUrl(returnUrl, role);
         }
 
-        // --------------------------------------------------------------------------------
-        //  TWO-FACTOR SETUP & MANAGEMENT
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  TWO‑FACTOR SETUP & MANAGEMENT (for current user, regardless of role)
+        // ======================================================================
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> SetupTwoFactor()
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null || employee.IsTwoFactorEnabled) return RedirectToAction("ManageTwoFactor");
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
 
-            var secretKey = _twoFactorService.GenerateSecretKey();
-            employee.TwoFactorSecretKey = secretKey;
-            await _context.SaveChangesAsync();
-
-            var uri = _twoFactorService.GetQrCodeUri(secretKey, employee.Email, "NMB-HLabSys");
-            var qrBytes = _twoFactorService.GenerateQrCodePng(uri);
-            var qrBase64 = Convert.ToBase64String(qrBytes);
-
-            return View(new TwoFactorSetupViewModel
+            if (role == UserRole.PATIENT.ToString())
             {
-                SecretKey = secretKey,
-                QrCodeBase64 = qrBase64
-            });
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null || p.IsTwoFactorEnabled) return RedirectToAction("ManageTwoFactor");
+                var secretKey = _twoFactorService.GenerateSecretKey();
+                p.TwoFactorSecretKey = secretKey;
+                await _context.SaveChangesAsync();
+
+                var uri = _twoFactorService.GetQrCodeUri(secretKey, p.Email, "WardSystem");
+                var qr = _twoFactorService.GenerateQrCodePng(uri);
+                return View(new TwoFactorSetupViewModel
+                {
+                    SecretKey = secretKey,
+                    QrCodeBase64 = Convert.ToBase64String(qr)
+                });
+            }
+            else
+            {
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null || e.IsTwoFactorEnabled) return RedirectToAction("ManageTwoFactor");
+                var secretKey = _twoFactorService.GenerateSecretKey();
+                e.TwoFactorSecretKey = secretKey;
+                await _context.SaveChangesAsync();
+
+                var uri = _twoFactorService.GetQrCodeUri(secretKey, e.Email, "WardSystem");
+                var qr = _twoFactorService.GenerateQrCodePng(uri);
+                return View(new TwoFactorSetupViewModel
+                {
+                    SecretKey = secretKey,
+                    QrCodeBase64 = Convert.ToBase64String(qr)
+                });
+            }
         }
 
         [Authorize]
@@ -457,38 +480,64 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetupTwoFactor(TwoFactorSetupViewModel model)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null) return RedirectToAction("Login");
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
 
-            if (!ModelState.IsValid)
+            string? secretKey;
+            if (role == UserRole.PATIENT.ToString())
             {
-                var uri = _twoFactorService.GetQrCodeUri(employee.TwoFactorSecretKey!, employee.Email, "NMB-HLabSys");
-                var qrBytes = _twoFactorService.GenerateQrCodePng(uri);
-                model.QrCodeBase64 = Convert.ToBase64String(qrBytes);
-                model.SecretKey = employee.TwoFactorSecretKey!;
-                return View(model);
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null) return RedirectToAction("Login");
+                secretKey = p.TwoFactorSecretKey;
+                if (!ModelState.IsValid)
+                {
+                    var uri = _twoFactorService.GetQrCodeUri(secretKey!, p.Email, "WardSystem");
+                    model.QrCodeBase64 = Convert.ToBase64String(_twoFactorService.GenerateQrCodePng(uri));
+                    model.SecretKey = secretKey!;
+                    return View(model);
+                }
+                if (!_twoFactorService.VerifyCode(secretKey!, model.VerificationCode))
+                {
+                    SetError("Invalid verification code.");
+                    var uri = _twoFactorService.GetQrCodeUri(secretKey!, p.Email, "WardSystem");
+                    model.QrCodeBase64 = Convert.ToBase64String(_twoFactorService.GenerateQrCodePng(uri));
+                    model.SecretKey = secretKey!;
+                    return View(model);
+                }
+                p.IsTwoFactorEnabled = true;
+                var codes = _twoFactorService.GenerateRecoveryCodes();
+                p.TwoFactorRecoveryCodes = JsonSerializer.Serialize(codes.Select(c => HashPassword(c)).ToList());
+                await _context.SaveChangesAsync();
+                TempData["ShowRecoveryCodes"] = "true";
+                return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", codes) });
             }
-
-            if (!_twoFactorService.VerifyCode(employee.TwoFactorSecretKey!, model.VerificationCode))
+            else
             {
-                SetError("Invalid verification code. Please try again.");
-                var uri = _twoFactorService.GetQrCodeUri(employee.TwoFactorSecretKey!, employee.Email, "NMB-HLabSys");
-                var qrBytes = _twoFactorService.GenerateQrCodePng(uri);
-                model.QrCodeBase64 = Convert.ToBase64String(qrBytes);
-                model.SecretKey = employee.TwoFactorSecretKey!;
-                return View(model);
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null) return RedirectToAction("Login");
+                secretKey = e.TwoFactorSecretKey;
+                if (!ModelState.IsValid)
+                {
+                    var uri = _twoFactorService.GetQrCodeUri(secretKey!, e.Email, "WardSystem");
+                    model.QrCodeBase64 = Convert.ToBase64String(_twoFactorService.GenerateQrCodePng(uri));
+                    model.SecretKey = secretKey!;
+                    return View(model);
+                }
+                if (!_twoFactorService.VerifyCode(secretKey!, model.VerificationCode))
+                {
+                    SetError("Invalid verification code.");
+                    var uri = _twoFactorService.GetQrCodeUri(secretKey!, e.Email, "WardSystem");
+                    model.QrCodeBase64 = Convert.ToBase64String(_twoFactorService.GenerateQrCodePng(uri));
+                    model.SecretKey = secretKey!;
+                    return View(model);
+                }
+                e.IsTwoFactorEnabled = true;
+                var codes = _twoFactorService.GenerateRecoveryCodes();
+                e.TwoFactorRecoveryCodes = JsonSerializer.Serialize(codes.Select(c => HashPassword(c)).ToList());
+                await _context.SaveChangesAsync();
+                TempData["ShowRecoveryCodes"] = "true";
+                return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", codes) });
             }
-
-            employee.IsTwoFactorEnabled = true;
-            var recoveryCodes = _twoFactorService.GenerateRecoveryCodes();
-            var hashedCodes = recoveryCodes.Select(c => HashPassword(c)).ToList();
-            employee.TwoFactorRecoveryCodes = JsonSerializer.Serialize(hashedCodes);
-            await _context.SaveChangesAsync();
-
-            TempData["ShowRecoveryCodes"] = "true";
-            return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", recoveryCodes) });
         }
 
         [Authorize]
@@ -503,15 +552,25 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> ManageTwoFactor()
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null) return RedirectToAction("Login");
-            return View(new ManageTwoFactorViewModel
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
+
+            bool enabled; int left;
+            if (role == UserRole.PATIENT.ToString())
             {
-                IsTwoFactorEnabled = employee.IsTwoFactorEnabled,
-                RecoveryCodesLeft = CountRecoveryCodes(employee.TwoFactorRecoveryCodes)
-            });
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null) return RedirectToAction("Login");
+                enabled = p.IsTwoFactorEnabled;
+                left = CountRecoveryCodes(p.TwoFactorRecoveryCodes);
+            }
+            else
+            {
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null) return RedirectToAction("Login");
+                enabled = e.IsTwoFactorEnabled;
+                left = CountRecoveryCodes(e.TwoFactorRecoveryCodes);
+            }
+            return View(new ManageTwoFactorViewModel { IsTwoFactorEnabled = enabled, RecoveryCodesLeft = left });
         }
 
         [Authorize]
@@ -519,18 +578,29 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegenerateRecoveryCodes()
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null || !employee.IsTwoFactorEnabled) return RedirectToAction("SetupTwoFactor");
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
 
-            var recoveryCodes = _twoFactorService.GenerateRecoveryCodes();
-            var hashedCodes = recoveryCodes.Select(c => HashPassword(c)).ToList();
-            employee.TwoFactorRecoveryCodes = JsonSerializer.Serialize(hashedCodes);
-            await _context.SaveChangesAsync();
-
-            TempData["ShowRecoveryCodes"] = "true";
-            return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", recoveryCodes) });
+            if (role == UserRole.PATIENT.ToString())
+            {
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null || !p.IsTwoFactorEnabled) return RedirectToAction("SetupTwoFactor");
+                var codes = _twoFactorService.GenerateRecoveryCodes();
+                p.TwoFactorRecoveryCodes = JsonSerializer.Serialize(codes.Select(c => HashPassword(c)).ToList());
+                await _context.SaveChangesAsync();
+                TempData["ShowRecoveryCodes"] = "true";
+                return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", codes) });
+            }
+            else
+            {
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null || !e.IsTwoFactorEnabled) return RedirectToAction("SetupTwoFactor");
+                var codes = _twoFactorService.GenerateRecoveryCodes();
+                e.TwoFactorRecoveryCodes = JsonSerializer.Serialize(codes.Select(c => HashPassword(c)).ToList());
+                await _context.SaveChangesAsync();
+                TempData["ShowRecoveryCodes"] = "true";
+                return RedirectToAction("ShowRecoveryCodes", new { codes = string.Join(",", codes) });
+            }
         }
 
         [Authorize]
@@ -538,39 +608,44 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DisableTwoFactor(string password)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null) return RedirectToAction("Login");
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
 
-            if (!VerifyPassword(password, employee.PasswordHash))
+            if (role == UserRole.PATIENT.ToString())
             {
-                SetError("Password is incorrect.");
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null) return RedirectToAction("Login");
+                if (!VerifyPassword(password, p.PasswordHash)) { SetError("Password incorrect."); return RedirectToAction("ManageTwoFactor"); }
+                p.IsTwoFactorEnabled = false; p.TwoFactorSecretKey = null; p.TwoFactorRecoveryCodes = null;
+                await _context.SaveChangesAsync();
+                SetSuccess("2FA disabled.");
                 return RedirectToAction("ManageTwoFactor");
             }
-            employee.IsTwoFactorEnabled = false;
-            employee.TwoFactorSecretKey = null;
-            employee.TwoFactorRecoveryCodes = null;
-            await _context.SaveChangesAsync();
-            SetSuccess("Two-factor authentication has been disabled.");
-            return RedirectToAction("ManageTwoFactor");
+            else
+            {
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null) return RedirectToAction("Login");
+                if (!VerifyPassword(password, e.PasswordHash)) { SetError("Password incorrect."); return RedirectToAction("ManageTwoFactor"); }
+                e.IsTwoFactorEnabled = false; e.TwoFactorSecretKey = null; e.TwoFactorRecoveryCodes = null;
+                await _context.SaveChangesAsync();
+                SetSuccess("2FA disabled.");
+                return RedirectToAction("ManageTwoFactor");
+            }
         }
 
-        // --------------------------------------------------------------------------------
-        //  DEVICE MANAGEMENT
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  DEVICE MANAGEMENT (unchanged – works for both)
+        // ======================================================================
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> ManageDevices()
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-
-            var userType = User.FindFirstValue(ClaimTypes.Role) == UserRole.PATIENT.ToString() ? "Patient" : "Employee";
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
+            var userType = role == UserRole.PATIENT.ToString() ? "Patient" : "Employee";
             var devices = await _context.UserDevices
                 .Where(d => d.UserId == userId && d.UserType == userType)
-                .OrderByDescending(d => d.LastSeen)
-                .ToListAsync();
+                .OrderByDescending(d => d.LastSeen).ToListAsync();
             return View(devices);
         }
 
@@ -579,24 +654,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RevokeDevice(int deviceId)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-
-            var userType = User.FindFirstValue(ClaimTypes.Role) == UserRole.PATIENT.ToString() ? "Patient" : "Employee";
-            var device = await _context.UserDevices
-                .FirstOrDefaultAsync(d => d.Id == deviceId && d.UserId == userId && d.UserType == userType);
-            if (device != null)
-            {
-                _context.UserDevices.Remove(device);
-                await _context.SaveChangesAsync();
-                SetSuccess("Device removed.");
-            }
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
+            var userType = role == UserRole.PATIENT.ToString() ? "Patient" : "Employee";
+            var dev = await _context.UserDevices.FirstOrDefaultAsync(d => d.Id == deviceId && d.UserId == userId && d.UserType == userType);
+            if (dev != null) { _context.UserDevices.Remove(dev); await _context.SaveChangesAsync(); SetSuccess("Device removed."); }
             return RedirectToAction("ManageDevices");
         }
 
-        // --------------------------------------------------------------------------------
-        //  FORGOT / RESET PASSWORD
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  FORGOT / RESET PASSWORD (no change needed – 2FA is not involved)
+        // ======================================================================
         [HttpGet]
         public IActionResult ForgotPassword() => View();
 
@@ -605,39 +673,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
-
-            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email == model.Email);
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == model.Email);
-
-            if (employee == null && patient == null)
+            var emp = await _context.Employees.FirstOrDefaultAsync(e => e.Email == model.Email);
+            var pat = await _context.Patients.FirstOrDefaultAsync(p => p.Email == model.Email);
+            if (emp == null && pat == null)
             {
-                SetSuccess("If an account exists, a password reset link has been sent.");
+                SetSuccess("If an account exists, a reset link has been sent.");
                 return RedirectToAction(nameof(ForgotPasswordConfirmation));
             }
-
             string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             DateTime expiry = DateTime.Now.AddHours(1);
-
-            if (employee != null)
+            if (emp != null)
             {
-                employee.ResetToken = token;
-                employee.ResetTokenExpiry = expiry;
+                emp.ResetToken = token; emp.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
-                string resetLink = Url.Action("ResetPassword", "Account", new { email = employee.Email, token }, Request.Scheme)!;
-                await _emailService.SendEmailAsync(employee.Email, "Password Reset Request",
-                    $"Please reset your password by clicking this link: {resetLink}");
+                var link = Url.Action("ResetPassword", "Account", new { email = emp.Email, token }, Request.Scheme)!;
+                await _emailService.SendEmailAsync(emp.Email, "Password Reset", $"Reset link: {link}");
             }
-            else if (patient != null)
+            else if (pat != null)
             {
-                patient.ResetToken = token;
-                patient.ResetTokenExpiry = expiry;
+                pat.ResetToken = token; pat.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
-                string resetLink = Url.Action("ResetPassword", "Account", new { email = patient.Email, token }, Request.Scheme)!;
-                await _emailService.SendEmailAsync(patient.Email, "Password Reset Request",
-                    $"Please reset your password by clicking this link: {resetLink}");
+                var link = Url.Action("ResetPassword", "Account", new { email = pat.Email, token }, Request.Scheme)!;
+                await _emailService.SendEmailAsync(pat.Email, "Password Reset", $"Reset link: {link}");
             }
-
-            SetSuccess("If an account exists, a password reset link has been sent.");
+            SetSuccess("If an account exists, a reset link has been sent.");
             return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
 
@@ -647,8 +706,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public IActionResult ResetPassword(string email, string token)
         {
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
-                return RedirectToAction("Login");
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token)) return RedirectToAction("Login");
             return View(new ResetPasswordViewModel { Email = email, Token = token });
         }
 
@@ -659,46 +717,35 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (!ModelState.IsValid) return View(model);
             if (!IsPasswordComplex(model.Password))
             {
-                SetError("Password must be at least 8 characters and contain an uppercase letter, a number, and a special character.");
+                SetError("Password must be at least 8 chars with upper, digit, special.");
                 return View(model);
             }
-
-            var employee = await _context.Employees.FirstOrDefaultAsync(e =>
+            var emp = await _context.Employees.FirstOrDefaultAsync(e =>
                 e.Email == model.Email && e.ResetToken == model.Token && e.ResetTokenExpiry > DateTime.Now);
-            var patient = await _context.Patients.FirstOrDefaultAsync(p =>
+            var pat = await _context.Patients.FirstOrDefaultAsync(p =>
                 p.Email == model.Email && p.ResetToken == model.Token && p.ResetTokenExpiry > DateTime.Now);
-
-            if (employee == null && patient == null)
+            if (emp == null && pat == null) { SetError("Invalid or expired token."); return View(model); }
+            if (emp != null)
             {
-                SetError("Invalid or expired token.");
-                return View(model);
+                emp.PasswordHash = HashPassword(model.Password);
+                emp.ResetToken = null; emp.ResetTokenExpiry = null; emp.MustChangePassword = false;
             }
-
-            if (employee != null)
+            else if (pat != null)
             {
-                employee.PasswordHash = HashPassword(model.Password);
-                employee.ResetToken = null;
-                employee.ResetTokenExpiry = null;
-                employee.MustChangePassword = false;
-            }
-            else if (patient != null)
-            {
-                patient.PasswordHash = HashPassword(model.Password);
-                patient.ResetToken = null;
-                patient.ResetTokenExpiry = null;
-                patient.MustChangePassword = false;
+                pat.PasswordHash = HashPassword(model.Password);
+                pat.ResetToken = null; pat.ResetTokenExpiry = null; pat.MustChangePassword = false;
             }
             await _context.SaveChangesAsync();
-            SetSuccess("Your password has been reset successfully. Please login.");
+            SetSuccess("Password reset. Please login.");
             return RedirectToAction(nameof(ResetPasswordConfirmation));
         }
 
         [HttpGet]
         public IActionResult ResetPasswordConfirmation() => View();
 
-        // --------------------------------------------------------------------------------
-        //  CHANGE PASSWORD
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  CHANGE PASSWORD (updated for both roles)
+        // ======================================================================
         [Authorize]
         [HttpGet]
         public IActionResult ChangePassword() => View();
@@ -711,83 +758,50 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (!ModelState.IsValid) return View(model);
             if (!IsPasswordComplex(model.NewPassword))
             {
-                SetError("Password must be at least 8 characters and contain an uppercase letter, a number, and a special character.");
+                SetError("Password must be at least 8 chars with upper, digit, special.");
                 return View(model);
             }
+            var userId = GetCurrentUserId(); var role = GetCurrentUserRole();
+            if (userId == null || string.IsNullOrEmpty(role)) { SetError("Session expired."); return RedirectToAction("Login"); }
 
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (role == UserRole.PATIENT.ToString())
             {
-                SetError("Session expired. Please login again.");
-                return RedirectToAction("Login");
-            }
-
-            if (roleClaim == UserRole.PATIENT.ToString())
-            {
-                var patient = await _context.Patients.FindAsync(userId);
-                if (patient == null) return RedirectToAction("Login");
-                if (!VerifyPassword(model.CurrentPassword, patient.PasswordHash))
-                {
-                    SetError("Current password is incorrect.");
-                    return View(model);
-                }
-                patient.PasswordHash = HashPassword(model.NewPassword);
-                patient.MustChangePassword = false;
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null) return RedirectToAction("Login");
+                if (!VerifyPassword(model.CurrentPassword, p.PasswordHash)) { SetError("Current password incorrect."); return View(model); }
+                p.PasswordHash = HashPassword(model.NewPassword); p.MustChangePassword = false;
             }
             else
             {
-                var employee = await _context.Employees.FindAsync(userId);
-                if (employee == null) return RedirectToAction("Login");
-                if (!VerifyPassword(model.CurrentPassword, employee.PasswordHash))
-                {
-                    SetError("Current password is incorrect.");
-                    return View(model);
-                }
-                employee.PasswordHash = HashPassword(model.NewPassword);
-                employee.MustChangePassword = false;
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null) return RedirectToAction("Login");
+                if (!VerifyPassword(model.CurrentPassword, e.PasswordHash)) { SetError("Current password incorrect."); return View(model); }
+                e.PasswordHash = HashPassword(model.NewPassword); e.MustChangePassword = false;
             }
             await _context.SaveChangesAsync();
 
+            // Re‑sign in to update claims
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Role, roleClaim ?? "")
-            };
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()), new Claim(ClaimTypes.Role, role) };
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = true });
-
-            SetSuccess("Password changed successfully.");
+                new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+                new AuthenticationProperties { IsPersistent = true });
+            SetSuccess("Password changed.");
             return RedirectToDashboard();
         }
 
-        // --------------------------------------------------------------------------------
-        //  EDIT PROFILE  (UPDATED – CORRECT ROLES)
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  EDIT PROFILE (unchanged)
+        // ======================================================================
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> EditProfile()
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null) return RedirectToAction("Login");
-
-            var model = new EditProfileViewModel
-            {
-                FirstName = employee.FirstName,
-                LastName = employee.LastName
-            };
-
-            return View(model);
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var emp = await _context.Employees.FindAsync(userId.Value);
+            if (emp == null) return RedirectToAction("Login");
+            return View(new EditProfileViewModel { FirstName = emp.FirstName, LastName = emp.LastName });
         }
-
-
-
-
 
         [Authorize]
         [HttpPost]
@@ -795,87 +809,63 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         public async Task<IActionResult> EditProfile(EditProfileViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
-
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
-
-            var employee = await _context.Employees.FindAsync(userId.Value);
-            if (employee == null) return RedirectToAction("Login");
-
-            employee.FirstName = model.FirstName;
-            employee.LastName = model.LastName;
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var emp = await _context.Employees.FindAsync(userId.Value);
+            if (emp == null) return RedirectToAction("Login");
+            emp.FirstName = model.FirstName; emp.LastName = model.LastName;
             await _context.SaveChangesAsync();
-
-            // Re-sign in to update the cookie claims with the new name
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            await SignInAsync(BuildEmployeeClaims(employee), isPersistent: true);
-
-            SetSuccess("Profile updated successfully.");
-            return RedirectToDashboard(employee.Role);
+            await SignInAsync(BuildEmployeeClaims(emp), true);
+            SetSuccess("Profile updated.");
+            return RedirectToDashboard(emp.Role);
         }
 
-        // --------------------------------------------------------------------------------
-        //  DEACTIVATE ACCOUNT (NEW)
-        // --------------------------------------------------------------------------------
+        // ======================================================================
+        //  DEACTIVATE ACCOUNT (works for both)
+        // ======================================================================
         [Authorize]
         [HttpGet]
-        public IActionResult DeactivateAccount()
-        {
-            return View();
-        }
+        public IActionResult DeactivateAccount() => View();
 
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeactivateAccount(string password)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return RedirectToAction("Login");
+            var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
+            var role = GetCurrentUserRole();
 
-            var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-
-            if (roleClaim == UserRole.PATIENT.ToString())
+            if (role == UserRole.PATIENT.ToString())
             {
-                var patient = await _context.Patients.FindAsync(userId);
-                if (patient == null) return RedirectToAction("Login");
-                if (!VerifyPassword(password, patient.PasswordHash))
-                {
-                    SetError("Password is incorrect.");
-                    return RedirectToAction("DeactivateAccount");
-                }
-                patient.IsActive = Status.Inactive;
+                var p = await _context.Patients.FindAsync(userId.Value);
+                if (p == null) return RedirectToAction("Login");
+                if (!VerifyPassword(password, p.PasswordHash)) { SetError("Password incorrect."); return RedirectToAction("DeactivateAccount"); }
+                p.IsActive = Status.Inactive;
             }
             else
             {
-                var employee = await _context.Employees.FindAsync(userId);
-                if (employee == null) return RedirectToAction("Login");
-                if (!VerifyPassword(password, employee.PasswordHash))
-                {
-                    SetError("Password is incorrect.");
-                    return RedirectToAction("DeactivateAccount");
-                }
-                employee.IsActive = Status.Inactive;
+                var e = await _context.Employees.FindAsync(userId.Value);
+                if (e == null) return RedirectToAction("Login");
+                if (!VerifyPassword(password, e.PasswordHash)) { SetError("Password incorrect."); return RedirectToAction("DeactivateAccount"); }
+                e.IsActive = Status.Inactive;
             }
-
             await _context.SaveChangesAsync();
-
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
-
-            SetSuccess("Your account has been deactivated. Goodbye!");
+            SetSuccess("Account deactivated.");
             return RedirectToAction("Login");
         }
 
-        // --------------------------------------------------------------------------------
+        // ======================================================================
         //  LOGOUT
-        // --------------------------------------------------------------------------------
+        // ======================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
-            SetSuccess("You have been logged out successfully.");
+            SetSuccess("Logged out.");
             return RedirectToAction("Login");
         }
     }

@@ -1,0 +1,94 @@
+@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Ward>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Wards";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Wards</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Wards</h1>
+        <p>@Model.Count() ward(s) configured</p>
+    </div>
+    <a asp-action="CreateWard" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Add Ward
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-bed-pulse" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No wards configured yet</div>
+            <a asp-action="CreateWard" class="btn btn-primary btn-sm" style="margin-top:12px;">
+                <i class="fa-solid fa-plus"></i> Add First Ward
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
+        @foreach (var ward in Model)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-hospital"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="card-title">@ward.Name</div>
+                            <span class="badge @(ward.IsActive == Status.Active ? "badge-success" : "badge-danger")" style="font-size:.65rem;">
+                                <span class="badge-dot"></span> @ward.IsActive
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; min-height:36px;">
+                        @(string.IsNullOrEmpty(ward.Description) ? "No description provided." : ward.Description)
+                    </p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; gap:6px;">
+                            <a asp-action="DetailsWard" asp-route-id="@ward.Id" class="btn btn-outline btn-sm">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a asp-action="EditWard" asp-route-id="@ward.Id" class="btn btn-outline btn-sm">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <a asp-action="Beds" asp-route-wardId="@ward.Id" class="btn btn-outline btn-sm">
+                                <i class="fa-solid fa-bed"></i> Beds
+                            </a>
+                        </div>
+                        @if (ward.IsActive == Status.Active)
+                        {
+                            <form asp-action="DeleteWard" asp-route-id="@ward.Id" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                        onclick="return confirm('Deactivate ward \'@ward.Name\'?')">
+                                    <i class="fa-solid fa-ban"></i>
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="RestoreWard" asp-route-id="@ward.Id" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

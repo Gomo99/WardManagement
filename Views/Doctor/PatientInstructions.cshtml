@@ -1,0 +1,33 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.ViewModel.PatientInstructionViewModel>
+@{
+    ViewData["Title"] = "Patient Instructions";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Instructions</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Instructions</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card">
+    @if (!Model.Any())
+    {
+        <p style="padding:40px; text-align:center;">No instructions recorded.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Date</th><th>Doctor</th><th>Instructions</th></tr></thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.VisitDate.ToString("g")</td>
+                            <td>@item.DoctorName</td>
+                            <td>@item.Instructions</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,44 @@
+@model WARDMANAGEMENTSYSTEM.Models.Bed
+@{
+    ViewData["Title"] = "Edit Bed";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Beds'>Beds</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Edit Bed</h1><p>Bed @Model.BedNumber — @(Model.Ward?.Name)</p></div>
+    <a asp-action="Beds" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div style="max-width:480px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-bed" style="color:var(--teal); margin-right:8px;"></i>Edit Bed Details</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditBed" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+                <input asp-for="IsActive" type="hidden" />
+                <div class="form-group">
+                    <label class="form-label" asp-for="WardId">Ward <span class="required">*</span></label>
+                    <select asp-for="WardId" asp-items="ViewBag.Wards" class="form-control"></select>
+                    <span asp-validation-for="WardId" class="field-validation-error"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="BedNumber">Bed Number <span class="required">*</span></label>
+                    <input asp-for="BedNumber" class="form-control" />
+                    <span asp-validation-for="BedNumber" class="field-validation-error"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-check">
+                        <input asp-for="IsOccupied" type="checkbox" class="form-check-input" />
+                        <span class="form-check-label">Mark as occupied</span>
+                    </label>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    <a asp-action="Beds" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

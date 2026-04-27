@@ -1,0 +1,86 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Prescription>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "All Prescriptions";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>All Scripts</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>All Prescriptions</h1>
+        <p>@Model.Count() active prescriptions</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">No prescriptions found.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Medication</th>
+                        <th>Dosage</th>
+                        <th>Prescribed</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var script in Model)
+                    {
+                        string statusClass = script.ScriptStatus switch
+                        {
+                            ScriptStatus.New => "badge badge-gold",
+                            ScriptStatus.ForwardedToPharmacy => "badge badge-navy",
+                            ScriptStatus.Delivered => "badge badge-success",
+                            _ => "badge badge-secondary"
+                        };
+                        <tr>
+                            <td>@script.Admission?.Patient.FullName</td>
+                            <td>@script.Medication?.Name</td>
+                            <td>@script.Dosage</td>
+                            <td>@script.PrescribedDate.ToString("dd MMM yyyy")</td>
+                            <td><span class="@statusClass">@script.ScriptStatus</span></td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@script.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                @if (script.ScriptStatus == ScriptStatus.New)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@script.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                    <form asp-action="ForwardToPharmacy" asp-route-id="@script.Id" method="post" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"><i class="fa-solid fa-paper-plane"></i> Forward</button>
+                                    </form>
+                                }
+                                else if (script.ScriptStatus == ScriptStatus.ForwardedToPharmacy)
+                                {
+                                    <a asp-action="ReceiveScript" asp-route-id="@script.Id" class="btn btn-outline btn-sm" style="color:var(--teal); border-color:var(--teal);"><i class="fa-solid fa-check"></i> Receive</a>
+                                }
+                                <form asp-action="DeleteScript" asp-route-id="@script.Id" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                            onclick="return confirm('Deactivate this prescription?')">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,42 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Prescription>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Delivered Scripts";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Delivered Scripts</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Delivered</h1>
+        <p>@Model.Count() prescriptions received on ward</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">No delivered medications yet.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Patient</th><th>Medication</th><th>Dosage</th><th>Prescribed</th><th style="text-align:right;">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var script in Model)
+                    {
+                        <tr>
+                            <td>@script.Admission?.Patient.FullName</td>
+                            <td>@script.Medication?.Name</td>
+                            <td>@script.Dosage</td>
+                            <td>@script.PrescribedDate.ToString("dd MMM yyyy")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@script.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

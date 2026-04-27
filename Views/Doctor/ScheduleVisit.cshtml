@@ -1,0 +1,32 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.DoctorVisit
+@{
+    ViewData["Title"] = "Schedule Visit";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Schedule Visit</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Schedule Visit</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-calendar-plus"></i> New Scheduled Visit</span></div>
+        <div class="card-body">
+            <form asp-action="ScheduleVisit" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="AdmissionId" type="hidden" />
+                <div class="form-group">
+                    <label class="form-label" asp-for="VisitDate">Date &amp; Time</label>
+                    <input asp-for="VisitDate" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="VisitDate" class="field-validation-error"></span>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Schedule</button>
+                    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

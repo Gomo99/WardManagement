@@ -1,0 +1,36 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Prescription>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Prescriptions";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Prescriptions</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Prescriptions</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="PrescribeMedication" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Prescription</a>
+    <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th style="text-align:right;">Actions</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td>@p.PrescribedDate.ToString("d")</td>
+                        <td>@p.Medication?.Name</td>
+                        <td>@p.Dosage</td>
+                        <td>@p.Frequency</td>
+                        <td>@p.Duration</td>
+                        <td style="text-align:right;">
+                            <a asp-action="EditPrescription" asp-route-id="@p.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                            <form asp-action="DeletePrescription" asp-route-id="@p.Id" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger);"><i class="fa-solid fa-ban"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

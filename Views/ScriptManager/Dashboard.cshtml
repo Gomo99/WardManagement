@@ -1,0 +1,58 @@
+﻿@{
+    ViewData["Title"] = "Script Manager Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Script Manager Dashboard</h1>
+        <p>Prescription processing and delivery tracking</p>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-file-prescription"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.NewScriptsCount</div>
+            <div class="stat-label">New Prescriptions</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon navy"><i class="fa-solid fa-truck"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ForwardedCount</div>
+            <div class="stat-label">Forwarded to Pharmacy</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.DeliveredCount</div>
+            <div class="stat-label">Delivered</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-file-prescription"></i> New Scripts</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">View and process newly written prescriptions.</p>
+            <a asp-action="NewScripts" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View New</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-list-ul"></i> All Scripts</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">Full list of prescriptions in every status.</p>
+            <a asp-action="AllScripts" class="btn btn-primary btn-sm"><i class="fa-solid fa-table-list"></i> View All</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-plus"></i> Manual Entry</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">Create a prescription manually (e.g. from written script).</p>
+            <a asp-action="Create" class="btn btn-outline btn-sm"><i class="fa-solid fa-plus"></i> New Prescription</a>
+        </div>
+    </div>
+</div>

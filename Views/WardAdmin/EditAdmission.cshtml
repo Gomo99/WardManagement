@@ -1,0 +1,77 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Admission
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Edit Admission Folder";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/WardAdmin/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit Folder</span>";
+    var patientName = ViewBag.PatientName as string ?? Model.Patient?.FullName;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Edit Admission Folder</h1>
+        <p>@patientName — Admission #@Model.Id</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Folder</a>
+    </div>
+</div>
+
+<div style="max-width:760px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-pen-to-square"></i> Update Medical Details &amp; Assignment</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditAdmission" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+
+                <!-- Doctor -->
+                <div class="form-group">
+                    <label class="form-label" for="doctorId">Attending Doctor <span class="required">*</span></label>
+                    <select name="doctorId" asp-items="ViewBag.Doctors" class="form-control" required>
+                        <option value="">Select doctor</option>
+                    </select>
+                </div>
+
+                <!-- Bed -->
+                <div class="form-group">
+                    <label class="form-label" for="bedId">Assigned Bed <span class="required">*</span></label>
+                    <select name="bedId" asp-items="ViewBag.Beds" class="form-control" required>
+                        <option value="">Select bed</option>
+                    </select>
+                </div>
+
+                <!-- Allergies (multi-select) -->
+                <div class="form-group">
+                    <label class="form-label">Allergies</label>
+                    <select name="allergyIds" asp-items="ViewBag.Allergies" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                    <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select/deselect multiple.</small>
+                </div>
+
+                <!-- Chronic Medications (multi-select) -->
+                <div class="form-group">
+                    <label class="form-label">Chronic Medications</label>
+                    <select name="medicationIds" asp-items="ViewBag.Medications" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                </div>
+
+                <!-- Chronic Conditions (multi-select) -->
+                <div class="form-group">
+                    <label class="form-label">Chronic Conditions</label>
+                    <select name="conditionIds" asp-items="ViewBag.Conditions" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Update Admission</button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

@@ -44,11 +44,16 @@ namespace WARDMANAGEMENTSYSTEM.Models
         // Lockout
         public int FailedLoginAttempts { get; set; } = 0;
         public DateTime? LockoutEnd { get; set; }
+
+        // ---- NEW: Two‑Factor Authentication ----
+        public bool IsTwoFactorEnabled { get; set; } = false;
+        public string? TwoFactorSecretKey { get; set; }
+        public string? TwoFactorRecoveryCodes { get; set; }
+
         [NotMapped]
         public string FullName => $"{FirstName} {LastName}";
 
-
-        // Test requests (will be added later in the Doctor subsystem)
-        // public ICollection<TestRequest> TestRequests { get; set; }
+        // Navigation (optional, for device tracking – add if you want patient device trust)
+        // public ICollection<UserDevice> UserDevices { get; set; } = new List<UserDevice>();
     }
 }

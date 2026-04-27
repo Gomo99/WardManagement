@@ -1,0 +1,85 @@
+﻿@{
+    ViewData["Title"] = "Consumables Manager Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Consumables Manager</h1>
+        <p>Stock overview and quick actions</p>
+    </div>
+    <div>
+        <span style="font-size:.8rem; color:var(--gray-400);">
+            <i class="fa-regular fa-clock"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </span>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-box-open"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ActiveConsumablesCount</div>
+            <div class="stat-label">Active Consumables</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-clipboard-list"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingOrdersCount</div>
+            <div class="stat-label">Pending Orders</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.StockTakesCount</div>
+            <div class="stat-label">Stock Takes</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-boxes-stacked" style="color:var(--teal);"></i>
+                <span class="card-title">Consumables</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View and manage ward consumables stock.</p>
+            <a asp-action="Consumables" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> View All</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-truck-ramp-box" style="color:var(--navy);"></i>
+                <span class="card-title">Orders</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Place new orders for low-stock items.</p>
+            <div style="display:flex; gap:8px;">
+                <a asp-action="Orders" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> All Orders</a>
+                <a asp-action="RequestConsumable" class="btn btn-outline btn-sm"><i class="fa-solid fa-plus"></i> New Request</a>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-clipboard-check" style="color:var(--success);"></i>
+                <span class="card-title">Stock Takes</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Count and adjust physical stock.</p>
+            <div style="display:flex; gap:8px;">
+                <a asp-action="StockTakes" class="btn btn-primary btn-sm"><i class="fa-solid fa-history"></i> History</a>
+                <a asp-action="TakeStock" class="btn btn-outline btn-sm"><i class="fa-solid fa-plus"></i> New Count</a>
+            </div>
+        </div>
+    </div>
+</div>

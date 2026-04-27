@@ -1,0 +1,58 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.ConsumableOrder
+@{
+    ViewData["Title"] = "Receive Consumable";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/Orders'>Orders</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Receive</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Receive Stock</h1>
+        <p>Order #@Model.Id — @Model.Consumable?.Name</p>
+    </div>
+    <a asp-action="Orders" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-truck" style="color:var(--teal); margin-right:8px;"></i>Confirm Delivery</span>
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom:20px; background:var(--gray-50); padding:14px; border-radius:8px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.875rem;">
+                    <div>
+                        <strong>Consumable:</strong> @Model.Consumable?.Name
+                    </div>
+                    <div>
+                        <strong>Requested Quantity:</strong> @Model.QuantityRequested
+                    </div>
+                    <div>
+                        <strong>Current Stock:</strong> @Model.Consumable?.QuantityOnHand
+                    </div>
+                    <div>
+                        <strong>Reorder Level:</strong> @Model.Consumable?.ReorderLevel
+                    </div>
+                </div>
+            </div>
+
+            <form asp-action="ReceiveConsumable" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.Id" />
+
+                <div class="form-group">
+                    <label class="form-label" for="quantityReceived">Quantity Received <span class="required">*</span></label>
+                    <input type="number" name="quantityReceived" class="form-control" min="1" placeholder="Enter actual quantity delivered" required />
+                </div>
+
+                <div class="alert alert-info" style="margin-bottom:16px;">
+                    <i class="fa-solid fa-circle-info"></i> This will update the stock level for <strong>@Model.Consumable?.Name</strong>. Please verify the physical count before confirming.
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Confirm Receipt</button>
+                    <a asp-action="Orders" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

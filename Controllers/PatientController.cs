@@ -209,8 +209,43 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Login", "Account");
         }
 
-        
-      
+        // ==================================================================
+        //  PATIENT SELF‑SERVICE – VIEW ALL DOCTOR INSTRUCTIONS
+        // ==================================================================
+        public async Task<IActionResult> MyInstructions()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
+                return RedirectToAction("Login", "Account");
+
+            // Get all admissions for this patient
+            var admissions = await _context.Admissions
+                .Where(a => a.PatientId == userId.Value)
+                .Select(a => a.Id)
+                .ToListAsync();
+
+            // Collect all doctor visit instructions across all admissions
+            var instructions = await _context.DoctorVisits
+                .Include(v => v.Admission)
+                    .ThenInclude(a => a.Patient)
+                .Include(v => v.Doctor)
+                .Where(v => admissions.Contains(v.AdmissionId)
+                            && v.IsActive == Status.Active
+                            && !string.IsNullOrEmpty(v.Instructions))
+                .OrderByDescending(v => v.VisitDate)
+                .Select(v => new PatientInstructionViewModel
+                {
+                    VisitDate = v.VisitDate,
+                    Instructions = v.Instructions,
+                    DoctorName = v.Doctor != null ? v.Doctor.FullName : (v.ExternalDoctorName ?? "Doctor"),
+                    AdmissionId = v.AdmissionId
+                })
+                .ToListAsync();
+
+            ViewBag.PatientName = (await _context.Patients.FindAsync(userId.Value))?.FullName;
+            return View(instructions);
+        }
+
 
     }
 }

@@ -1,0 +1,37 @@
+﻿@{
+    ViewData["Title"] = "Nursing Sister Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Nursing Sister Dashboard</h1>
+        <p>Ward medication management (all schedules including 5+)</p>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-bed-pulse"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ActivePatients</div>
+            <div class="stat-label">Admitted Patients</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-pills"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.AdministeredToday</div>
+            <div class="stat-label">Medications Today</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-users"></i> Patients</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">View admitted patients and administer medications (schedule 5+ allowed).</p>
+            <a asp-action="Patients" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View Patients</a>
+        </div>
+    </div>
+</div>

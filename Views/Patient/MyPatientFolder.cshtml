@@ -1,0 +1,135 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Admission
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "My Patient Folder";
+    ViewData["Breadcrumb"] = "<a href='/Patient/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Patient/MyAdmissions'>Admissions</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Folder</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Admission #@Model.Id</h1>
+        <p>@Model.AdmissionDate.ToString("dd MMMM yyyy") — @Model.Bed?.BedNumberWithWard</p>
+    </div>
+    <a asp-action="MyAdmissions" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<!-- Basics -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title">Medical History</span></div>
+        <div class="card-body">
+            <strong>Allergies:</strong>
+            <ul style="margin:4px 0 0 16px;">
+                @foreach (var aa in Model.AdmissionAllergies)
+                {
+                    <li>@aa.Allergy.Name</li>
+                }
+                @if (!Model.AdmissionAllergies.Any())
+                {
+                    <li class="text-muted">None recorded</li>
+                }
+            </ul>
+            <strong>Chronic Conditions:</strong>
+            <ul style="margin:4px 0 0 16px;">
+                @foreach (var ac in Model.AdmissionConditions)
+                {
+                    <li>@ac.Condition.Name</li>
+                }
+                @if (!Model.AdmissionConditions.Any())
+                {
+                    <li class="text-muted">None recorded</li>
+                }
+            </ul>
+            <strong>Chronic Medications:</strong>
+            <ul style="margin:4px 0 0 16px;">
+                @foreach (var am in Model.AdmissionMedications)
+                {
+                    <li>@am.Medication.Name</li>
+                }
+                @if (!Model.AdmissionMedications.Any())
+                {
+                    <li class="text-muted">None recorded</li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span class="card-title">Vitals (Recent)</span></div>
+        <div class="card-body">
+            @if (ViewBag.Vitals == null || ViewBag.Vitals.Count == 0)
+            {
+                <p class="text-muted">No vitals recorded.</p>
+            }
+            else
+            {
+                var latest = (ViewBag.Vitals as IEnumerable<Vitals>).FirstOrDefault();
+                <table style="width:100%; font-size:.85rem;">
+                    <tr><td>BP:</td><td>@(latest?.BloodPressure ?? "—")</td></tr>
+                    <tr><td>Temp:</td><td>@(latest?.TemperatureCelsius?.ToString("F1") ?? "—") °C</td></tr>
+                    <tr><td>Sugar:</td><td>@(latest?.BloodSugarMmolL?.ToString() ?? "—") mmol/L</td></tr>
+                    <tr><td>HR:</td><td>@(latest?.HeartRateBpm?.ToString() ?? "—") bpm</td></tr>
+                    <tr><td>RR:</td><td>@(latest?.RespiratoryRate?.ToString() ?? "—")</td></tr>
+                    <tr><td>SpO₂:</td><td>@(latest?.OxygenSaturation?.ToString() ?? "—") %</td></tr>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Treatments and Medications (collapsibles) -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">Treatments</span></div>
+    <div class="card-body">
+        @if (ViewBag.Treatments == null || ViewBag.Treatments.Count == 0)
+        {
+            <p class="text-muted">No treatments recorded.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var t in ViewBag.Treatments)
+                {
+                    <li>@t.TreatmentDate.ToString("g") — @t.TreatmentType @(t.Notes != null ? "(" + t.Notes + ")" : "")</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">Medications Given</span></div>
+    <div class="card-body">
+        @if (ViewBag.MedicationAdministrations == null || ViewBag.MedicationAdministrations.Count == 0)
+        {
+            <p class="text-muted">No medications administered.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var ma in ViewBag.MedicationAdministrations)
+                {
+                    <li>@ma.DateAdministered.ToString("g") — @ma.Medication?.Name, @ma.Dosage</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span class="card-title">Doctor Visits</span></div>
+    <div class="card-body">
+        @if (ViewBag.DoctorVisits == null || ViewBag.DoctorVisits.Count == 0)
+        {
+            <p class="text-muted">No visits recorded.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var dv in ViewBag.DoctorVisits)
+                {
+                    <li>@dv.VisitDate.ToString("g") — Dr. @(dv.Doctor?.LastName ?? dv.ExternalDoctorName): @dv.Instructions</li>
+                }
+            </ul>
+        }
+    </div>
+</div>

@@ -19,8 +19,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+
+            ViewBag.NewScriptsCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New);
+            ViewBag.ForwardedCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.ForwardedToPharmacy);
+            ViewBag.DeliveredCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.Delivered);
             return View();
         }
 

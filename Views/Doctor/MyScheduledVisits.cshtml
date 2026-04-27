@@ -1,0 +1,38 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.DoctorVisit>
+@{
+    ViewData["Title"] = "Scheduled Visits";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Scheduled Visits</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Scheduled Visits</h1><p>@Model.Count() upcoming visit(s)</p></div>
+</div>
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem; color:var(--gray-200);"></i>
+            <div style="font-weight:600;">No upcoming visits</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Patient</th><th>Bed</th><th>Date</th><th style="text-align:right;">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var visit in Model)
+                    {
+                        <tr>
+                            <td>@visit.Admission?.Patient.FullName</td>
+                            <td>@visit.Admission?.Bed?.BedNumberWithWard</td>
+                            <td>@visit.VisitDate.ToString("g")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="WriteInstructions" asp-route-visitId="@visit.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pencil"></i> Write Instructions</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,99 @@
+@model WARDMANAGEMENTSYSTEM.Models.Employee
+@using WARDMANAGEMENTSYSTEM.Models
+@{
+    ViewData["Title"] = "Add Employee";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Admin/Employees'>Employees</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Add New</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Add Employee</h1>
+        <p>Create a new staff account in the system</p>
+    </div>
+    <a asp-action="Employees" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div style="max-width:760px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-user-plus" style="color:var(--teal); margin-right:8px;"></i>Employee Details</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="CreateEmployee" method="post">
+                @Html.AntiForgeryToken()
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="FirstName">First Name <span class="required">*</span></label>
+                        <input asp-for="FirstName" class="form-control" placeholder="Enter first name" />
+                        <span asp-validation-for="FirstName" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="LastName">Last Name <span class="required">*</span></label>
+                        <input asp-for="LastName" class="form-control" placeholder="Enter last name" />
+                        <span asp-validation-for="LastName" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="UserName">Username <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="input-icon fa-solid fa-at"></i>
+                            <input asp-for="UserName" class="form-control" placeholder="username" />
+                        </div>
+                        <span asp-validation-for="UserName" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Email">Email Address <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="input-icon fa-solid fa-envelope"></i>
+                            <input asp-for="Email" class="form-control" type="email" placeholder="email@hospital.co.za" />
+                        </div>
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Gender">Gender <span class="required">*</span></label>
+                        <select asp-for="Gender" asp-items="ViewBag.Genders" class="form-control">
+                            <option value="">Select gender</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Role">Role <span class="required">*</span></label>
+                        <select asp-for="Role" asp-items="ViewBag.Roles" class="form-control">
+                            <option value="">Select role</option>
+                        </select>
+                        <span asp-validation-for="Role" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="HireDate">Hire Date <span class="required">*</span></label>
+                        <input asp-for="HireDate" class="form-control" type="date" />
+                        <span asp-validation-for="HireDate" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="alert alert-info" style="margin-bottom:20px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    A temporary password and login instructions will be emailed to the employee. They will be required to change their password on first login.
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Create Employee
+                    </button>
+                    <a asp-action="Employees" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

@@ -1,0 +1,67 @@
+﻿@{
+    ViewData["Title"] = "Admit Patient – Step 2";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Admit Patient – Step 2</span>";
+    int patientId = (int)ViewData["PatientId"];
+    string patientName = ViewData["PatientName"]?.ToString() ?? "";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Admit Patient – Step 2</h1>
+        <p>@patientName — Medical information, doctor, and bed assignment</p>
+    </div>
+    <a asp-action="AdmitPatient" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Step 1</a>
+</div>
+
+<div style="max-width:760px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-kit-medical"></i> Medical Details &amp; Assignment</span></div>
+        <div class="card-body">
+            <form asp-action="AdmitStep2" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="patientId" value="@patientId" />
+
+                <!-- Doctor -->
+                <div class="form-group">
+                    <label class="form-label" for="doctorId">Attending Doctor <span class="required">*</span></label>
+                    <select name="doctorId" asp-items="ViewBag.Doctors" class="form-control" required>
+                        <option value="">Select doctor</option>
+                    </select>
+                </div>
+
+                <!-- Bed -->
+                <div class="form-group">
+                    <label class="form-label" for="bedId">Assign Bed <span class="required">*</span></label>
+                    <select name="bedId" asp-items="ViewBag.Beds" class="form-control" required>
+                        <option value="">Select an available bed</option>
+                    </select>
+                </div>
+
+                <!-- Medical History -->
+                <div class="form-group">
+                    <label class="form-label">Allergies</label>
+                    <select name="allergyIds" asp-items="ViewBag.Allergies" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Chronic Medications</label>
+                    <select name="medicationIds" asp-items="ViewBag.Medications" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Chronic Conditions</label>
+                    <select name="conditionIds" asp-items="ViewBag.Conditions" multiple="multiple" class="form-control" style="height:100px;">
+                    </select>
+                </div>
+
+                <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select/deselect multiple items in each list.</small>
+
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Admit Patient</button>
+                    <a asp-action="AdmitPatient" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

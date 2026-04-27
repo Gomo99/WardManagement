@@ -1,0 +1,78 @@
+@model WARDMANAGEMENTSYSTEM.Models.Bed
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Bed Details";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Beds'>Beds</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+    var isActive = Model.IsActive == Status.Active;
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Bed @Model.BedNumber</h1><p>@(Model.Ward?.Name ?? "No ward assigned")</p></div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="EditBed" asp-route-id="@Model.Id" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+        <a asp-action="Beds" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+<div style="max-width:500px; display:flex; flex-direction:column; gap:16px;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+                <div style="width:56px; height:56px; border-radius:12px; background:@(Model.IsOccupied ? "#FDF0EE" : "var(--teal-lt)"); color:@(Model.IsOccupied ? "var(--danger)" : "var(--teal)"); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">
+                    <i class="fa-solid fa-bed"></i>
+                </div>
+                <div>
+                    <h2 style="font-family:var(--font-serif); font-size:1.3rem; color:var(--navy); margin-bottom:6px;">Bed @Model.BedNumber</h2>
+                    <div style="display:flex; gap:6px;">
+                        @if (Model.IsOccupied)
+                        {
+                            <span class="badge badge-danger"><span class="badge-dot"></span> Occupied</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-teal"><span class="badge-dot"></span> Available</span>
+                        }
+                        <span class="badge @(isActive ? "badge-success" : "badge-warning")">
+                            <span class="badge-dot"></span> @Model.IsActive
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div style="background:var(--gray-50); border-radius:8px; padding:14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem;">
+                    <div>
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Ward</div>
+                        <div style="font-weight:500; color:var(--navy);">@(Model.Ward?.Name ?? "—")</div>
+                    </div>
+                    <div>
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Bed ID</div>
+                        <div style="font-weight:500; color:var(--navy);">#@Model.Id</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card" style="border-color:@(isActive ? "#F5C6C1" : "#A7E8C8");">
+        <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+                <div style="font-weight:600; color:var(--gray-700); margin-bottom:2px;">Status: @Model.IsActive</div>
+            </div>
+            @if (isActive)
+            {
+                <form asp-action="DeleteBed" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this bed?')">
+                        <i class="fa-solid fa-ban"></i> Deactivate
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="RestoreBed" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm" style="background:var(--success); color:#fff;">
+                        <i class="fa-solid fa-rotate-left"></i> Reactivate
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

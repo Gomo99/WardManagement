@@ -1,0 +1,21 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@{
+    ViewData["Title"] = "Prescription Details";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Prescription Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Prescription Details</h1><p>@Model.Admission?.Patient.FullName</p></div>
+    <a asp-action="PrescriptionsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <table style="width:100%; font-size:.89rem;">
+            <tr><td style="font-weight:500;">Medication:</td><td>@Model.Medication?.Name</td></tr>
+            <tr><td style="font-weight:500;">Dosage:</td><td>@Model.Dosage</td></tr>
+            <tr><td style="font-weight:500;">Frequency:</td><td>@Model.Frequency</td></tr>
+            <tr><td style="font-weight:500;">Duration:</td><td>@Model.Duration</td></tr>
+            <tr><td style="font-weight:500;">Prescribed:</td><td>@Model.PrescribedDate.ToString("g")</td></tr>
+            <tr><td style="font-weight:500;">Notes:</td><td>@Model.Notes</td></tr>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,63 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Admission>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "My Admissions";
+    ViewData["Breadcrumb"] = "<a href='/Patient/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>My Admissions</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>My Admissions</h1>
+        <p>@Model.Count() admission(s) recorded</p>
+    </div>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-hospital" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy);">No admissions on record</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Admission Date</th>
+                        <th>Discharge Date</th>
+                        <th>Bed / Ward</th>
+                        <th>Doctor</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adm in Model)
+                    {
+                        <tr>
+                            <td>@adm.AdmissionDate.ToString("dd MMM yyyy")</td>
+                            <td>@(adm.DischargeDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                            <td>@adm.Bed?.BedNumberWithWard</td>
+                            <td>@adm.Doctor?.FullName</td>
+                            <td>
+                                @if (adm.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning"><span class="badge-dot"></span> Discharged</span>
+                                }
+                            </td>
+                            <td style="text-align:right;">
+                                <a asp-action="MyPatientFolder" asp-route-admissionId="@adm.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-folder-open"></i> View Folder</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

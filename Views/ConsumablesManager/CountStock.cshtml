@@ -1,0 +1,63 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Consumable>
+@{
+    ViewData["Title"] = "Count Stock";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/StockTakes'>Stock Takes</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Count</span>";
+    int stockTakeId = ViewBag.StockTakeId;
+    DateTime stockTakeDate = ViewBag.StockTakeDate;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Physical Stock Count</h1>
+        <p>Stock Take #@stockTakeId — @stockTakeDate.ToString("dd MMMM yyyy")</p>
+    </div>
+    <a asp-action="StockTakes" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="SaveStockCount" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="stockTakeId" value="@stockTakeId" />
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Consumable</th>
+                            <th>System Quantity</th>
+                            <th>Actual Count <span class="required">*</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cons in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-box-open" style="color:var(--teal);"></i>
+                                        <span>@cons.Name</span>
+                                    </div>
+                                </td>
+                                <td>@cons.QuantityOnHand</td>
+                                <td>
+                                    <input type="number" name="actualQuantities[@cons.Id]" class="form-control" min="0" value="@cons.QuantityOnHand" style="width:100px;" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:16px;">
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Save Stock Count</button>
+                <a asp-action="StockTakes" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,20 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.DoctorVisit
+@{
+    ViewData["Title"] = "Doctor Visit Details";
+    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Visit Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Doctor Visit Details</h1><p>@Model.Admission?.Patient.FullName</p></div>
+    <a asp-action="DoctorVisitsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <table style="width:100%; font-size:.89rem;">
+            <tr><td style="font-weight:500;">Date:</td><td>@Model.VisitDate.ToString("g")</td></tr>
+            <tr><td style="font-weight:500;">Doctor:</td><td>@(Model.Doctor?.FullName ?? Model.ExternalDoctorName)</td></tr>
+            <tr><td style="font-weight:500;">Instructions:</td><td>@Model.Instructions</td></tr>
+            <tr><td style="font-weight:500;">Notes:</td><td>@Model.Notes</td></tr>
+            <tr><td style="font-weight:500;">Type:</td><td>@(Model.IsContactRecord ? "Phone Contact" : "Visit")</td></tr>
+        </table>
+    </div>
+</div>

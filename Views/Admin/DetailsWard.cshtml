@@ -1,0 +1,66 @@
+@model WARDMANAGEMENTSYSTEM.Models.Ward
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Ward Details";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Wards'>Wards</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+    var isActive = Model.IsActive == Status.Active;
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>@Model.Name</h1><p>Ward ID #@Model.Id</p></div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="EditWard" asp-route-id="@Model.Id" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+        <a asp-action="Beds" asp-route-wardId="@Model.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-bed"></i> View Beds</a>
+        <a asp-action="Wards" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+<div style="max-width:600px; display:flex; flex-direction:column; gap:16px;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+                <div style="width:52px; height:52px; border-radius:12px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                    <i class="fa-solid fa-hospital"></i>
+                </div>
+                <div>
+                    <h2 style="font-family:var(--font-serif); font-size:1.3rem; color:var(--navy); margin-bottom:4px;">@Model.Name</h2>
+                    <span class="badge @(isActive ? "badge-success" : "badge-danger")">
+                        <span class="badge-dot"></span> @Model.IsActive
+                    </span>
+                </div>
+            </div>
+            <div style="padding:14px; background:var(--gray-50); border-radius:8px; font-size:.875rem; color:var(--gray-700); line-height:1.6;">
+                @(string.IsNullOrEmpty(Model.Description) ? "No description provided." : Model.Description)
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="border-color:@(isActive ? "#F5C6C1" : "#A7E8C8");">
+        <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+                <div style="font-weight:600; color:var(--gray-700); margin-bottom:2px;">Status: @Model.IsActive</div>
+                <p style="font-size:.82rem; color:var(--gray-400);">@(isActive ? "Deactivate to hide this ward from the system." : "Reactivate to restore this ward.")</p>
+            </div>
+            @if (isActive)
+            {
+                <form asp-action="DeleteWard" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this ward?')">
+                        <i class="fa-solid fa-ban"></i> Deactivate
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="RestoreWard" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm" style="background:var(--success); color:#fff;">
+                        <i class="fa-solid fa-rotate-left"></i> Reactivate
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

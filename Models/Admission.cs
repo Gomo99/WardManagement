@@ -20,6 +20,11 @@ namespace WARDMANAGEMENTSYSTEM.Models
         [ForeignKey(nameof(DoctorId))]
         public Employee Doctor { get; set; } = null!;
 
+        // --- NEW: Nurse assignment ---
+        public int? NurseId { get; set; }
+        [ForeignKey(nameof(NurseId))]
+        public Employee? Nurse { get; set; }
+
         public DateTime AdmissionDate { get; set; } = DateTime.Now;
         public DateTime? DischargeDate { get; set; }
         public Status IsActive { get; set; } = Status.Active;
@@ -29,7 +34,7 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public ICollection<AdmissionCondition> AdmissionConditions { get; set; } = new List<AdmissionCondition>();
 
         [StringLength(100)]
-        public string? CurrentLocation { get; set; }   // null = in ward, otherwise location like "Theatre"
+        public string? CurrentLocation { get; set; }
 
         public ICollection<PatientMovement> PatientMovements { get; set; } = new List<PatientMovement>();
     }

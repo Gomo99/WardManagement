@@ -1,0 +1,68 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Vitals>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Vitals";
+    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Nurse/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Vitals</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Vitals</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="RecordVital" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Record Vitals</a>
+        <a asp-action="Patients" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="padding:40px; text-align:center;">No vital signs recorded yet.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>BP</th>
+                        <th>Temp (°C)</th>
+                        <th>Sugar</th>
+                        <th>HR</th>
+                        <th>RR</th>
+                        <th>SpO₂</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in Model)
+                    {
+                        <tr>
+                            <td>@v.DateRecorded.ToString("g")</td>
+                            <td>@(v.BloodPressure ?? "—")</td>
+                            <td>@(v.TemperatureCelsius?.ToString("F1") ?? "—")</td>
+                            <td>@(v.BloodSugarMmolL?.ToString() ?? "—")</td>
+                            <td>@(v.HeartRateBpm?.ToString() ?? "—")</td>
+                            <td>@(v.RespiratoryRate?.ToString() ?? "—")</td>
+                            <td>@(v.OxygenSaturation?.ToString() ?? "—")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="VitalDetails" asp-route-id="@v.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                <a asp-action="EditVital" asp-route-id="@v.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                <form asp-action="DeleteVital" asp-route-id="@v.Id" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="return confirm('Deactivate this record?')"><i class="fa-solid fa-ban"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

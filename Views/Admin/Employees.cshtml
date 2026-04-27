@@ -1,0 +1,140 @@
+@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Employee>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@using WARDMANAGEMENTSYSTEM.Models
+@{
+    ViewData["Title"] = "Employees";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Employees</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Employees</h1>
+        <p>@Model.Count() staff member(s) found</p>
+    </div>
+    <a asp-action="CreateEmployee" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Add Employee
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<!-- FILTER BAR -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:16px 20px;">
+        <form method="get" asp-action="Employees" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Filter by Role</label>
+                <select name="role" class="form-control" style="width:180px;">
+                    <option value="">All Roles</option>
+                    @Html.DropDownList("role", ViewBag.Roles as SelectList, "All Roles", new { @class = "" })
+                </select>
+            </div>
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Filter by Status</label>
+                <select name="status" class="form-control" style="width:150px;">
+                    <option value="">All Statuses</option>
+                    @Html.DropDownList("status", ViewBag.Statuses as SelectList, "All Statuses", new { @class = "" })
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-filter"></i> Apply
+            </button>
+            <a asp-action="Employees" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-xmark"></i> Clear
+            </a>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-users" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No employees found</div>
+            <div style="font-size:.82rem;">Try adjusting the filters or add a new employee.</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Hire Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:34px; height:34px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; flex-shrink:0;">
+                                        @(emp.FirstName?.Substring(0,1).ToUpper())@(emp.LastName?.Substring(0,1).ToUpper())
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:600; color:var(--navy);">@emp.FirstName @emp.LastName</div>
+                                        <div style="font-size:.75rem; color:var(--gray-400);">ID: @emp.EmployeeID</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="font-family:monospace; font-size:.82rem; color:var(--gray-700);">@emp.UserName</td>
+                            <td>@emp.Email</td>
+                            <td><span class="badge badge-teal">@emp.Role</span></td>
+                            <td>@emp.HireDate?.ToString("dd MMM yyyy")</td>
+                            <td>
+                                @if (emp.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-danger"><span class="badge-dot"></span> Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                                    <a asp-action="DetailsEmployee" asp-route-id="@emp.EmployeeID" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <a asp-action="EditEmployee" asp-route-id="@emp.EmployeeID" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    @if (emp.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteEmployee" asp-route-id="@emp.EmployeeID" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Deactivate @emp.FirstName @emp.LastName?')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreEmployee" asp-route-id="@emp.EmployeeID" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

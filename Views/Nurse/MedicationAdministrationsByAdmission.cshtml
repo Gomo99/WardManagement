@@ -1,0 +1,64 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.MedicationAdministration>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Medication Administrations";
+    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Nurse/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Medications</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Medications</h1><p>@ViewBag.PatientName</p></div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="AdministerMedication" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Administer Medication</a>
+        <a asp-action="Patients" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="padding:40px; text-align:center;">No medications administered yet.</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Medication</th>
+                        <th>Dosage</th>
+                        <th>Schedule</th>
+                        <th>Notes</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ma in Model)
+                    {
+                        <tr>
+                            <td>@ma.DateAdministered.ToString("g")</td>
+                            <td>@ma.Medication?.Name</td>
+                            <td>@ma.Dosage</td>
+                            <td>@(ma.Medication?.Schedule?.ToString() ?? "—")</td>
+                            <td>@ma.Notes</td>
+                            <td style="text-align:right;">
+                                <a asp-action="EditMedicationAdministration" asp-route-id="@ma.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                <form asp-action="DeleteMedicationAdministration" asp-route-id="@ma.Id" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="return confirm('Deactivate this record?')"><i class="fa-solid fa-ban"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

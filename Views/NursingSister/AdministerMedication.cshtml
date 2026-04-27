@@ -1,0 +1,55 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.MedicationAdministration
+@{
+    ViewData["Title"] = "Administer Medication";
+    ViewData["Breadcrumb"] = "<a href='/NursingSister/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/NursingSister/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Administer Medication</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Administer Medication</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <a asp-action="MedicationAdministrationsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-pills"></i> Medication Administration</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="AdministerMedication" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="AdmissionId" type="hidden" />
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="MedicationId">Medication <span class="required">*</span></label>
+                    <select asp-for="MedicationId" asp-items="ViewBag.Medications" class="form-control">
+                        <option value="">Select medication</option>
+                    </select>
+                    <span asp-validation-for="MedicationId" class="field-validation-error"></span>
+                    <small class="form-text text-muted">As a Nursing Sister, you can administer all schedules, including schedule 5+.</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Dosage">Dosage</label>
+                    <input asp-for="Dosage" class="form-control" placeholder="e.g. 500mg" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="DateAdministered">Date &amp; Time</label>
+                    <input asp-for="DateAdministered" class="form-control" type="datetime-local" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Notes">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check-circle"></i> Administer</button>
+                    <a asp-action="MedicationAdministrationsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

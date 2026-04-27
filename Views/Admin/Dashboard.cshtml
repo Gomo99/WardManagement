@@ -1,0 +1,223 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Administration Dashboard</h1>
+        <p>System overview and quick access to all management areas</p>
+    </div>
+    <div>
+        <span style="font-size:.8rem; color:var(--gray-400);">
+            <i class="fa-regular fa-clock"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </span>
+    </div>
+</div>
+
+<!-- STAT STRIP -->
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-users"></i></div>
+        <div>
+            <div class="stat-value">—</div>
+            <div class="stat-label">Total Employees</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon navy"><i class="fa-solid fa-bed-pulse"></i></div>
+        <div>
+            <div class="stat-value">—</div>
+            <div class="stat-label">Active Wards</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-bed"></i></div>
+        <div>
+            <div class="stat-value">—</div>
+            <div class="stat-label">Total Beds</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-pills"></i></div>
+        <div>
+            <div class="stat-value">—</div>
+            <div class="stat-label">Medications</div>
+        </div>
+    </div>
+</div>
+
+<!-- QUICK ACCESS GRID -->
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;">
+
+    <!-- Employees -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <span class="card-title">Employees</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Manage all healthcare staff — nurses, doctors, sisters, clerks, and more.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Employees" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-list"></i> View All
+                </a>
+                <a asp-action="CreateEmployee" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wards & Beds -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:#E8EEF5; color:var(--navy); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-bed-pulse"></i>
+                </div>
+                <span class="card-title">Wards &amp; Beds</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Configure hospital wards and manage individual bed assignments.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Wards" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-hospital"></i> Wards
+                </a>
+                <a asp-action="Beds" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-bed"></i> Beds
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medications -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:#EDFBF3; color:var(--success); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-pills"></i>
+                </div>
+                <span class="card-title">Medications</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Maintain the medication formulary, dosage forms, and schedule classifications.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Medications" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-list"></i> View All
+                </a>
+                <a asp-action="CreateMedication" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consumables -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:#FEF9EC; color:#855B00; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <span class="card-title">Consumables</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Track ward consumables such as gloves, linen savers, needles, and dressings.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Consumables" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-list"></i> View All
+                </a>
+                <a asp-action="CreateConsumable" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allergies -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:#FDF0EE; color:var(--danger); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <span class="card-title">Allergies</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Manage the reference list of known allergies available for patient records.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Allergies" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-list"></i> View All
+                </a>
+                <a asp-action="CreateAllergy" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conditions -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <span class="card-title">Medical Conditions</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Maintain the reference list of chronic conditions for patient history capture.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a asp-action="Conditions" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-list"></i> View All
+                </a>
+                <a asp-action="CreateCondition" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-plus"></i> Add New
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hospital Info -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:#E8EEF5; color:var(--navy); display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-hospital"></i>
+                </div>
+                <span class="card-title">Hospital Information</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px; line-height:1.5;">
+                Update hospital name, address, contact details and operational information.
+            </p>
+            <a asp-action="HospitalInfo" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-circle-info"></i> Manage Info
+            </a>
+        </div>
+    </div>
+
+</div>

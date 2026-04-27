@@ -19,8 +19,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+            ViewBag.ActiveConsumablesCount = await _context.Consumables.CountAsync(c => c.IsActive == Status.Active);
+            ViewBag.PendingOrdersCount = await _context.ConsumableOrders.CountAsync(o => o.OrderStatus == OrderStatus.Ordered && o.IsActive == Status.Active);
+            ViewBag.StockTakesCount = await _context.StockTakes.CountAsync(s => s.IsActive == Status.Active);
             return View();
         }
 

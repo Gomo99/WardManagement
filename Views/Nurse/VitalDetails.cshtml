@@ -1,0 +1,23 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Vitals
+@{
+    ViewData["Title"] = "Vital Details";
+    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Vital Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Vital Details</h1><p>@Model.Admission?.Patient.FullName</p></div>
+    <a asp-action="VitalsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <table style="width:100%; font-size:.89rem;">
+            <tr><td style="font-weight:500;">Date:</td><td>@Model.DateRecorded.ToString("g")</td></tr>
+            <tr><td style="font-weight:500;">BP:</td><td>@(Model.BloodPressure ?? "—")</td></tr>
+            <tr><td style="font-weight:500;">Temp:</td><td>@(Model.TemperatureCelsius?.ToString("F1") ?? "—") °C</td></tr>
+            <tr><td style="font-weight:500;">Sugar:</td><td>@(Model.BloodSugarMmolL?.ToString() ?? "—") mmol/L</td></tr>
+            <tr><td style="font-weight:500;">HR:</td><td>@(Model.HeartRateBpm?.ToString() ?? "—") bpm</td></tr>
+            <tr><td style="font-weight:500;">RR:</td><td>@(Model.RespiratoryRate?.ToString() ?? "—")</td></tr>
+            <tr><td style="font-weight:500;">SpO₂:</td><td>@(Model.OxygenSaturation?.ToString() ?? "—") %</td></tr>
+            <tr><td style="font-weight:500;">Notes:</td><td>@(Model.Notes ?? "—")</td></tr>
+        </table>
+    </div>
+</div>

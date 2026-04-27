@@ -1,0 +1,51 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.ConsumableOrder
+@{
+    ViewData["Title"] = "Edit Received Order";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/ReceivedOrders'>Received Orders</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Edit Received Order</h1>
+        <p>Order #@Model.Id — @Model.Consumable?.Name</p>
+    </div>
+    <a asp-action="ReceivedOrders" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-pen-circle" style="color:var(--teal); margin-right:8px;"></i>Adjust Received Quantity</span>
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom:20px; background:var(--gray-50); padding:14px; border-radius:8px;">
+                <div>
+                    <strong>Current Stock:</strong> @Model.Consumable?.QuantityOnHand
+                </div>
+                <div>
+                    <strong>Previously Received:</strong> @Model.QuantityReceived
+                </div>
+            </div>
+
+            <form asp-action="EditReceivedOrder" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.Id" />
+
+                <div class="form-group">
+                    <label class="form-label" for="newQuantityReceived">Corrected Quantity Received <span class="required">*</span></label>
+                    <input type="number" name="newQuantityReceived" class="form-control" min="0"
+                           value="@Model.QuantityReceived" placeholder="Enter new total quantity received" required />
+                </div>
+
+                <div class="alert alert-warning" style="margin-bottom:16px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Changing this value will automatically adjust the stock on hand by the difference.
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                    <a asp-action="ReceivedOrders" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

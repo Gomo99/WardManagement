@@ -1,0 +1,32 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Treatment>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Treatments";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Treatments</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Treatments</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="RecordTreatment" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Treatment</a>
+    <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Notes</th><th style="text-align:right;">Actions</th></tr></thead>
+        <tbody>
+            @foreach (var t in Model)
+            {
+                <tr>
+                    <td>@t.TreatmentDate.ToString("g")</td>
+                    <td>@t.TreatmentType</td>
+                    <td>@t.Notes</td>
+                    <td style="text-align:right;">
+                        <a asp-action="EditTreatment" asp-route-id="@t.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                        <form asp-action="DeleteTreatment" asp-route-id="@t.Id" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger);"><i class="fa-solid fa-ban"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

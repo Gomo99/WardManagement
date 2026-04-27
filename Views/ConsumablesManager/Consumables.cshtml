@@ -1,0 +1,113 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Consumable>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Consumables";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Consumables</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Consumables</h1>
+        <p>@Model.Count() item(s) registered</p>
+    </div>
+    <a asp-action="CreateConsumable" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Add Consumable
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-box-open" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No consumables found</div>
+            <a asp-action="CreateConsumable" class="btn btn-primary btn-sm" style="margin-top:12px;">Add First Consumable</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Stock On Hand</th>
+                        <th>Reorder Level</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cons in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:32px; height:32px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:.85rem;">
+                                        <i class="fa-solid fa-box-open"></i>
+                                    </div>
+                                    <span style="font-weight:600; color:var(--navy);">@cons.Name</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if (cons.QuantityOnHand <= cons.ReorderLevel)
+                                {
+                                    <span class="badge badge-warning">@cons.QuantityOnHand (low)</span>
+                                }
+                                else
+                                {
+                                    <span>@cons.QuantityOnHand</span>
+                                }
+                            </td>
+                            <td>@cons.ReorderLevel</td>
+                            <td>
+                                @if (cons.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning"><span class="badge-dot"></span> Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                    <a asp-action="DetailsConsumable" asp-route-id="@cons.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                    <a asp-action="EditConsumable" asp-route-id="@cons.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                    @if (cons.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteConsumable" asp-route-id="@cons.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Deactivate @cons.Name?')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreConsumable" asp-route-id="@cons.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

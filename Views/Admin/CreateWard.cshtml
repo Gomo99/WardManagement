@@ -1,0 +1,43 @@
+@model WARDMANAGEMENTSYSTEM.Models.Ward
+@{
+    ViewData["Title"] = "Add Ward";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Admin/Wards'>Wards</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Add New</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Add Ward</h1>
+        <p>Create a new hospital ward</p>
+    </div>
+    <a asp-action="Wards" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-hospital" style="color:var(--teal); margin-right:8px;"></i>Ward Details</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="CreateWard" method="post">
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    <label class="form-label" asp-for="Name">Ward Name <span class="required">*</span></label>
+                    <input asp-for="Name" class="form-control" placeholder="e.g. General Ward A" />
+                    <span asp-validation-for="Name" class="field-validation-error"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Description">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"
+                              placeholder="Brief description of this ward's purpose or specialty"></textarea>
+                    <span asp-validation-for="Description" class="field-validation-error"></span>
+                </div>
+                <div style="display:flex; gap:12px; margin-top:4px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Create Ward</button>
+                    <a asp-action="Wards" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

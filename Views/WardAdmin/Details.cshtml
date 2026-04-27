@@ -1,0 +1,123 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Admission
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Patient Folder";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/WardAdmin/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Folder</span>";
+    var patient = Model.Patient;
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>@patient.FullName</h1>
+        <p>Admission #@Model.Id — @Model.Bed?.BedNumberWithWard</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        @if (Model.IsActive == Status.Active)
+        {
+            <form asp-action="Discharge" asp-route-admissionId="@Model.Id" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Discharge this patient?')"><i class="fa-solid fa-right-from-bracket"></i> Discharge</button>
+            </form>
+        }
+        <a asp-action="Patients" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<!-- Basic Info -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem;">
+            <div><strong>Doctor:</strong> @Model.Doctor?.FullName</div>
+            <div><strong>Admitted:</strong> @Model.AdmissionDate.ToString("g")</div>
+            <div><strong>Bed:</strong> @Model.Bed?.BedNumberWithWard</div>
+            <div><strong>Location:</strong>
+                @if (string.IsNullOrEmpty(Model.CurrentLocation))
+                {
+                    <span class="badge badge-success">In Ward</span>
+                }
+                else
+                {
+                    <span class="badge badge-warning">@Model.CurrentLocation</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Allergies / Conditions / Meds -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">Medical History</span></div>
+    <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; font-size:.85rem;">
+        <div><strong>Allergies:</strong><br>@(Model.AdmissionAllergies?.Any() == true ? string.Join(", ", Model.AdmissionAllergies.Select(a => a.Allergy.Name)) : "None")</div>
+        <div><strong>Chronic Medications:</strong><br>@(Model.AdmissionMedications?.Any() == true ? string.Join(", ", Model.AdmissionMedications.Select(m => m.Medication.Name)) : "None")</div>
+        <div><strong>Chronic Conditions:</strong><br>@(Model.AdmissionConditions?.Any() == true ? string.Join(", ", Model.AdmissionConditions.Select(c => c.Condition.Name)) : "None")</div>
+    </div>
+</div>
+
+<!-- Movement History -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">Movement History</span></div>
+    <div class="card-body">
+        @if (Model.PatientMovements == null || !Model.PatientMovements.Any())
+        {
+            <p class="text-muted">No movements recorded.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        @foreach (var m in Model.PatientMovements)
+                        {
+                            <tr>
+                                <td>@m.Timestamp.ToString("g")</td>
+                                <td>@m.MovementType</td>
+                                <td>@m.Location</td>
+                                <td>@m.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Check‑out / Check‑in controls -->
+@if (Model.IsActive == Status.Active)
+{
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-person-walking-arrow-right"></i> Manage Movement</span>
+        </div>
+        <div class="card-body">
+            @if (string.IsNullOrEmpty(Model.CurrentLocation))
+            {
+                <!-- Patient is in ward → show check‑out form -->
+                <form asp-action="CheckOut" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="admissionId" value="@Model.Id" />
+                    <div class="form-group">
+                        <label class="form-label" for="location">Destination <span class="required">*</span></label>
+                        <input name="location" class="form-control" placeholder="e.g. Theatre, X‑Ray, Physio" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="notes">Notes (optional)</label>
+                        <input name="notes" class="form-control" placeholder="Reason or additional info" />
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-person-walking-arrow-right"></i> Check‑Out Patient</button>
+                </form>
+            }
+            else
+            {
+                <!-- Patient is out → show check‑in button -->
+                <p><strong>Status:</strong> Patient is currently at <strong>@Model.CurrentLocation</strong>.</p>
+                <form asp-action="CheckIn" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="admissionId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-person-walking-arrow-loop-left"></i> Check‑In to Ward</button>
+                </form>
+            }
+        </div>
+    </div>
+}

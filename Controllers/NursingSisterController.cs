@@ -19,8 +19,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+
+            ViewBag.ActivePatients = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active);
+            ViewBag.AdministeredToday = await _context.MedicationAdministrations.CountAsync(ma => ma.DateAdministered.Date == DateTime.Today && ma.IsActive == Status.Active);
             return View();
         }
 

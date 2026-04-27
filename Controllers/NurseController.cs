@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
@@ -19,20 +20,40 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+
+            ViewBag.ActivePatients = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active);
+            ViewBag.PendingVitals = await _context.Vitals.CountAsync(v => v.DateRecorded.Date == DateTime.Today && v.IsActive == Status.Active);
             return View();
         }
+
+
+        private int? GetCurrentNurseId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
+                return null;
+            // Verify that the user is actually a nurse
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (role != UserRole.NURSE.ToString())
+                return null;
+            return id;
+        }
+
 
         // ===============================================================
         //  VIEW ADMITTED PATIENTS
         // ===============================================================
         public async Task<IActionResult> Patients()
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admissions = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
-                .Where(a => a.IsActive == Status.Active)
+                .Where(a => a.NurseId == nurseId.Value && a.IsActive == Status.Active)
                 .OrderBy(a => a.Patient.LastName)
                 .ToListAsync();
             return View(admissions);
@@ -43,9 +64,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         public async Task<IActionResult> VitalsByAdmission(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -61,9 +85,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> RecordVital(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -75,6 +102,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordVital(Vitals vitals)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -109,9 +139,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> EditVital(int id)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var vital = await _context.Vitals
                 .Include(v => v.Admission).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(v => v.Id == id && v.IsActive == Status.Active);
+                .FirstOrDefaultAsync(v => v.Id == id && v.IsActive == Status.Active && v.Admission.NurseId == nurseId.Value);
             if (vital == null) return NotFound();
 
             ViewBag.PatientName = $"{vital.Admission.Patient.FirstName} {vital.Admission.Patient.LastName}";
@@ -122,6 +155,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditVital(int id, Vitals posted)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -130,7 +166,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             {
                 var vital = await _context.Vitals
                     .Include(v => v.Admission).ThenInclude(a => a.Patient)
-                    .FirstOrDefaultAsync(v => v.Id == id);
+                    .FirstOrDefaultAsync(v => v.Id == id && v.Admission.NurseId == nurseId.Value);
                 if (vital != null)
                     ViewBag.PatientName = $"{vital.Admission.Patient.FirstName} {vital.Admission.Patient.LastName}";
                 return View(posted);
@@ -155,9 +191,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         public async Task<IActionResult> VitalDetails(int id)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var vital = await _context.Vitals
                 .Include(v => v.Admission).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(v => v.Id == id);
+                .FirstOrDefaultAsync(v => v.Id == id && v.Admission.NurseId == nurseId.Value && v.IsActive == Status.Active);
             if (vital == null) return NotFound();
             return View(vital);
         }
@@ -166,6 +205,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteVital(int id)
         {
+             int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var vital = await _context.Vitals.FindAsync(id);
             if (vital == null) return NotFound();
 
@@ -181,9 +223,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         public async Task<IActionResult> TreatmentsByAdmission(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -199,9 +244,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> RecordTreatment(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -213,6 +261,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordTreatment(Treatment treatment)
         {
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -221,7 +273,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             {
                 var admission = await _context.Admissions
                     .Include(a => a.Patient)
-                    .FirstOrDefaultAsync(a => a.Id == treatment.AdmissionId && a.IsActive == Status.Active);
+                    .FirstOrDefaultAsync(a => a.Id == treatment.AdmissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
                 if (admission != null)
                     ViewBag.PatientName = $"{admission.Patient.FirstName} {admission.Patient.LastName}";
                 ViewBag.AdmissionId = treatment.AdmissionId;
@@ -244,9 +296,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> EditTreatment(int id)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var treatment = await _context.Treatments
                 .Include(t => t.Admission).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(t => t.Id == id && t.IsActive == Status.Active);
+                .FirstOrDefaultAsync(t => t.Id == id && t.IsActive == Status.Active && t.Admission.NurseId == nurseId.Value);
             if (treatment == null) return NotFound();
 
             ViewBag.PatientName = $"{treatment.Admission.Patient.FirstName} {treatment.Admission.Patient.LastName}";
@@ -257,6 +312,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditTreatment(int id, Treatment posted)
         {
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -265,7 +324,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             {
                 var treatment = await _context.Treatments
                     .Include(t => t.Admission).ThenInclude(a => a.Patient)
-                    .FirstOrDefaultAsync(t => t.Id == id);
+                    .FirstOrDefaultAsync(t => t.Id == id && t.Admission.NurseId == nurseId.Value);
                 if (treatment != null)
                     ViewBag.PatientName = $"{treatment.Admission.Patient.FirstName} {treatment.Admission.Patient.LastName}";
                 return View(posted);
@@ -285,9 +344,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         public async Task<IActionResult> TreatmentDetails(int id)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var treatment = await _context.Treatments
                 .Include(t => t.Admission).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(t => t.Id == id);
+                .FirstOrDefaultAsync(t => t.Id == id && t.Admission.NurseId == nurseId.Value);
             if (treatment == null) return NotFound();
             return View(treatment);
         }
@@ -296,7 +358,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTreatment(int id)
         {
-            var treatment = await _context.Treatments.FindAsync(id);
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+            var treatment = await _context.Treatments
+                .Include(t => t.Admission)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Admission.NurseId == nurseId.Value);
             if (treatment == null) return NotFound();
 
             treatment.IsActive = Status.Inactive;
@@ -310,7 +377,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreTreatment(int id)
         {
-            var treatment = await _context.Treatments.FindAsync(id);
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+            var treatment = await _context.Treatments
+                .Include(t => t.Admission)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Admission.NurseId == nurseId.Value);
             if (treatment == null) return NotFound();
 
             treatment.IsActive = Status.Active;
@@ -325,9 +397,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         public async Task<IActionResult> MedicationAdministrationsByAdmission(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -344,9 +419,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> AdministerMedication(int admissionId)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -375,9 +453,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("Admission");
             ModelState.Remove("Medication");
 
+
+
+                        int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == administration.AdmissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == administration.AdmissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
 
             if (!ModelState.IsValid)
             {
@@ -421,10 +505,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> EditMedicationAdministration(int id)
         {
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var administration = await _context.MedicationAdministrations
                 .Include(ma => ma.Admission).ThenInclude(a => a.Patient)
                 .Include(ma => ma.Medication)
-                .FirstOrDefaultAsync(ma => ma.Id == id && ma.IsActive == Status.Active);
+                .FirstOrDefaultAsync(ma => ma.Id == id && ma.IsActive == Status.Active && ma.Admission.NurseId == nurseId.Value);
             if (administration == null) return NotFound();
 
             ViewBag.PatientName = $"{administration.Admission.Patient.FirstName} {administration.Admission.Patient.LastName}";
@@ -444,9 +532,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("Admission");
             ModelState.Remove("Medication");
 
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+
+
+
             var existing = await _context.MedicationAdministrations
                 .Include(ma => ma.Admission).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(ma => ma.Id == id && ma.IsActive == Status.Active);
+                .FirstOrDefaultAsync(ma => ma.Id == id && ma.IsActive == Status.Active && ma.Admission.NurseId == nurseId.Value);
             if (existing == null) return NotFound();
 
             if (!ModelState.IsValid)
@@ -488,6 +583,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedicationAdministration(int id)
         {
+
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();
 
@@ -502,6 +603,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedicationAdministration(int id)
         {
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();
 
@@ -518,6 +623,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         public async Task<IActionResult> DoctorVisitsByAdmission(int admissionId)
         {
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
@@ -539,9 +648,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> RecordDoctorContact(int admissionId)
         {
+
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
             if (admission == null) return NotFound();
 
             ViewBag.AdmissionId = admissionId;
@@ -571,6 +685,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("Admission");
             ModelState.Remove("Doctor");
 
+
+
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             // If no internal doctor selected and no external name, require one
             if (!visit.DoctorId.HasValue && string.IsNullOrWhiteSpace(visit.ExternalDoctorName))
                 ModelState.AddModelError("ExternalDoctorName", "Either select a doctor or enter a name.");
@@ -579,7 +698,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             {
                 var admission = await _context.Admissions
                     .Include(a => a.Patient)
-                    .FirstOrDefaultAsync(a => a.Id == visit.AdmissionId && a.IsActive == Status.Active);
+                    .FirstOrDefaultAsync(a => a.Id == visit.AdmissionId && a.IsActive == Status.Active && a.NurseId == nurseId.Value);
                 if (admission != null)
                     ViewBag.PatientName = $"{admission.Patient.FirstName} {admission.Patient.LastName}";
                 ViewBag.AdmissionId = visit.AdmissionId;

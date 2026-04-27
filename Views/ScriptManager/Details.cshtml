@@ -1,0 +1,73 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Prescription Details";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/AllScripts'>All Scripts</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Prescription Details</h1>
+        <p>#@Model.Id — @Model.Admission?.Patient.FullName</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        @if (Model.ScriptStatus == ScriptStatus.New)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+        }
+        <a asp-action="AllScripts" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem;">
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Medication</div>
+                <div style="font-weight:500; color:var(--navy);">@Model.Medication?.Name</div>
+            </div>
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Dosage</div>
+                <div style="font-weight:500; color:var(--navy);">@(Model.Dosage ?? "—")</div>
+            </div>
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Frequency</div>
+                <div style="font-weight:500; color:var(--navy);">@(Model.Frequency ?? "—")</div>
+            </div>
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Duration</div>
+                <div style="font-weight:500; color:var(--navy);">@(Model.Duration ?? "—")</div>
+            </div>
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Prescribed</div>
+                <div style="font-weight:500; color:var(--navy);">@Model.PrescribedDate.ToString("g")</div>
+            </div>
+            <div>
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Status</div>
+                <span class="badge @(Model.ScriptStatus == ScriptStatus.New ? "badge-gold" : Model.ScriptStatus == ScriptStatus.ForwardedToPharmacy ? "badge-navy" : "badge-success")">
+                    <span class="badge-dot"></span> @Model.ScriptStatus
+                </span>
+            </div>
+            <div style="grid-column:1/-1;">
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Notes</div>
+                <div style="font-weight:500; color:var(--navy);">@(Model.Notes ?? "—")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="max-width:500px; margin-top:16px;">
+    <div class="card" style="border-color:#F5C6C1;">
+        <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+                <div style="font-weight:600; color:var(--gray-700);">Deactivate Prescription</div>
+                <p style="font-size:.82rem; color:var(--gray-400);">Soft‑delete: the record will be hidden but retained.</p>
+            </div>
+            <form asp-action="DeleteScript" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate this prescription?')">
+                    <i class="fa-solid fa-ban"></i> Deactivate
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

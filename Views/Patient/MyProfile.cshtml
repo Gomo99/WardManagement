@@ -1,0 +1,52 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Patient
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "My Profile";
+    ViewData["Breadcrumb"] = "<a href='/Patient/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>My Profile</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>My Profile</h1>
+        <p>Personal information and account details</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="EditMyProfile" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen"></i> Edit Profile</a>
+        <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-circle-user"></i> Personal Details</span>
+        </div>
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; font-size:.875rem;">
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Full Name</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.FirstName @Model.LastName</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">ID Number</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.SouthAfricanIdNumber</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Date of Birth</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.DateOfBirth.ToString("dd MMMM yyyy")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Cellphone</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.CellphoneNumber</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Email</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.Email</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Address</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.HomeAddress</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

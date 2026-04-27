@@ -1,0 +1,179 @@
+@model WARDMANAGEMENTSYSTEM.Models.Employee
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Employee Details";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Admin/Employees'>Employees</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+    var isActive = Model.IsActive == Status.Active;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Employee Details</h1>
+        <p>ID #@Model.EmployeeID</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="EditEmployee" asp-route-id="@Model.EmployeeID" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-pen"></i> Edit
+        </a>
+        <a asp-action="Employees" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<div style="max-width:700px; display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Profile Card -->
+    <div class="card">
+        <div class="card-body" style="display:flex; align-items:center; gap:20px; padding:28px;">
+            <div style="width:72px; height:72px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; flex-shrink:0;">
+                @(Model.FirstName?.Substring(0,1).ToUpper())@(Model.LastName?.Substring(0,1).ToUpper())
+            </div>
+            <div style="flex:1;">
+                <h2 style="font-family:var(--font-serif); font-size:1.4rem; color:var(--navy); margin-bottom:6px;">
+                    @Model.FirstName @Model.LastName
+                </h2>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <span class="badge badge-teal">@Model.Role</span>
+                    @if (isActive)
+                    {
+                        <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-danger"><span class="badge-dot"></span> Inactive</span>
+                    }
+                    @if (Model.IsTwoFactorEnabled)
+                    {
+                        <span class="badge badge-navy"><i class="fa-solid fa-shield-halved" style="margin-right:4px;"></i>2FA On</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Personal &amp; Account Information</span>
+        </div>
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+                @{
+                    void Row(string label, string? value, string icon = "fa-circle")
+                    {
+                        <div style="padding:12px 0; border-bottom:1px solid var(--gray-100); display:flex; align-items:flex-start; gap:12px;">
+                            <i class="fa-solid @icon" style="color:var(--teal); margin-top:2px; width:16px;"></i>
+                            <div>
+                                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;">@label</div>
+                                <div style="font-weight:500; color:var(--navy);">@(string.IsNullOrEmpty(value) ? "—" : value)</div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">
+                <div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-user" style="color:var(--teal); margin-right:6px;"></i>Full Name
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.FirstName @Model.LastName</div>
+                    </div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-at" style="color:var(--teal); margin-right:6px;"></i>Username
+                        </div>
+                        <div style="font-weight:500; color:var(--navy); font-family:monospace;">@Model.UserName</div>
+                    </div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-venus-mars" style="color:var(--teal); margin-right:6px;"></i>Gender
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.Gender</div>
+                    </div>
+                    <div style="padding:12px 0;">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-regular fa-calendar" style="color:var(--teal); margin-right:6px;"></i>Hire Date
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.HireDate?.ToString("dd MMMM yyyy")</div>
+                    </div>
+                </div>
+                <div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-envelope" style="color:var(--teal); margin-right:6px;"></i>Email
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.Email</div>
+                    </div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-id-badge" style="color:var(--teal); margin-right:6px;"></i>Role
+                        </div>
+                        <div><span class="badge badge-teal">@Model.Role</span></div>
+                    </div>
+                    <div style="padding:12px 0; border-bottom:1px solid var(--gray-100);">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-shield-halved" style="color:var(--teal); margin-right:6px;"></i>2FA Enabled
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">@(Model.IsTwoFactorEnabled ? "Yes" : "No")</div>
+                    </div>
+                    <div style="padding:12px 0;">
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">
+                            <i class="fa-solid fa-lock" style="color:var(--teal); margin-right:6px;"></i>Lockout
+                        </div>
+                        <div style="font-weight:500; color:var(--navy);">
+                            @if (Model.LockoutEnd.HasValue && Model.LockoutEnd > DateTime.Now)
+                            {
+                                <span style="color:var(--danger);">Locked until @Model.LockoutEnd.Value.ToString("HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span>None</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card" style="border-color:@(isActive ? "#F5C6C1" : "#A7E8C8");">
+        <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+                <div style="font-weight:600; color:var(--gray-700); margin-bottom:2px;">
+                    Account Status: <span style="color:@(isActive ? "var(--success)" : "var(--danger)");">@Model.IsActive</span>
+                </div>
+                <p style="font-size:.82rem; color:var(--gray-400);">
+                    @(isActive ? "Deactivating will prevent this employee from logging in." : "Reactivating will restore login access.")
+                </p>
+            </div>
+            @if (isActive)
+            {
+                <form asp-action="DeleteEmployee" asp-route-id="@Model.EmployeeID" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Deactivate @Model.FirstName @Model.LastName?')">
+                        <i class="fa-solid fa-ban"></i> Deactivate
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="RestoreEmployee" asp-route-id="@Model.EmployeeID" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm" style="background:var(--success); color:#fff;">
+                        <i class="fa-solid fa-rotate-left"></i> Reactivate
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

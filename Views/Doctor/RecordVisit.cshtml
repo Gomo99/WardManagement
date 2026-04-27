@@ -1,0 +1,42 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.DoctorVisit
+@{
+    ViewData["Title"] = "Record Visit";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Doctor/MyPatients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Record Visit</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Record Visit</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-stethoscope"></i> Visit Details</span></div>
+        <div class="card-body">
+            <form asp-action="RecordVisit" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="AdmissionId" type="hidden" />
+                <input asp-for="DoctorId" type="hidden" />
+                <input asp-for="IsContactRecord" type="hidden" />
+                <div class="form-group">
+                    <label class="form-label" asp-for="VisitDate">Visit Date &amp; Time</label>
+                    <input asp-for="VisitDate" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="VisitDate" class="field-validation-error"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Instructions">Instructions for Nurses</label>
+                    <textarea asp-for="Instructions" class="form-control" rows="3" placeholder="e.g. Change IV drip, monitor BP hourly ..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Notes">Notes (private)</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Visit</button>
+                    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

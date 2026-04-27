@@ -5,6 +5,7 @@ using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
+using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
@@ -31,8 +32,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
+            var doctorId = GetCurrentDoctorId();
+            if (doctorId == null) return RedirectToAction("Login", "Account");
+
+            ViewBag.ActivePatients = await _context.Admissions.CountAsync(a => a.DoctorId == doctorId && a.IsActive == Status.Active);
+            ViewBag.UpcomingVisits = await _context.DoctorVisits.CountAsync(dv => dv.DoctorId == doctorId && dv.IsActive == Status.Active && dv.VisitDate > DateTime.Now);
             return View();
         }
 
@@ -644,17 +650,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                              && dv.IsActive == Status.Active
                              && !string.IsNullOrEmpty(dv.Instructions))
                 .OrderByDescending(dv => dv.VisitDate)
-                .Select(dv => new
+                .Select(dv => new PatientInstructionViewModel
                 {
-                    dv.VisitDate,
-                    dv.Instructions,
+                    VisitDate = dv.VisitDate,
+                    Instructions = dv.Instructions,
                     DoctorName = dv.Doctor != null ? dv.Doctor.FullName : "Unknown"
                 })
                 .ToListAsync();
 
             return View(instructionsList);
         }
-
 
 
 

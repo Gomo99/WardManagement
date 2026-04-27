@@ -1,0 +1,65 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@{
+    ViewData["Title"] = "Create Prescription";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/AllScripts'>All Scripts</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Create</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Create Prescription</h1>
+        <p>Manually enter a prescription</p>
+    </div>
+    <a asp-action="AllScripts" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-file-prescription"></i> Prescription Details</span></div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="AdmissionId">Patient / Admission <span class="required">*</span></label>
+                    <select asp-for="AdmissionId" asp-items="ViewBag.Admissions" class="form-control">
+                        <option value="">Select admission</option>
+                    </select>
+                    <span asp-validation-for="AdmissionId" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="MedicationId">Medication <span class="required">*</span></label>
+                    <select asp-for="MedicationId" asp-items="ViewBag.Medications" class="form-control">
+                        <option value="">Select medication</option>
+                    </select>
+                    <span asp-validation-for="MedicationId" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="Dosage">Dosage</label>
+                    <input asp-for="Dosage" class="form-control" placeholder="e.g. 500mg" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Frequency">Frequency</label>
+                    <input asp-for="Frequency" class="form-control" placeholder="e.g. Twice daily" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Duration">Duration</label>
+                    <input asp-for="Duration" class="form-control" placeholder="e.g. 7 days" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Notes">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+                <input asp-for="PrescribedDate" type="hidden" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+
+                <div style="display:flex; gap:12px; margin-top:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Create Prescription</button>
+                    <a asp-action="AllScripts" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

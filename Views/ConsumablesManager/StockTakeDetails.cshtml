@@ -1,0 +1,56 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.StockTake
+@{
+    ViewData["Title"] = "Stock Take Details";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/StockTakes'>Stock Takes</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Stock Take – @Model.DateTaken.ToString("dd MMMM yyyy")</h1>
+        <p>@Model.StockTakeItems?.Count items counted</p>
+    </div>
+    <a asp-action="StockTakes" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (Model.Notes != null)
+{
+    <div class="alert alert-info" style="margin-bottom:20px;"><i class="fa-solid fa-note-sticky"></i> @Model.Notes</div>
+}
+
+<div class="card">
+    @if (Model.StockTakeItems == null || !Model.StockTakeItems.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-box-open" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No items recorded in this stock take.</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumable</th>
+                        <th>System Qty</th>
+                        <th>Actual Qty</th>
+                        <th>Difference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.StockTakeItems)
+                    {
+                        int diff = item.ActualQuantity - item.SystemQuantity;
+                        string diffClass = diff == 0 ? "text-success" : diff > 0 ? "text-warning" : "text-danger";
+                        <tr>
+                            <td>@item.Consumable?.Name</td>
+                            <td>@item.SystemQuantity</td>
+                            <td>@item.ActualQuantity</td>
+                            <td class="@diffClass">@(diff >= 0 ? "+" : "")@diff</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

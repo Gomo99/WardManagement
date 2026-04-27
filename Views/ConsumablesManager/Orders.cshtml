@@ -1,0 +1,124 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.ConsumableOrder>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Orders";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Orders</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Orders</h1>
+        <p>@Model.Count() order(s) placed</p>
+    </div>
+    <a asp-action="RequestConsumable" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> New Request
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-clipboard-list" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No orders yet</div>
+            <a asp-action="RequestConsumable" class="btn btn-primary btn-sm" style="margin-top:12px;">Place First Order</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumable</th>
+                        <th>Quantity Requested</th>
+                        <th>Status</th>
+                        <th>Request Date</th>
+                        <th>Received</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-box" style="color:var(--teal);"></i>
+                                    <span style="font-weight:600; color:var(--navy);">@order.Consumable?.Name</span>
+                                </div>
+                            </td>
+                            <td>@order.QuantityRequested</td>
+                            <td>
+                                @{
+                                    string badgeClass = order.OrderStatus switch
+                                    {
+                                        OrderStatus.Ordered => "badge badge-gold",
+                                        OrderStatus.PartiallyComplete => "badge badge-warning",
+                                        OrderStatus.Complete => "badge badge-success",
+                                        OrderStatus.Cancelled => "badge badge-danger",
+                                        _ => "badge badge-secondary"
+                                    };
+                                }
+                                <span class="@badgeClass"><span class="badge-dot"></span> @order.OrderStatus</span>
+                            </td>
+                            <td>@order.RequestDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                @if (order.QuantityReceived.HasValue)
+                                {
+                                    <span>@order.QuantityReceived on @order.ReceivedDate?.ToString("dd MMM")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;">
+                                    <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+
+                                    @if (order.OrderStatus == OrderStatus.Ordered && order.IsActive == Status.Active)
+                                    {
+                                        <a asp-action="EditOrder" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                        <form asp-action="DeleteOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Cancel this order?')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (order.OrderStatus == OrderStatus.Ordered && order.IsActive != Status.Active)
+                                    {
+                                        <form asp-action="RestoreOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+
+                                    @if (order.OrderStatus == OrderStatus.Ordered)
+                                    {
+                                        <a asp-action="ReceiveConsumable" asp-route-orderId="@order.Id" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                            <i class="fa-solid fa-truck"></i> Receive
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

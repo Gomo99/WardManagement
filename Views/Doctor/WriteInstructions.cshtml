@@ -1,0 +1,33 @@
+﻿@{
+    ViewData["Title"] = "Write Instructions";
+    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Instructions</span>";
+    int visitId = ViewBag.VisitId ?? 0;
+    string existing = ViewBag.ExistingInstructions ?? "";
+    string patientName = ViewBag.PatientName ?? "";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Write Instructions</h1><p>@patientName</p></div>
+    <a asp-action="MyScheduledVisits" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clipboard-list"></i> Instructions for Nurses</span></div>
+        <div class="card-body">
+            <form asp-action="WriteInstructions" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="visitId" value="@visitId" />
+                <div class="form-group">
+                    <textarea name="instructions" class="form-control" rows="5" placeholder="Enter detailed instructions...">@existing</textarea>
+                    @if (ViewContext.ModelState[""]?.Errors.Count > 0)
+                    {
+                        <span class="field-validation-error">@ViewContext.ModelState[""].Errors[0].ErrorMessage</span>
+                    }
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Instructions</button>
+                    <a asp-action="MyScheduledVisits" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,62 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Vitals
+@{
+    ViewData["Title"] = "Edit Vitals";
+    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Nurse/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit Vitals</span>";
+}
+<div class="page-header">
+    <div class="page-header-title"><h1>Edit Vitals</h1><p>@ViewBag.PatientName</p></div>
+    <a asp-action="VitalsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+<div style="max-width:700px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-pen-to-square"></i> Edit Vital Signs</span></div>
+        <div class="card-body">
+            <form asp-action="EditVital" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+                <input asp-for="AdmissionId" type="hidden" />
+                <div class="form-group">
+                    <label class="form-label" asp-for="DateRecorded">Date &amp; Time</label>
+                    <input asp-for="DateRecorded" class="form-control" type="datetime-local" />
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="BloodPressure">Blood Pressure</label>
+                        <input asp-for="BloodPressure" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="TemperatureCelsius">Temperature (°C)</label>
+                        <input asp-for="TemperatureCelsius" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="BloodSugarMmolL">Blood Sugar</label>
+                        <input asp-for="BloodSugarMmolL" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="HeartRateBpm">Heart Rate</label>
+                        <input asp-for="HeartRateBpm" class="form-control" type="number" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="RespiratoryRate">Respiratory Rate</label>
+                        <input asp-for="RespiratoryRate" class="form-control" type="number" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="OxygenSaturation">SpO₂ (%)</label>
+                        <input asp-for="OxygenSaturation" class="form-control" type="number" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Notes">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    <a asp-action="VitalsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

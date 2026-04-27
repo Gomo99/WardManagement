@@ -1,0 +1,124 @@
+@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Bed>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Beds";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Admin/Wards'>Wards</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Beds</span>";
+    var availCount = Model.Count(b => b.IsActive == Status.Active && !b.IsOccupied);
+    var occupiedCount = Model.Count(b => b.IsOccupied);
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Beds</h1>
+        <p>@Model.Count() bed(s) — @availCount available, @occupiedCount occupied</p>
+    </div>
+    <a asp-action="CreateBed" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Add Bed
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<!-- WARD FILTER -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="Beds" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Filter by Ward</label>
+                @Html.DropDownList("wardId", ViewBag.Wards as SelectList, "All Wards", new { @class = "form-control", style = "width:200px;" })
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+            <a asp-action="Beds" class="btn btn-outline btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-bed" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No beds found</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bed Number</th>
+                        <th>Ward</th>
+                        <th>Occupancy</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bed in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:32px; height:32px; border-radius:8px; background:@(bed.IsOccupied ? "#FDF0EE" : "var(--teal-lt)"); color:@(bed.IsOccupied ? "var(--danger)" : "var(--teal)"); display:flex; align-items:center; justify-content:center; font-size:.85rem;">
+                                        <i class="fa-solid fa-bed"></i>
+                                    </div>
+                                    <span style="font-weight:600; color:var(--navy);">Bed @bed.BedNumber</span>
+                                </div>
+                            </td>
+                            <td>@(bed.Ward?.Name ?? "—")</td>
+                            <td>
+                                @if (bed.IsOccupied)
+                                {
+                                    <span class="badge badge-danger"><span class="badge-dot"></span> Occupied</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-teal"><span class="badge-dot"></span> Available</span>
+                                }
+                            </td>
+                            <td>
+                                @if (bed.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning"><span class="badge-dot"></span> Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                    <a asp-action="DetailsBed" asp-route-id="@bed.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                    <a asp-action="EditBed" asp-route-id="@bed.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                    @if (bed.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteBed" asp-route-id="@bed.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Deactivate Bed @bed.BedNumber?')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreBed" asp-route-id="@bed.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Doctor Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Doctor Dashboard</h1>
+        <p>Your patients and upcoming visits</p>
+    </div>
+    <div>
+        <span style="font-size:.8rem; color:var(--gray-400);">
+            <i class="fa-regular fa-clock"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </span>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-bed-pulse"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ActivePatients</div>
+            <div class="stat-label">Active Admissions</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-calendar"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.UpcomingVisits</div>
+            <div class="stat-label">Scheduled Visits</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-users"></i> My Patients</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">View and manage your currently admitted patients.</p>
+            <a asp-action="MyPatients" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View Patients</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-calendar-check"></i> Scheduled Visits</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">See your upcoming ward visits.</p>
+            <a asp-action="MyScheduledVisits" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> Schedule</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,96 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Condition>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Medical Conditions";
+    ViewData["Breadcrumb"] = "<a href='/Admin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Conditions</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Medical Conditions</h1>
+        <p>@Model.Count() condition(s) recorded</p>
+    </div>
+    <a asp-action="CreateCondition" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Add Condition
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-heart-pulse" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No conditions found</div>
+            <a asp-action="CreateCondition" class="btn btn-primary btn-sm" style="margin-top:12px;">Add First Condition</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cond in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:32px; height:32px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:.85rem;">
+                                        <i class="fa-solid fa-heart-pulse"></i>
+                                    </div>
+                                    <span style="font-weight:600; color:var(--navy);">@cond.Name</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if (cond.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning"><span class="badge-dot"></span> Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                    <a asp-action="DetailsCondition" asp-route-id="@cond.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                    <a asp-action="EditCondition" asp-route-id="@cond.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                    @if (cond.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteCondition" asp-route-id="@cond.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Deactivate @cond.Name?')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreCondition" asp-route-id="@cond.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
