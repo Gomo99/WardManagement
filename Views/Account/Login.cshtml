@@ -1,0 +1,83 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.LoginViewModel
+@{
+    ViewData["Title"] = "Sign In";
+    ViewData["GuestLayout"] = true;
+}
+
+<div class="guest-card">
+    <div class="guest-card-header">
+        <div class="guest-logo">
+            <div class="guest-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+            <div class="guest-logo-text">
+                <strong>NMB WardSys</strong>
+                <span>Ward Management System</span>
+            </div>
+        </div>
+        <p class="guest-subtitle">Sign in to access your dashboard</p>
+    </div>
+
+    <div class="guest-card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <form asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="form-group">
+                <label class="form-label" asp-for="UserNameorEmail">Email Address <span class="required">*</span></label>
+                <div class="input-group">
+                    <i class="input-icon fa-solid fa-envelope"></i>
+                    <input asp-for="UserNameorEmail" class="form-control" type="email"
+                           placeholder="you@hospital.co.za" autocomplete="email" />
+                </div>
+                <span asp-validation-for="UserNameorEmail" class="field-validation-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" asp-for="Password">Password <span class="required">*</span></label>
+                <div class="input-group">
+                    <i class="input-icon fa-solid fa-lock"></i>
+                    <input asp-for="Password" class="form-control" type="password"
+                           placeholder="••••••••" autocomplete="current-password" />
+                    <button type="button" class="input-suffix" data-toggle-pw>
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="field-validation-error"></span>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
+                <label class="form-check">
+                    <input asp-for="RememberMe" type="checkbox" class="form-check-input" />
+                    <span class="form-check-label">Remember me</span>
+                </label>
+                <a asp-action="ForgotPassword" style="font-size:.82rem; color:var(--teal); text-decoration:none; font-weight:500;">
+                    Forgot password?
+                </a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-lg">
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In
+            </button>
+        </form>
+
+        <div style="text-align:center; margin-top:20px; font-size:.78rem; color:var(--gray-400);">
+            <i class="fa-solid fa-shield-halved" style="color:var(--teal);"></i>
+            Secured with BCrypt encryption &amp; optional 2FA
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

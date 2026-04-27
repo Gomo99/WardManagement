@@ -1,0 +1,81 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.TwoFactorRecoveryCodesViewModel
+@{
+    ViewData["Title"] = "Recovery Codes";
+    ViewData["Breadcrumb"] = "<a href='/Account/ManageTwoFactor'>2FA Security</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Recovery Codes</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Your Recovery Codes</h1>
+        <p>Save these immediately — they won't be shown again</p>
+    </div>
+</div>
+
+<div style="max-width:600px;">
+    <div class="alert alert-danger" style="margin-bottom:24px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>
+            <strong>Save these codes now!</strong> Each code can only be used once. If you lose access to your authenticator app and your codes, you will be locked out.
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-life-ring" style="color:var(--teal); margin-right:8px;"></i>Recovery Codes</span>
+            <button onclick="copyAll()" class="btn btn-outline btn-sm" type="button">
+                <i class="fa-regular fa-copy"></i> Copy All
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="code-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                @foreach (var code in Model.PlainCodes)
+                {
+                    <div style="background:var(--gray-100); border:1px solid var(--gray-200); border-radius:8px; padding:10px 16px; font-family:monospace; font-size:.95rem; letter-spacing:.12em; color:var(--navy); text-align:center;">
+                        @code
+                    </div>
+                }
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button onclick="printCodes()" class="btn btn-outline btn-sm" type="button">
+                    <i class="fa-solid fa-print"></i> Print
+                </button>
+                <button onclick="downloadCodes()" class="btn btn-outline btn-sm" type="button">
+                    <i class="fa-solid fa-download"></i> Download .txt
+                </button>
+                <a asp-action="ManageTwoFactor" class="btn btn-primary btn-sm" style="margin-left:auto;">
+                    <i class="fa-solid fa-check"></i> I've Saved My Codes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:20px;">
+        <i class="fa-solid fa-circle-info"></i>
+        Store these codes somewhere secure like a password manager or printed in a safe place. Treat them like passwords.
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const codes = [@Html.Raw(string.Join(",", Model.PlainCodes.Select(c => $"'{c}'")))];
+
+        function copyAll() {
+            navigator.clipboard.writeText(codes.join('\n')).then(() => {
+                const btn = document.querySelector('button[onclick="copyAll()"]');
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy All', 2000);
+            });
+        }
+
+        function downloadCodes() {
+            const text = "NMB WardSys - 2FA Recovery Codes\nGenerated: " + new Date().toLocaleString() + "\n\n" + codes.join('\n') + "\n\nStore these securely. Each code can only be used once.";
+            const a = document.createElement('a');
+            a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+            a.download = 'ward-sys-recovery-codes.txt';
+            a.click();
+        }
+
+        function printCodes() { window.print(); }
+    </script>
+}

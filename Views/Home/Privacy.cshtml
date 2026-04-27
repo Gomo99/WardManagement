@@ -1,6 +1,48 @@
-﻿@{
+@{
     ViewData["Title"] = "Privacy Policy";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Privacy Policy</span>";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Privacy Policy</h1>
+        <p>How the NMB Ward Management System handles your data</p>
+    </div>
+</div>
+
+<div style="max-width:760px;">
+    <div class="card">
+        <div class="card-body" style="line-height:1.8; font-size:.9rem; color:var(--gray-700);">
+
+            <div class="alert alert-info" style="margin-bottom:24px;">
+                <i class="fa-solid fa-circle-info"></i>
+                Last updated: @DateTime.Now.ToString("MMMM yyyy") &mdash; NMB Community Hospital, Nelson Mandela Bay
+            </div>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">1. Information We Collect</h2>
+            <p>The NMB Ward Management System collects personal and medical information necessary for healthcare operations, including patient demographics, medical history, vital signs, medication records, and treatment documentation. Employee information is also captured for access control and audit purposes.</p>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">2. How We Use Your Information</h2>
+            <p>Information collected is used exclusively for the delivery of patient care, ward management operations, legal compliance, and internal hospital reporting. Data is never sold or shared with third parties outside of direct care providers.</p>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">3. Data Security</h2>
+            <p>All data is protected using industry-standard encryption. Passwords are hashed using BCrypt. The system supports two-factor authentication and device trust management. Access is strictly role-based — each user only accesses information necessary for their function.</p>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">4. Data Retention</h2>
+            <p>Patient records and medical data are retained in accordance with South African healthcare regulations and the Health Professions Act. Employee records are retained for the duration of employment and a minimum of 5 years thereafter.</p>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">5. Your Rights</h2>
+            <p>Patients have the right to access their own records as permitted by law. Employees may request correction of inaccurate personal data by contacting the System Administrator.</p>
+
+            <h2 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--navy); margin-bottom:8px; margin-top:24px;">6. Contact</h2>
+            <p>For privacy-related queries, contact the hospital's Data Protection Officer or System Administrator through the official hospital communication channels.</p>
+
+            <hr class="divider" />
+            <div style="text-align:center;">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

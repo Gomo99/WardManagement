@@ -1,0 +1,122 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.ManageTwoFactorViewModel
+@{
+    ViewData["Title"] = "2FA Security";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>2FA Security</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Two-Factor Authentication</h1>
+        <p>Manage your account's second layer of security</p>
+    </div>
+</div>
+
+<div style="max-width:640px; display:flex; flex-direction:column; gap:20px;">
+
+    <!-- STATUS CARD -->
+    <div class="card">
+        <div class="card-body">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div style="width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.4rem;
+                        background:@(Model.IsTwoFactorEnabled ? "var(--teal-lt)" : "var(--gray-100)");
+                        color:@(Model.IsTwoFactorEnabled ? "var(--teal)" : "var(--gray-400)");">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; color:var(--navy); font-size:1rem; margin-bottom:2px;">
+                            Two-Factor Authentication
+                        </div>
+                        <span class="badge @(Model.IsTwoFactorEnabled ? "badge-teal" : "badge-danger")">
+                            <span class="badge-dot"></span>
+                            @(Model.IsTwoFactorEnabled ? "Enabled" : "Disabled")
+                        </span>
+                    </div>
+                </div>
+                @if (!Model.IsTwoFactorEnabled)
+                {
+                    <a asp-action="SetupTwoFactor" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> Enable 2FA
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (Model.IsTwoFactorEnabled)
+    {
+        <!-- RECOVERY CODES -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-life-ring" style="color:var(--teal); margin-right:8px;"></i>Recovery Codes</span>
+            </div>
+            <div class="card-body">
+                <p style="font-size:.875rem; color:var(--gray-400); margin-bottom:16px;">
+                    Recovery codes allow you to sign in if you lose access to your authenticator app.
+                </p>
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <span style="font-size:1.8rem; font-weight:700; color:var(--navy);">@Model.RecoveryCodesLeft</span>
+                        <span style="color:var(--gray-400); font-size:.875rem;"> codes remaining</span>
+                    </div>
+                    @if (Model.RecoveryCodesLeft < 3)
+                    {
+                        <span class="badge badge-danger"><span class="badge-dot"></span> Running Low</span>
+                    }
+                </div>
+                <hr class="divider" style="margin:16px 0;" />
+                <form asp-action="RegenerateRecoveryCodes" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline btn-sm"
+                            onclick="return confirm('This will invalidate all existing recovery codes. Continue?')">
+                        <i class="fa-solid fa-rotate"></i> Regenerate Codes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- DISABLE 2FA -->
+        <div class="card" style="border-color:#F5C6C1;">
+            <div class="card-header" style="border-color:#F5C6C1;">
+                <span class="card-title" style="color:var(--danger);">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>Disable Two-Factor Auth
+                </span>
+            </div>
+            <div class="card-body">
+                <p style="font-size:.875rem; color:var(--gray-400); margin-bottom:20px;">
+                    Disabling 2FA will make your account less secure. Confirm your current password to proceed.
+                </p>
+                <form asp-action="DisableTwoFactor" method="post" id="disable-form">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label class="form-label">Current Password <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="input-icon fa-solid fa-lock"></i>
+                            <input type="password" name="password" class="form-control" placeholder="Enter your password" required />
+                            <button type="button" class="input-suffix" data-toggle-pw>
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Are you sure you want to disable 2FA? Your account will be less secure.')">
+                        <i class="fa-solid fa-shield-xmark"></i> Disable 2FA
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div style="text-align:center;">
+        <a asp-action="ManageDevices" style="font-size:.82rem; color:var(--teal); text-decoration:none;">
+            <i class="fa-solid fa-laptop"></i> Manage Trusted Devices →
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="position:fixed; top:80px; right:24px; max-width:360px; z-index:999; box-shadow:var(--shadow-md);">
+        <i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]
+    </div>
+}

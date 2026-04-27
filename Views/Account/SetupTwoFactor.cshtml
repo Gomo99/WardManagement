@@ -1,0 +1,95 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.TwoFactorSetupViewModel
+@{
+    ViewData["Title"] = "Setup Two-Factor Authentication";
+    ViewData["Breadcrumb"] = "<a href='/Account/ManageTwoFactor'>2FA Security</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Setup</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Setup Two-Factor Authentication</h1>
+        <p>Protect your account with an authenticator app</p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:900px;">
+
+    <!-- STEP 1 -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem;">1</div>
+                <span class="card-title">Scan QR Code</span>
+            </div>
+        </div>
+        <div class="card-body" style="text-align:center;">
+            <p style="font-size:.875rem; color:var(--gray-400); margin-bottom:20px;">
+                Open your authenticator app (Google Authenticator, Authy, Microsoft Authenticator) and scan the QR code below.
+            </p>
+            <div style="display:inline-block; padding:16px; background:#fff; border:2px solid var(--gray-200); border-radius:12px; box-shadow:var(--shadow-sm);">
+                <img src="data:image/png;base64,@Model.QrCodeBase64"
+                     alt="2FA QR Code" style="width:180px; height:180px; display:block;" />
+            </div>
+            <div class="divider-text" style="margin:20px 0;">can't scan?</div>
+            <div style="background:var(--gray-100); border-radius:8px; padding:12px; font-family:monospace; font-size:.85rem; letter-spacing:.08em; word-break:break-all; color:var(--navy);">
+                @Model.SecretKey
+            </div>
+            <p class="form-text" style="margin-top:8px;">Enter this key manually into your authenticator app.</p>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem;">2</div>
+                <span class="card-title">Verify Setup</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.875rem; color:var(--gray-400); margin-bottom:24px;">
+                After scanning, enter the 6-digit code your authenticator app displays to confirm the setup is correct.
+            </p>
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]
+                </div>
+            }
+
+            <form asp-action="SetupTwoFactor" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label class="form-label">Verification Code <span class="required">*</span></label>
+                    <div class="input-group">
+                        <i class="input-icon fa-solid fa-key"></i>
+                        <input asp-for="VerificationCode" class="form-control" type="text"
+                               placeholder="000000" maxlength="6" autocomplete="one-time-code"
+                               style="letter-spacing:.3em; font-size:1.2rem; text-align:center; padding-left:40px;" />
+                    </div>
+                    <span asp-validation-for="VerificationCode" class="field-validation-error"></span>
+                </div>
+
+                <div class="alert alert-warning" style="margin-bottom:20px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    You will be given <strong>10 recovery codes</strong> after enabling. Store them safely — each can only be used once.
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fa-solid fa-shield-check"></i> Enable Two-Factor Auth
+                </button>
+            </form>
+
+            <div style="margin-top:16px; text-align:center;">
+                <a asp-action="ManageTwoFactor" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

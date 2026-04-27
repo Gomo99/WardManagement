@@ -1,0 +1,117 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.TwoFactorChallengeViewModel
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+    ViewData["GuestLayout"] = true;
+}
+
+<div class="guest-card">
+    <div class="guest-card-header">
+        <div class="guest-logo">
+            <div class="guest-logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="guest-logo-text">
+                <strong>2FA Verification</strong>
+                <span>NMB Ward Management System</span>
+            </div>
+        </div>
+        <p class="guest-subtitle">Enter your authentication code to continue</p>
+    </div>
+
+    <div class="guest-card-body">
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <div id="panel-code" class="@(Model.UseRecoveryCode ? "hidden" : "")">
+            <div class="alert alert-info" style="margin-bottom:20px;">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                Open your authenticator app and enter the 6-digit code shown.
+            </div>
+
+            <form asp-action="TwoFactorChallenge" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+                <input type="hidden" asp-for="UseRecoveryCode" value="false" />
+
+                <div class="form-group">
+                    <label class="form-label">Authentication Code <span class="required">*</span></label>
+                    <div class="input-group">
+                        <i class="input-icon fa-solid fa-key"></i>
+                        <input asp-for="Code" class="form-control" type="text"
+                               placeholder="000000" maxlength="6" autocomplete="one-time-code"
+                               style="letter-spacing:.3em; font-size:1.2rem; text-align:center; padding-left:40px;" />
+                    </div>
+                    <span asp-validation-for="Code" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-check">
+                        <input asp-for="TrustDevice" type="checkbox" class="form-check-input" />
+                        <span class="form-check-label">Trust this device for 30 days</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fa-solid fa-check-double"></i> Verify Code
+                </button>
+            </form>
+
+            <div class="divider-text">or</div>
+            <button onclick="switchPanel('recovery')" class="btn btn-outline btn-full" type="button">
+                <i class="fa-solid fa-life-ring"></i> Use a Recovery Code Instead
+            </button>
+        </div>
+
+        <div id="panel-recovery" class="@(!Model.UseRecoveryCode ? "hidden" : "")">
+            <div class="alert alert-warning" style="margin-bottom:20px;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Recovery codes can only be used once. Ensure you have your remaining codes saved.
+            </div>
+
+            <form asp-action="TwoFactorChallenge" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+                <input type="hidden" asp-for="UseRecoveryCode" value="true" />
+
+                <div class="form-group">
+                    <label class="form-label">Recovery Code <span class="required">*</span></label>
+                    <div class="input-group">
+                        <i class="input-icon fa-solid fa-life-ring"></i>
+                        <input asp-for="RecoveryCode" class="form-control" type="text"
+                               placeholder="XXXXX-XXXXX" autocomplete="off"
+                               style="letter-spacing:.15em; font-family:monospace;" />
+                    </div>
+                    <span asp-validation-for="RecoveryCode" class="field-validation-error"></span>
+                </div>
+
+                <button type="submit" class="btn btn-navy btn-full">
+                    <i class="fa-solid fa-shield-halved"></i> Verify Recovery Code
+                </button>
+            </form>
+
+            <div class="divider-text">or</div>
+            <button onclick="switchPanel('code')" class="btn btn-outline btn-full" type="button">
+                <i class="fa-solid fa-mobile-screen-button"></i> Use Authenticator App Instead
+            </button>
+        </div>
+
+        <div style="text-align:center; margin-top:20px;">
+            <a asp-action="Login" style="font-size:.82rem; color:var(--gray-400); text-decoration:none;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Login
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function switchPanel(which) {
+            document.getElementById('panel-code').classList.toggle('hidden', which === 'recovery');
+            document.getElementById('panel-recovery').classList.toggle('hidden', which === 'code');
+        }
+    </script>
+    <style>.hidden { display: none; }</style>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

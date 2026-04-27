@@ -1,8 +1,149 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Home";
+    ViewData["GuestLayout"] = true;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    body.guest { background: var(--navy); }
+    .home-wrap {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Animated background cross pattern */
+    .home-wrap::before {
+        content: '';
+        position: fixed; inset: 0;
+        background-image:
+            linear-gradient(rgba(14,138,138,.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(14,138,138,.06) 1px, transparent 1px);
+        background-size: 48px 48px;
+        pointer-events: none;
+    }
+
+    .home-hero { text-align: center; max-width: 680px; margin: 0 auto 60px; }
+    .home-logo {
+        display: inline-flex; align-items: center; gap: 16px;
+        background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px; padding: 14px 24px; margin-bottom: 36px;
+        backdrop-filter: blur(8px);
+    }
+    .home-logo-icon {
+        width: 52px; height: 52px; background: var(--teal); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1.5rem;
+    }
+    .home-logo-text strong { display: block; color: #fff; font-size: 1.1rem; font-weight: 700; }
+    .home-logo-text span { color: rgba(255,255,255,.5); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
+
+    .home-hero h1 {
+        font-family: var(--font-serif);
+        font-size: clamp(2.2rem, 5vw, 3.2rem);
+        font-weight: 600; color: #fff; line-height: 1.15;
+        margin-bottom: 20px;
+    }
+    .home-hero h1 em { font-style: normal; color: var(--teal); }
+    .home-hero p {
+        font-size: 1.05rem; color: rgba(255,255,255,.6); line-height: 1.7; margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; max-width: 900px; width: 100%;
+    }
+    .feature-card {
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 12px; padding: 24px;
+        backdrop-filter: blur(4px);
+        transition: background .2s, border-color .2s;
+    }
+    .feature-card:hover {
+        background: rgba(255,255,255,.1);
+        border-color: rgba(14,138,138,.4);
+    }
+    .feature-icon {
+        width: 44px; height: 44px; border-radius: 10px;
+        background: rgba(14,138,138,.2); color: var(--teal);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem; margin-bottom: 14px;
+    }
+    .feature-card h3 { font-size: .9rem; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .feature-card p { font-size: .8rem; color: rgba(255,255,255,.5); line-height: 1.5; }
+
+    .home-footer { margin-top: 60px; text-align: center; color: rgba(255,255,255,.3); font-size: .78rem; }
+</style>
+
+<div class="guest-wrap" style="flex-direction:column; gap:0;">
+    <div class="home-wrap">
+        <div class="home-hero">
+            <div class="home-logo">
+                <div class="home-logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                <div class="home-logo-text">
+                    <strong>NMB Ward Management</strong>
+                    <span>Hospital Information System</span>
+                </div>
+            </div>
+            <h1>Smarter Care, <em>Better Outcomes</em></h1>
+            <p>
+                A modern, integrated ward management platform designed for our community hospital.
+                Streamlining patient admissions, nursing care, doctor visits, and consumable management — all in one place.
+            </p>
+            <div class="hero-actions">
+                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-right-to-bracket"></i> Staff Sign In
+                </a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-lg" style="background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.2);">
+                    <i class="fa-solid fa-circle-user"></i> Patient Portal
+                </a>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-bed-pulse"></i></div>
+                <h3>Patient Management</h3>
+                <p>Admit, track, and discharge patients with complete digital records and bed assignment.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                <h3>Patient Care</h3>
+                <p>Record vitals, administer medications, and track treatments with schedule compliance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-stethoscope"></i></div>
+                <h3>Doctor Portal</h3>
+                <p>View patient folders, write instructions, prescribe medication and schedule visits.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-file-prescription"></i></div>
+                <h3>Script Management</h3>
+                <p>Process new prescriptions and track medication delivery from pharmacy to ward.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <h3>Consumables</h3>
+                <p>Monitor stock levels, place replenishment orders and receive consumable deliveries.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3>Secure Access</h3>
+                <p>Role-based access control with optional two-factor authentication for every user.</p>
+            </div>
+        </div>
+
+        <div class="home-footer">
+            <p>&copy; @DateTime.Now.Year NMB Ward Management System &mdash; Nelson Mandela Bay Community Hospital</p>
+            <p style="margin-top:6px;"><a asp-action="Privacy" style="color:rgba(255,255,255,.4); text-decoration:none;">Privacy Policy</a></p>
+        </div>
+    </div>
 </div>

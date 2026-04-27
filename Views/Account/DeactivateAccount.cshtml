@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "Deactivate Account";
+    ViewData["Breadcrumb"] = "<a href='/Account/EditProfile'>My Profile</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Deactivate Account</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Deactivate Account</h1>
+        <p>This action cannot be undone by yourself</p>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div style="max-width:540px;">
+    <div class="alert alert-danger" style="margin-bottom:24px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>
+            <strong>Warning: This will deactivate your account.</strong><br />
+            You will be signed out immediately and will not be able to log in again until an Administrator reactivates your account.
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" style="border-color:#F5C6C1;">
+            <span class="card-title" style="color:var(--danger);">
+                <i class="fa-solid fa-user-slash" style="margin-right:8px;"></i>Confirm Deactivation
+            </span>
+        </div>
+        <div class="card-body">
+            <p style="font-size:.875rem; color:var(--gray-400); margin-bottom:24px; line-height:1.6;">
+                To confirm, please enter your current password. This lets us verify it's really you making this request.
+            </p>
+
+            <form asp-action="DeactivateAccount" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label class="form-label">Current Password <span class="required">*</span></label>
+                    <div class="input-group">
+                        <i class="input-icon fa-solid fa-lock"></i>
+                        <input type="password" name="password" class="form-control"
+                               placeholder="Enter your password" required autocomplete="current-password" />
+                        <button type="button" class="input-suffix" data-toggle-pw>
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" id="confirm-check" required />
+                        <span class="form-check-label">I understand my account will be deactivated and I will be signed out.</span>
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:8px;">
+                    <button type="submit" class="btn btn-danger" id="deactivate-btn" disabled
+                            onclick="return confirm('Are you absolutely sure you want to deactivate your account?')">
+                        <i class="fa-solid fa-user-slash"></i> Deactivate My Account
+                    </button>
+                    <a asp-action="EditProfile" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const check = document.getElementById('confirm-check');
+        const btn = document.getElementById('deactivate-btn');
+        check.addEventListener('change', () => { btn.disabled = !check.checked; });
+    </script>
+}

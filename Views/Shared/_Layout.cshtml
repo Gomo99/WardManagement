@@ -1,50 +1,488 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - WARDMANAGEMENTSYSTEM</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/WARDMANAGEMENTSYSTEM.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] – NMB Ward Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        :root {
+            --navy:    #0B2545;
+            --teal:    #0E8A8A;
+            --teal-lt: #E6F4F4;
+            --accent:  #E8B84B;
+            --danger:  #C0392B;
+            --success: #1A7A4A;
+            --gray-50: #F8F9FA;
+            --gray-100:#F0F2F5;
+            --gray-200:#DEE2E8;
+            --gray-400:#8C95A0;
+            --gray-700:#3D4A5C;
+            --white:   #FFFFFF;
+            --shadow-sm: 0 1px 4px rgba(11,37,69,.08);
+            --shadow-md: 0 4px 16px rgba(11,37,69,.12);
+            --shadow-lg: 0 8px 32px rgba(11,37,69,.16);
+            --radius:  10px;
+            --sidebar-w: 260px;
+            --font-body: 'DM Sans', sans-serif;
+            --font-serif:'Crimson Pro', Georgia, serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 15px; }
+        body {
+            font-family: var(--font-body);
+            background: var(--gray-100);
+            color: var(--gray-700);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ── SIDEBAR ─────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--navy);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            transition: transform .3s ease;
+        }
+        .sidebar-brand {
+            padding: 28px 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+        .sidebar-brand .logo-mark {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--teal);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: #fff;
+        }
+        .logo-text { line-height: 1.2; }
+        .logo-text strong { display: block; color: #fff; font-size: .95rem; font-weight: 600; }
+        .logo-text span { color: rgba(255,255,255,.5); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+
+        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+        .nav-section-label {
+            padding: 14px 24px 6px;
+            font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+            color: rgba(255,255,255,.35); font-weight: 600;
+        }
+        .nav-item { display: block; }
+        .nav-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 24px;
+            color: rgba(255,255,255,.65);
+            text-decoration: none;
+            font-size: .875rem; font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all .2s;
+        }
+        .nav-link i { width: 18px; text-align: center; font-size: .9rem; }
+        .nav-link:hover { color: #fff; background: rgba(255,255,255,.06); }
+        .nav-link.active { color: #fff; background: rgba(14,138,138,.2); border-left-color: var(--teal); }
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent); color: var(--navy);
+            font-size: .65rem; font-weight: 700;
+            padding: 2px 7px; border-radius: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255,255,255,.1);
+        }
+        .user-card {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--teal);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: .85rem;
+            flex-shrink: 0;
+        }
+        .user-info strong { display: block; color: #fff; font-size: .82rem; }
+        .user-info span { color: rgba(255,255,255,.45); font-size: .72rem; }
+
+        /* ── MAIN CONTENT ────────────────────────────── */
+        .main-wrap {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .topbar {
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0 32px;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+            box-shadow: var(--shadow-sm);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .breadcrumb-nav {
+            display: flex; align-items: center; gap: 6px;
+            font-size: .82rem; color: var(--gray-400);
+        }
+        .breadcrumb-nav a { color: var(--teal); text-decoration: none; }
+        .breadcrumb-sep { color: var(--gray-200); }
+        .page-title-bar { font-weight: 600; color: var(--gray-700); }
+
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .topbar-btn {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: var(--gray-100); border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--gray-400); font-size: .9rem; transition: all .2s;
+        }
+        .topbar-btn:hover { background: var(--teal-lt); color: var(--teal); }
+
+        .main-content { flex: 1; padding: 32px; }
+
+        /* ── ALERTS ──────────────────────────────────── */
+        .alert {
+            padding: 12px 18px; border-radius: var(--radius);
+            display: flex; align-items: center; gap: 12px;
+            font-size: .875rem; margin-bottom: 20px;
+            border: 1px solid transparent;
+        }
+        .alert-success { background: #EDFBF3; color: var(--success); border-color: #A7E8C8; }
+        .alert-danger  { background: #FDF0EE; color: var(--danger);  border-color: #F5C6C1; }
+        .alert-info    { background: var(--teal-lt); color: var(--teal); border-color: #B2DCDC; }
+        .alert-warning { background: #FEF9EC; color: #855B00; border-color: #F5DFA0; }
+        .alert i { font-size: 1rem; }
+
+        /* ── CARDS ───────────────────────────────────── */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+        }
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-title {
+            font-size: 1rem; font-weight: 600; color: var(--navy);
+        }
+        .card-body { padding: 24px; }
+
+        /* ── BUTTONS ─────────────────────────────────── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 9px 20px; border-radius: 8px;
+            font-family: var(--font-body); font-size: .875rem; font-weight: 600;
+            border: 2px solid transparent; cursor: pointer;
+            text-decoration: none; transition: all .2s; white-space: nowrap;
+        }
+        .btn-primary { background: var(--teal); color: #fff; }
+        .btn-primary:hover { background: #0A7070; }
+        .btn-navy { background: var(--navy); color: #fff; }
+        .btn-navy:hover { background: #091E38; }
+        .btn-outline { background: transparent; border-color: var(--gray-200); color: var(--gray-700); }
+        .btn-outline:hover { border-color: var(--teal); color: var(--teal); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #A93226; }
+        .btn-sm { padding: 6px 14px; font-size: .8rem; }
+        .btn-lg { padding: 12px 28px; font-size: 1rem; }
+        .btn-full { width: 100%; justify-content: center; }
+
+        /* ── FORMS ───────────────────────────────────── */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block; margin-bottom: 7px;
+            font-size: .82rem; font-weight: 600;
+            color: var(--gray-700); letter-spacing: .02em;
+        }
+        .form-label .required { color: var(--danger); margin-left: 2px; }
+        .form-control {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--gray-200); border-radius: 8px;
+            font-family: var(--font-body); font-size: .875rem; color: var(--gray-700);
+            background: var(--white);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(14,138,138,.12);
+        }
+        .form-control::placeholder { color: var(--gray-400); }
+        .form-text { font-size: .78rem; color: var(--gray-400); margin-top: 5px; }
+        .field-validation-error { color: var(--danger); font-size: .78rem; display: block; margin-top: 4px; }
+        .input-group { position: relative; }
+        .input-icon {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            color: var(--gray-400); font-size: .9rem; pointer-events: none;
+        }
+        .input-group .form-control { padding-left: 38px; }
+        .input-suffix {
+            position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+            color: var(--gray-400); font-size: .9rem; cursor: pointer;
+            background: none; border: none;
+        }
+        .input-suffix:hover { color: var(--teal); }
+
+        /* ── TABLES ──────────────────────────────────── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+        thead th {
+            padding: 12px 16px; text-align: left;
+            background: var(--gray-50); color: var(--gray-700);
+            font-weight: 600; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        tbody td { padding: 13px 16px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: var(--gray-50); }
+
+        /* ── BADGES / CHIPS ──────────────────────────── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 20px;
+            font-size: .72rem; font-weight: 600; letter-spacing: .02em;
+        }
+        .badge-teal    { background: var(--teal-lt); color: var(--teal); }
+        .badge-navy    { background: #E8EEF5; color: var(--navy); }
+        .badge-success { background: #EDFBF3; color: var(--success); }
+        .badge-danger  { background: #FDF0EE; color: var(--danger); }
+        .badge-warning { background: #FEF9EC; color: #855B00; }
+        .badge-dot::before { content:''; width:6px; height:6px; border-radius:50%; background: currentColor; display:inline-block; }
+
+        /* ── DIVIDER ─────────────────────────────────── */
+        .divider { border: none; border-top: 1px solid var(--gray-200); margin: 24px 0; }
+        .divider-text {
+            display: flex; align-items: center; gap: 16px;
+            color: var(--gray-400); font-size: .78rem; margin: 20px 0;
+        }
+        .divider-text::before, .divider-text::after {
+            content: ''; flex: 1; height: 1px; background: var(--gray-200);
+        }
+
+        /* ── PAGE HEADER ─────────────────────────────── */
+        .page-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            margin-bottom: 28px; gap: 16px; flex-wrap: wrap;
+        }
+        .page-header-title h1 {
+            font-family: var(--font-serif);
+            font-size: 1.75rem; font-weight: 600; color: var(--navy);
+            line-height: 1.2; margin-bottom: 4px;
+        }
+        .page-header-title p { color: var(--gray-400); font-size: .875rem; }
+
+        /* ── STAT CARDS ──────────────────────────────── */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .stat-card {
+            background: var(--white); border-radius: var(--radius);
+            padding: 20px; border: 1px solid var(--gray-200);
+            display: flex; align-items: flex-start; gap: 14px;
+        }
+        .stat-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; flex-shrink: 0;
+        }
+        .stat-icon.teal { background: var(--teal-lt); color: var(--teal); }
+        .stat-icon.navy { background: #E8EEF5; color: var(--navy); }
+        .stat-icon.gold { background: #FEF9EC; color: #855B00; }
+        .stat-icon.green { background: #EDFBF3; color: var(--success); }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--navy); line-height: 1; }
+        .stat-label { font-size: .78rem; color: var(--gray-400); margin-top: 4px; }
+
+        /* ── GUEST LAYOUT (login etc.) ───────────────── */
+        body.guest {
+            background: var(--navy);
+            align-items: stretch;
+        }
+        body.guest::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(14,138,138,.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(14,138,138,.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .guest-wrap {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; width: 100%; padding: 40px 20px;
+        }
+        .guest-card {
+            background: var(--white); border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            width: 100%; max-width: 440px;
+            overflow: hidden;
+            position: relative; z-index: 1;
+        }
+        .guest-card-header {
+            background: var(--navy); padding: 32px 36px 28px;
+            text-align: center;
+        }
+        .guest-logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+        .guest-logo-icon {
+            width: 48px; height: 48px; background: var(--teal); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.4rem;
+        }
+        .guest-logo-text strong { display: block; color: #fff; font-size: 1.1rem; font-weight: 700; }
+        .guest-logo-text span { color: rgba(255,255,255,.5); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+        .guest-subtitle { color: rgba(255,255,255,.6); font-size: .82rem; margin-top: 6px; }
+        .guest-card-body { padding: 32px 36px; }
+
+        /* ── RESPONSIVE ──────────────────────────────── */
+        .mobile-toggle {
+            display: none; background: none; border: none; cursor: pointer;
+            color: var(--gray-700); font-size: 1.1rem;
+        }
+        @@media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrap { margin-left: 0; }
+            .mobile-toggle { display: block; }
+            .main-content { padding: 20px 16px; }
+            .topbar { padding: 0 16px; }
+            .guest-card-body { padding: 24px 20px; }
+            .guest-card-header { padding: 24px 20px 20px; }
+        }
+
+        /* ── CHECKBOX ────────────────────────────────── */
+        .form-check { display: flex; align-items: center; gap: 10px; }
+        .form-check-input {
+            width: 17px; height: 17px; border: 2px solid var(--gray-200);
+            border-radius: 4px; accent-color: var(--teal); cursor: pointer;
+        }
+        .form-check-label { font-size: .875rem; color: var(--gray-700); cursor: pointer; }
+
+        /* ── TOOLTIP ─────────────────────────────────── */
+        [data-tooltip] { position: relative; cursor: help; }
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+            background: var(--navy); color: #fff; font-size: .72rem;
+            padding: 5px 10px; border-radius: 6px; white-space: nowrap; z-index: 999;
+        }
+    </style>
+    @RenderSection("Styles", required: false)
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">WARDMANAGEMENTSYSTEM</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+<body class="@(ViewData["GuestLayout"] != null ? "guest" : "")">
+
+@if (ViewData["GuestLayout"] != null)
+{
+    <!-- GUEST / AUTH LAYOUT -->
+    <div class="guest-wrap">
+        @RenderBody()
+    </div>
+}
+else
+{
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo-mark">
+                <div class="logo-icon"><i class="fa-solid fa-hospital-user"></i></div>
+                <div class="logo-text">
+                    <strong>NMB WardSys</strong>
+                    <span>Hospital Management</span>
                 </div>
             </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            @await Html.PartialAsync("_SidebarNav")
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+        <div class="sidebar-footer">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="user-card">
+                    <div class="user-avatar">
+                        @(User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value?.Substring(0,1).ToUpper())
+                    </div>
+                    <div class="user-info">
+                        <strong>@User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value @User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value</strong>
+                        <span>@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-wrap">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                @if (ViewData["Breadcrumb"] != null)
+                {
+                    <nav class="breadcrumb-nav">
+                        @Html.Raw(ViewData["Breadcrumb"])
+                    </nav>
+                }
+            </div>
+            <div class="topbar-right">
+                <button class="topbar-btn" data-tooltip="Notifications"><i class="fa-regular fa-bell"></i></button>
+                <a asp-controller="Account" asp-action="EditProfile" class="topbar-btn" data-tooltip="Profile"><i class="fa-regular fa-circle-user"></i></a>
+                <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="topbar-btn" data-tooltip="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                </form>
+            </div>
+        </header>
+
+        <main class="main-content">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    @TempData["SuccessMessage"]
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    @TempData["ErrorMessage"]
+                </div>
+            }
             @RenderBody()
         </main>
     </div>
+}
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - WARDMANAGEMENTSYSTEM - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+<script>
+    // Auto-dismiss alerts
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => {
+            a.style.transition = 'opacity .4s';
+            a.style.opacity = '0';
+            setTimeout(() => a.remove(), 400);
+        });
+    }, 5000);
+    // Toggle password visibility
+    document.querySelectorAll('.input-suffix[data-toggle-pw]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const inp = btn.closest('.input-group').querySelector('input');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            btn.querySelector('i').classList.toggle('fa-eye');
+            btn.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+    });
+</script>
+@RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -1,0 +1,96 @@
+@model List<WARDMANAGEMENTSYSTEM.Models.UserDevice>
+@{
+    ViewData["Title"] = "Trusted Devices";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Trusted Devices</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Trusted Devices</h1>
+        <p>Devices that have passed 2FA verification</p>
+    </div>
+</div>
+
+<div style="max-width:760px;">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="card">
+            <div class="card-body" style="text-align:center; padding:48px;">
+                <i class="fa-solid fa-laptop" style="font-size:3rem; color:var(--gray-200); margin-bottom:16px; display:block;"></i>
+                <h3 style="font-size:1rem; font-weight:600; color:var(--navy); margin-bottom:8px;">No Trusted Devices</h3>
+                <p style="color:var(--gray-400); font-size:.875rem;">When you verify a device during 2FA login, it will appear here.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Devices (@Model.Count)</span>
+            </div>
+            <div style="overflow:hidden; border-radius:0 0 var(--radius) var(--radius);">
+                @foreach (var device in Model)
+                {
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--gray-100); flex-wrap:wrap; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <div style="width:44px; height:44px; border-radius:10px; background:@(device.IsTrusted ? "var(--teal-lt)" : "var(--gray-100)"); display:flex; align-items:center; justify-content:center; font-size:1.1rem; color:@(device.IsTrusted ? "var(--teal)" : "var(--gray-400)");">
+                                @{
+                                    var ua = device.DeviceName?.ToLower() ?? "";
+                                    var icon = ua.Contains("mobile") || ua.Contains("android") || ua.Contains("iphone")
+                                        ? "fa-mobile-screen-button"
+                                        : ua.Contains("tablet") || ua.Contains("ipad")
+                                        ? "fa-tablet-screen-button"
+                                        : "fa-laptop";
+                                }
+                                <i class="fa-solid @icon"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:600; color:var(--navy); font-size:.9rem; margin-bottom:2px;">
+                                    @(device.DeviceName?.Length > 60 ? device.DeviceName[..60] + "…" : device.DeviceName ?? "Unknown Device")
+                                </div>
+                                <div style="font-size:.78rem; color:var(--gray-400);">
+                                    @if (device.IpAddress != null)
+                                    {
+                                        <span><i class="fa-solid fa-location-dot" style="margin-right:4px;"></i>@device.IpAddress</span>
+                                        <span style="margin:0 8px;">·</span>
+                                    }
+                                    <span>Last seen @device.LastSeen.ToString("dd MMM yyyy HH:mm")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="badge @(device.IsTrusted ? "badge-teal" : "badge-warning")">
+                                <span class="badge-dot"></span> @(device.IsTrusted ? "Trusted" : "Unverified")
+                            </span>
+                            <form asp-action="RevokeDevice" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="deviceId" value="@device.Id" />
+                                <button type="submit" class="btn btn-outline btn-sm"
+                                        onclick="return confirm('Remove this device from your trusted list?')"
+                                        style="color:var(--danger); border-color:var(--danger);">
+                                    <i class="fa-solid fa-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top:20px;">
+            <i class="fa-solid fa-circle-info"></i>
+            Removing a device will require it to complete 2FA verification again on next login.
+        </div>
+    }
+
+    <div style="margin-top:16px;">
+        <a asp-action="ManageTwoFactor" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Back to 2FA Settings
+        </a>
+    </div>
+</div>

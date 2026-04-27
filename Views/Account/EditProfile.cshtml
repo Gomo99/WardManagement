@@ -1,0 +1,124 @@
+@model WARDMANAGEMENTSYSTEM.ViewModel.EditProfileViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>My Profile</span>";
+    var firstName = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? "";
+    var lastName = User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value ?? "";
+    var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+    var initials = (firstName.Length > 0 ? firstName[0].ToString() : "") + (lastName.Length > 0 ? lastName[0].ToString() : "");
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>My Profile</h1>
+        <p>View and update your personal information</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div style="display:grid; grid-template-columns:280px 1fr; gap:24px; max-width:900px; align-items:start;">
+
+    <!-- Avatar Card -->
+    <div class="card" style="text-align:center;">
+        <div class="card-body" style="padding:32px 24px;">
+            <div style="width:88px; height:88px; border-radius:50%; background:var(--teal); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.8rem; font-weight:700; margin:0 auto 16px;">
+                @initials.ToUpper()
+            </div>
+            <div style="font-weight:600; color:var(--navy); font-size:1rem;">@firstName @lastName</div>
+            <div style="color:var(--gray-400); font-size:.82rem; margin-top:4px;">@email</div>
+            <div style="margin-top:12px;">
+                <span class="badge badge-teal"><span class="badge-dot"></span> @role</span>
+            </div>
+            <hr class="divider" style="margin:20px 0;" />
+            <a asp-action="ChangePassword" class="btn btn-outline btn-sm btn-full" style="margin-bottom:8px;">
+                <i class="fa-solid fa-key"></i> Change Password
+            </a>
+            <a asp-action="ManageTwoFactor" class="btn btn-outline btn-sm btn-full">
+                <i class="fa-solid fa-shield-halved"></i> 2FA Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-user-pen" style="color:var(--teal); margin-right:8px;"></i>Personal Information</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditProfile" method="post">
+                @Html.AntiForgeryToken()
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="FirstName">First Name <span class="required">*</span></label>
+                        <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                        <span asp-validation-for="FirstName" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="LastName">Last Name <span class="required">*</span></label>
+                        <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                        <span asp-validation-for="LastName" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-control" value="@email" disabled
+                           style="background:var(--gray-100); color:var(--gray-400); cursor:not-allowed;" />
+                    <span class="form-text"><i class="fa-solid fa-circle-info"></i> Email changes require contacting the Administrator.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <input type="text" class="form-control" value="@role" disabled
+                           style="background:var(--gray-100); color:var(--gray-400); cursor:not-allowed;" />
+                </div>
+
+                <hr class="divider" />
+
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                    <a asp-action="@(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "PATIENT" ? "Dashboard" : "Dashboard")"
+                       class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DANGER ZONE -->
+<div style="max-width:900px; margin-top:24px;">
+    <div class="card" style="border-color:#F5C6C1;">
+        <div class="card-header" style="border-color:#F5C6C1;">
+            <span class="card-title" style="color:var(--danger);">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>Danger Zone
+            </span>
+        </div>
+        <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+            <div>
+                <div style="font-weight:600; color:var(--gray-700); margin-bottom:4px;">Deactivate Account</div>
+                <p style="font-size:.82rem; color:var(--gray-400); max-width:480px;">
+                    Deactivating your account will sign you out and prevent further logins. Contact an Administrator to reactivate.
+                </p>
+            </div>
+            <a asp-action="DeactivateAccount" class="btn btn-danger btn-sm">
+                <i class="fa-solid fa-user-slash"></i> Deactivate Account
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

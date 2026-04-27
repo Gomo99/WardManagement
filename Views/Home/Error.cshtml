@@ -1,0 +1,43 @@
+@model WARDMANAGEMENTSYSTEM.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+    ViewData["GuestLayout"] = true;
+}
+
+<div class="guest-card" style="max-width:480px;">
+    <div class="guest-card-header">
+        <div class="guest-logo">
+            <div class="guest-logo-icon" style="background:#C0392B;"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="guest-logo-text">
+                <strong>Oops! Something Went Wrong</strong>
+                <span>NMB Ward Management System</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="guest-card-body" style="text-align:center;">
+        <div style="width:72px; height:72px; border-radius:50%; background:#FDF0EE; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:1.8rem; color:var(--danger);">
+            <i class="fa-solid fa-server"></i>
+        </div>
+        <h2 style="font-family:var(--font-serif); font-size:1.4rem; color:var(--navy); margin-bottom:12px;">An Error Occurred</h2>
+        <p style="font-size:.875rem; color:var(--gray-400); line-height:1.6; margin-bottom:20px;">
+            Something unexpected happened while processing your request. Please try again or contact support if the problem persists.
+        </p>
+
+        @if (Model.ShowRequestId)
+        {
+            <div style="background:var(--gray-100); border-radius:8px; padding:10px 16px; font-family:monospace; font-size:.78rem; color:var(--gray-400); margin-bottom:20px; word-break:break-all;">
+                <strong>Request ID:</strong> @Model.RequestId
+            </div>
+        }
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <a href="javascript:history.back()" class="btn btn-outline btn-full">
+                <i class="fa-solid fa-arrow-left"></i> Go Back
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-navy btn-full">
+                <i class="fa-solid fa-house"></i> Return to Home
+            </a>
+        </div>
+    </div>
+</div>
