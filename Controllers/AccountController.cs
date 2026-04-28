@@ -101,15 +101,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return role switch
             {
-                UserRole.ADMINISTRATOR => RedirectToAction("Dashboard", "AdminController"),
-                UserRole.DOCTOR => RedirectToAction("Dashboard", "DoctorController"),
-                UserRole.PATIENT => RedirectToAction("Dashboard", "PatientController"),
-                UserRole.NURSE => RedirectToAction("Dashboard", "NurseController"),
-                UserRole.NURSINGSISTER => RedirectToAction("Dashboard", "NursingSisterController"),
-                UserRole.WARDADMIN => RedirectToAction("Dashboard", "WardAdminController"),
-                UserRole.SCRIPTMANAGER => RedirectToAction("Dashboard", "ScriptManagerController"),
-                UserRole.CONSUMABLESMANAGER => RedirectToAction("Dashboard", "ConsumablesManagerController"),
-                _ => RedirectToAction("Login", "AccountController")
+                UserRole.ADMINISTRATOR => RedirectToAction("Dashboard", "Admin"),
+                UserRole.DOCTOR => RedirectToAction("Dashboard", "Doctor"),
+                UserRole.PATIENT => RedirectToAction("Dashboard", "Patient"),
+                UserRole.NURSE => RedirectToAction("Dashboard", "Nurse"),
+                UserRole.NURSINGSISTER => RedirectToAction("Dashboard", "NursingSister"),
+                UserRole.WARDADMIN => RedirectToAction("Dashboard", "WardAdmin"),
+                UserRole.SCRIPTMANAGER => RedirectToAction("Dashboard", "ScriptManager"),
+                UserRole.CONSUMABLESMANAGER => RedirectToAction("Dashboard", "ConsumablesManager"),
+                _ => RedirectToAction("Login", "Account")
             };
         }
 
