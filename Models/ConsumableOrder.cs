@@ -25,5 +25,10 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public string? Notes { get; set; }
 
         public Status IsActive { get; set; } = Status.Active;
+
+
+        public int? CreatedByEmployeeId { get; set; }
+        [ForeignKey(nameof(CreatedByEmployeeId))]
+        public Employee? CreatedBy { get; set; }
     }
 }

@@ -5,16 +5,19 @@ using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
+using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     public class NurseController : Controller
     {
         private readonly WardDbContext _context;
+        private readonly INotificationService _notifService;   // <-- new
 
-        public NurseController(WardDbContext context)
+        public NurseController(WardDbContext context, INotificationService notifService)
         {
             _context = context;
+            _notifService = notifService;
         }
 
         // ---------------------------------------------------------------
@@ -623,7 +626,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         public async Task<IActionResult> DoctorVisitsByAdmission(int admissionId)
         {
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -648,8 +650,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> RecordDoctorContact(int admissionId)
         {
-
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -661,7 +661,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ViewBag.AdmissionId = admissionId;
             ViewBag.PatientName = $"{admission.Patient.FirstName} {admission.Patient.LastName}";
 
-            // List of doctors for dropdown, but also allow free text if external
             ViewBag.Doctors = new SelectList(
                 await _context.Employees
                     .Where(e => e.Role == UserRole.DOCTOR && e.IsActive == Status.Active)
@@ -680,17 +679,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordDoctorContact(DoctorVisit visit)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
             ModelState.Remove("Doctor");
 
-
-
-            int? nurseId = GetCurrentNurseId();
-            if (nurseId == null) return RedirectToAction("Login", "Account");
-
-            // If no internal doctor selected and no external name, require one
             if (!visit.DoctorId.HasValue && string.IsNullOrWhiteSpace(visit.ExternalDoctorName))
                 ModelState.AddModelError("ExternalDoctorName", "Either select a doctor or enter a name.");
 
@@ -719,14 +715,35 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             visit.IsActive = Status.Active;
-            visit.IsContactRecord = true;   // ensure it stays marked
+            visit.IsContactRecord = true;
             _context.DoctorVisits.Add(visit);
             await _context.SaveChangesAsync();
+
+            // --------------- NOTIFICATION TO ASSIGNED DOCTOR ---------------
+            try
+            {
+                var admission = await _context.Admissions
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == visit.AdmissionId);
+
+                if (admission != null && admission.DoctorId > 0)
+                {
+                    string nurseName = (await _context.Employees.FindAsync(nurseId.Value))?.FullName ?? "A nurse";
+                    string patientName = admission.Patient.FullName;
+                    string docLink = Url.Action("PatientFolder", "Doctor", new { admissionId = visit.AdmissionId });
+
+                    await _notifService.NotifyUserAsync(
+                        admission.DoctorId,
+                        "Employee",
+                        $"{nurseName} recorded instructions from a contact regarding patient {patientName}.",
+                        docLink);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
 
             TempData["SuccessMessage"] = "Doctor contact recorded.";
             return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
         }
-
         // View details of a doctor visit
         public async Task<IActionResult> DoctorVisitDetails(int id)
         {

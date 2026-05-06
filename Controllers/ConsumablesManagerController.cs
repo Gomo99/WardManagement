@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
@@ -16,11 +17,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context = context;
         }
 
+
+
+        private int? GetCurrentManagerId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
+                return null;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (role != UserRole.CONSUMABLESMANAGER.ToString())
+                return null;
+            return id;
+        }
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
         public async Task<IActionResult> Dashboard()
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ViewBag.ActiveConsumablesCount = await _context.Consumables.CountAsync(c => c.IsActive == Status.Active);
             ViewBag.PendingOrdersCount = await _context.ConsumableOrders.CountAsync(o => o.OrderStatus == OrderStatus.Ordered && o.IsActive == Status.Active);
             ViewBag.StockTakesCount = await _context.StockTakes.CountAsync(s => s.IsActive == Status.Active);
@@ -32,11 +49,29 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // LIST
-        public async Task<IActionResult> Consumables()
+        public async Task<IActionResult> Consumables(string status = "Active")
         {
-            var consumables = await _context.Consumables
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var query = _context.Consumables.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(c => c.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all consumables.
+
+            var consumables = await query.OrderBy(c => c.Name).ToListAsync();
+
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(consumables);
         }
 
@@ -51,6 +86,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateConsumable(Consumable consumable)
         {
+
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ModelState.Remove("Id");
             if (!ModelState.IsValid) return View(consumable);
 
@@ -136,14 +176,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // LIST ORDERS
         public async Task<IActionResult> Orders()
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var orders = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
+                .Where(o => o.CreatedByEmployeeId == managerId)
                 .OrderByDescending(o => o.RequestDate)
                 .ToListAsync();
             return View(orders);
         }
 
-        // CREATE ORDER – GET
+        // CREATE – GET
         public IActionResult RequestConsumable()
         {
             ViewBag.Consumables = new SelectList(
@@ -152,11 +196,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View();
         }
 
-        // CREATE ORDER – POST
+        // CREATE – POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestConsumable(ConsumableOrder order)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("Consumable");
             if (!ModelState.IsValid)
@@ -170,6 +217,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             order.OrderStatus = OrderStatus.Ordered;
             order.RequestDate = DateTime.Now;
             order.IsActive = Status.Active;
+            order.CreatedByEmployeeId = managerId;   // ownership
             _context.ConsumableOrders.Add(order);
             await _context.SaveChangesAsync();
 
@@ -177,31 +225,34 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Orders));
         }
 
-        // DETAILS – GET
+        // DETAILS
         public async Task<IActionResult> OrderDetails(int id)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
+                .FirstOrDefaultAsync(o => o.Id == id && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
             return View(order);
         }
 
-
+        // EDIT – GET
         [HttpGet]
         public async Task<IActionResult> EditOrder(int id)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == id && o.IsActive == Status.Active);
-
+                .FirstOrDefaultAsync(o => o.Id == id && o.IsActive == Status.Active && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 
-            // Only allow editing if the order hasn’t been completed (optional, but logical)
             if (order.OrderStatus != OrderStatus.Ordered)
             {
-                TempData["ErrorMessage"] = "Only orders that are still 'Ordered' can be edited.";
+                TempData["ErrorMessage"] = "Only 'Ordered' requests can be edited.";
                 return RedirectToAction(nameof(Orders));
             }
 
@@ -211,20 +262,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(order);
         }
 
-
+        // EDIT – POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditOrder(int id, ConsumableOrder posted)
         {
-            if (id != posted.Id) return BadRequest();
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
 
-            ModelState.Remove("Consumable");
-            ModelState.Remove("IsActive");
-            ModelState.Remove("RequestDate");
-            ModelState.Remove("OrderStatus");
-            ModelState.Remove("ReceivedDate");
-            ModelState.Remove("QuantityReceived");
-            ModelState.Remove("Notes");  // keep if you want to edit notes
+            if (id != posted.Id) return BadRequest();
+            ModelState.Remove("Consumable"); ModelState.Remove("IsActive"); ModelState.Remove("RequestDate");
+            ModelState.Remove("OrderStatus"); ModelState.Remove("ReceivedDate"); ModelState.Remove("QuantityReceived");
 
             if (!ModelState.IsValid)
             {
@@ -234,52 +282,55 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(posted);
             }
 
-            var order = await _context.ConsumableOrders.FindAsync(id);
-            if (order == null || order.IsActive != Status.Active) return NotFound();
+            var order = await _context.ConsumableOrders
+                .FirstOrDefaultAsync(o => o.Id == id && o.IsActive == Status.Active && o.CreatedByEmployeeId == managerId);
+            if (order == null) return NotFound();
 
             if (order.OrderStatus != OrderStatus.Ordered)
             {
-                TempData["ErrorMessage"] = "Only orders still 'Ordered' can be edited.";
+                TempData["ErrorMessage"] = "Only 'Ordered' requests can be edited.";
                 return RedirectToAction(nameof(Orders));
             }
 
             order.ConsumableId = posted.ConsumableId;
             order.QuantityRequested = posted.QuantityRequested;
-            // optionally: order.Notes = posted.Notes;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Order updated.";
             return RedirectToAction(nameof(Orders));
         }
 
-
-
+        // SOFT DELETE
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var order = await _context.ConsumableOrders.FindAsync(id);
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var order = await _context.ConsumableOrders
+                .FirstOrDefaultAsync(o => o.Id == id && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 
             order.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Order cancelled (soft deleted).";
             return RedirectToAction(nameof(Orders));
         }
 
-
-
+        // RESTORE
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreOrder(int id)
         {
-            var order = await _context.ConsumableOrders.FindAsync(id);
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var order = await _context.ConsumableOrders
+                .FirstOrDefaultAsync(o => o.Id == id && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 
             order.IsActive = Status.Active;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Order restored.";
             return RedirectToAction(nameof(Orders));
         }
@@ -296,24 +347,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> ReceiveConsumable(int orderId)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.OrderStatus == OrderStatus.Ordered);
-
+                .FirstOrDefaultAsync(o => o.Id == orderId &&
+                                         o.OrderStatus == OrderStatus.Ordered &&
+                                         o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
-
             return View(order);
         }
 
-        // POST – confirm receipt
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.OrderStatus == OrderStatus.Ordered);
-
+                .FirstOrDefaultAsync(o => o.Id == orderId &&
+                                         o.OrderStatus == OrderStatus.Ordered &&
+                                         o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 
             if (quantityReceived <= 0)
@@ -322,14 +379,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction(nameof(ReceiveConsumable), new { orderId });
             }
 
-            // Update stock on hand
             order.Consumable.QuantityOnHand += quantityReceived;
-
-            // Mark order as received
             order.OrderStatus = OrderStatus.Complete;
             order.ReceivedDate = DateTime.Now;
             order.QuantityReceived = quantityReceived;
-
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = $"Received {quantityReceived} units. Stock updated.";
@@ -343,45 +396,97 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // LIST stock takes
         public async Task<IActionResult> StockTakes()
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var stockTakes = await _context.StockTakes
                 .Include(s => s.StockTakeItems)
+                .Where(s => s.CreatedByEmployeeId == managerId)
                 .OrderByDescending(s => s.DateTaken)
                 .ToListAsync();
             return View(stockTakes);
         }
 
-        // NEW STOCK TAKE – GET
+        // CREATE STOCK TAKE – GET
         [HttpGet]
         public IActionResult TakeStock()
         {
-            // Create a new StockTake with today's date
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
             return View(new StockTake { DateTaken = DateTime.Now });
         }
 
-        // NEW STOCK TAKE – POST (creates the header and redirects to count items)
+        // CREATE STOCK TAKE – POST (header)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartStockTake(StockTake stockTake)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("StockTakeItems");
             if (!ModelState.IsValid) return View("TakeStock", stockTake);
 
             stockTake.IsActive = Status.Active;
+            stockTake.CreatedByEmployeeId = managerId;
             _context.StockTakes.Add(stockTake);
             await _context.SaveChangesAsync();
 
-            // Now redirect to the counting page
             return RedirectToAction("CountStock", new { stockTakeId = stockTake.Id });
         }
 
-        // COUNT STOCK – GET (shows all consumables with current system quantity)
+        // EDIT STOCK TAKE HEADER – GET
+        [HttpGet]
+        public async Task<IActionResult> EditStockTake(int id)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var stockTake = await _context.StockTakes
+                .FirstOrDefaultAsync(s => s.Id == id && s.IsActive == Status.Active
+                                         && s.CreatedByEmployeeId == managerId);
+            if (stockTake == null) return NotFound();
+            return View(stockTake);
+        }
+
+        // EDIT STOCK TAKE HEADER – POST
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditStockTake(int id, StockTake posted)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            if (id != posted.Id) return BadRequest();
+            ModelState.Remove("StockTakeItems");
+
+            if (!ModelState.IsValid) return View(posted);
+
+            var stockTake = await _context.StockTakes
+                .FirstOrDefaultAsync(s => s.Id == id && s.IsActive == Status.Active
+                                         && s.CreatedByEmployeeId == managerId);
+            if (stockTake == null) return NotFound();
+
+            stockTake.DateTaken = posted.DateTaken;
+            stockTake.Notes = posted.Notes;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Stock take header updated.";
+            return RedirectToAction(nameof(StockTakes));
+        }
+
+        // COUNT STOCK – GET (shows all active consumables with current quantities)
         [HttpGet]
         public async Task<IActionResult> CountStock(int stockTakeId)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var stockTake = await _context.StockTakes
                 .Include(s => s.StockTakeItems)
-                .FirstOrDefaultAsync(s => s.Id == stockTakeId && s.IsActive == Status.Active);
+                .FirstOrDefaultAsync(s => s.Id == stockTakeId && s.IsActive == Status.Active
+                                         && s.CreatedByEmployeeId == managerId);
             if (stockTake == null) return NotFound();
 
             var consumables = await _context.Consumables
@@ -391,18 +496,20 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             ViewBag.StockTakeId = stockTakeId;
             ViewBag.StockTakeDate = stockTake.DateTaken;
-
-            // For each consumable, prepare a form to enter the actual quantity
             return View(consumables);
         }
 
-        // COUNT STOCK – POST (save the counted items)
+        // SAVE STOCK COUNT – POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveStockCount(int stockTakeId, Dictionary<int, int> actualQuantities)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var stockTake = await _context.StockTakes
-                .FirstOrDefaultAsync(s => s.Id == stockTakeId && s.IsActive == Status.Active);
+                .FirstOrDefaultAsync(s => s.Id == stockTakeId && s.IsActive == Status.Active
+                                         && s.CreatedByEmployeeId == managerId);
             if (stockTake == null) return NotFound();
 
             foreach (var entry in actualQuantities)
@@ -413,7 +520,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 var consumable = await _context.Consumables.FindAsync(consumableId);
                 if (consumable == null) continue;
 
-                // Create a stock take item
                 _context.StockTakeItems.Add(new StockTakeItem
                 {
                     StockTakeId = stockTakeId,
@@ -422,41 +528,64 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     ActualQuantity = actualQty
                 });
 
-                // Optionally update the system quantity to the actual count (if you want auto-adjust)
-                // Comment out the next line if you want to keep the old quantity and only record the difference
+                // Optionally auto‑update system quantity (commented out by default)
                 // consumable.QuantityOnHand = actualQty;
             }
 
             await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Stock take recorded.";
+            TempData["SuccessMessage"] = "Stock count saved.";
             return RedirectToAction(nameof(StockTakes));
         }
 
-        // STOCK TAKE DETAILS
+        // DETAILS
         public async Task<IActionResult> StockTakeDetails(int id)
         {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var stockTake = await _context.StockTakes
                 .Include(s => s.StockTakeItems).ThenInclude(si => si.Consumable)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s => s.Id == id && s.CreatedByEmployeeId == managerId);
             if (stockTake == null) return NotFound();
             return View(stockTake);
         }
 
-        // SOFT DELETE STOCK TAKE
+        // SOFT DELETE
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteStockTake(int id)
         {
-            var stockTake = await _context.StockTakes.FindAsync(id);
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var stockTake = await _context.StockTakes
+                .FirstOrDefaultAsync(s => s.Id == id && s.CreatedByEmployeeId == managerId);
             if (stockTake == null) return NotFound();
 
             stockTake.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Stock take deactivated.";
             return RedirectToAction(nameof(StockTakes));
         }
+
+        // RESTORE
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreStockTake(int id)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var stockTake = await _context.StockTakes
+                .FirstOrDefaultAsync(s => s.Id == id && s.CreatedByEmployeeId == managerId);
+            if (stockTake == null) return NotFound();
+
+            stockTake.IsActive = Status.Active;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Stock take restored.";
+            return RedirectToAction(nameof(StockTakes));
+        }
+    
 
 
 
@@ -465,6 +594,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         public async Task<IActionResult> ReceivedOrders()
         {
+
+
             var received = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
                 .Where(o => o.OrderStatus == OrderStatus.Complete && o.IsActive == Status.Active)
@@ -473,52 +604,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(received);
         }
 
-        // ==================================================================
-        //  EDIT RECEIVED ORDER – GET
-        //  (allows correction of the received quantity)
-        // ==================================================================
-        [HttpGet]
-        public async Task<IActionResult> EditReceivedOrder(int orderId)
-        {
-            var order = await _context.ConsumableOrders
-                .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.OrderStatus == OrderStatus.Complete && o.IsActive == Status.Active);
-            if (order == null) return NotFound();
-            return View(order);
-        }
-
-        // ==================================================================
-        //  EDIT RECEIVED ORDER – POST
-        //  (adjusts stock if the quantity is changed)
-        // ==================================================================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditReceivedOrder(int orderId, int newQuantityReceived)
-        {
-            var order = await _context.ConsumableOrders
-                .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.OrderStatus == OrderStatus.Complete && o.IsActive == Status.Active);
-            if (order == null) return NotFound();
-
-            if (newQuantityReceived < 0)
-            {
-                TempData["ErrorMessage"] = "Quantity cannot be negative.";
-                return RedirectToAction(nameof(EditReceivedOrder), new { orderId });
-            }
-
-            // Calculate the difference and adjust stock
-            int difference = newQuantityReceived - (order.QuantityReceived ?? 0);
-            if (difference != 0)
-            {
-                order.Consumable.QuantityOnHand += difference;  // if difference is negative, stock decreases
-                order.QuantityReceived = newQuantityReceived;
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Received quantity updated. Stock adjusted.";
-            }
-            return RedirectToAction(nameof(ReceivedOrders));
-        }
-
+       
         // ==================================================================
         //  SOFT DELETE RECEIVED ORDER – POST
         //  (deactivates the order and reverses its stock addition)

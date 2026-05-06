@@ -33,5 +33,10 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public Status IsActive { get; set; } = Status.Active;
 
         public ScriptStatus ScriptStatus { get; set; } = ScriptStatus.New;
+
+
+        public int? ScriptManagerId { get; set; }
+        [ForeignKey(nameof(ScriptManagerId))]
+        public Employee? ScriptManager { get; set; }
     }
 }

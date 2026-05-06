@@ -12,7 +12,7 @@ builder.Services.AddDbContext<WardDbContext>(options =>
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddScoped<IPdfReportService, PdfReportService>();
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;

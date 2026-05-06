@@ -17,5 +17,9 @@ namespace WARDMANAGEMENTSYSTEM.Models
 
         // Details of stock counted for each consumable
         public ICollection<StockTakeItem> StockTakeItems { get; set; } = new List<StockTakeItem>();
+
+        public int? CreatedByEmployeeId { get; set; }
+        [ForeignKey(nameof(CreatedByEmployeeId))]
+        public Employee? CreatedBy { get; set; }
     }
 }

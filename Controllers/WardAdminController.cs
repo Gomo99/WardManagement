@@ -1,23 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
-using WARDMANAGEMENTSYSTEM.Services;    // added
+using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     public class WardAdminController : Controller
     {
         private readonly WardDbContext _context;
-        private readonly IEmailService _emailService;   // added
+        private readonly IEmailService _emailService;
+        private readonly INotificationService _notifService;   // <-- notification service
 
-        public WardAdminController(WardDbContext context, IEmailService emailService)
+        public WardAdminController(WardDbContext context,
+                                   IEmailService emailService,
+                                   INotificationService notifService)
         {
             _context = context;
-            _emailService = emailService;   // added
+            _emailService = emailService;
+            _notifService = notifService;
         }
 
         // ---------------------------------------------------------------
@@ -79,7 +84,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             patient.MustChangePassword = true;
 
             _context.Patients.Add(patient);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();   // Patient now has an Id
 
             // 2. Email the temporary password
             try
@@ -92,24 +97,31 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     <p><strong>Temporary Password:</strong> {tempPassword}</p>
                     <p>You will be required to change your password after your first login.</p>
                     <p>Visit the login page: <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>Login</a></p>";
-
                 await _emailService.SendEmailAsync(patient.Email, subject, body);
             }
-            catch (Exception ex)
+            catch (Exception ex) { Console.WriteLine("Email error: " + ex.Message); }
+
+            // 3. In-app notification to the new patient
+            try
             {
-                // Email failed but patient is created – inform the ward admin
-                Console.WriteLine("Email error: " + ex.Message);
+                string adminName = await GetCurrentWardAdminName();
+                string notificationMsg = $"Your patient account was created by {adminName}. Please log in to update your password.";
+                await _notifService.NotifyUserAsync(
+                    patient.Id,
+                    "Patient",
+                    notificationMsg,
+                    Url.Action("Login", "Account", null, Request.Scheme));
             }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
 
             TempData["AdmitPatientId"] = patient.Id;
-            TempData["SuccessMessage"] = $"Patient account created. Temporary password emailed to {patient.Email}.";
+            TempData["SuccessMessage"] = $"Patient account created – temporary password emailed and notification sent.";
             return RedirectToAction("AdmitStep2");
         }
 
         // ===============================================================
-        //  PATIENT ADMISSION – STEP 2 (Medical details, doctor, bed)
+        //  PATIENT ADMISSION – STEP 2 (Medical details, doctor, nurse, bed)
         // ===============================================================
-        // (unchanged – same as your existing code)
         [HttpGet]
         public async Task<IActionResult> AdmitStep2()
         {
@@ -135,7 +147,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(e => e.Role == UserRole.DOCTOR && e.IsActive == Status.Active)
                 .OrderBy(e => e.LastName).ToListAsync(), "EmployeeID", "FullName");
 
-            // --- NEW: Nurses ---
+            // Nurses
             ViewBag.Nurses = new SelectList(await _context.Employees
                 .Where(e => e.Role == UserRole.NURSE && e.IsActive == Status.Active)
                 .OrderBy(e => e.LastName).ToListAsync(), "EmployeeID", "FullName");
@@ -170,7 +182,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction("AdmitStep2");
             }
 
-            // validate nurse
             var nurse = await _context.Employees
                 .FirstOrDefaultAsync(e => e.EmployeeID == nurseId && e.Role == UserRole.NURSE && e.IsActive == Status.Active);
             if (nurse == null)
@@ -184,7 +195,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 PatientId = patientId,
                 BedId = bedId,
                 DoctorId = doctorId,
-                NurseId = nurseId,          // <-- assign nurse
+                NurseId = nurseId,
                 AdmissionDate = DateTime.Now,
                 IsActive = Status.Active,
                 CurrentLocation = null
@@ -203,17 +214,51 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 new PatientMovement { MovementType = "Admission", Location = bed.BedNumberWithWard, Timestamp = DateTime.Now }
             };
 
+            // Capture the ward admin who created the admission
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int wardAdminId))
+            {
+                admission.CreatedByWardAdminId = wardAdminId;
+            }
+
+
             _context.Admissions.Add(admission);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Patient admitted successfully.";
+            // --------------- NOTIFICATIONS ---------------
+            try
+            {
+                string adminName = await GetCurrentWardAdminName();
+                string patientFullName = $"{patient.FirstName} {patient.LastName}";
+
+                // Notify doctor
+                await _notifService.NotifyUserAsync(
+                    doctorId,
+                    "Employee",
+                    $"{adminName} has assigned you a new patient: {patientFullName}.",
+                    Url.Action("PatientFolder", "Doctor", new { admissionId = admission.Id }));
+
+                // Notify nurse
+                await _notifService.NotifyUserAsync(
+                    nurseId,
+                    "Employee",
+                    $"{adminName} has assigned you a new patient: {patientFullName}.",
+                    Url.Action("Patients", "Nurse"));
+
+                TempData["SuccessMessage"] = "Patient admitted successfully – doctor and nurse notified.";
+            }
+            catch (Exception ex)
+            {
+                TempData["SuccessMessage"] = "Patient admitted (notifications failed).";
+                Console.WriteLine("Notification error: " + ex.Message);
+            }
+
             return RedirectToAction("Patients");
         }
 
-
         // ===============================================================
-        //  PATIENT LIST, DISCHARGE, MOVEMENT, DETAILS, EDIT ADMISSION,
-        //  SOFT DELETE & RESTORE – unchanged (kept as your existing code)
+        //  PATIENT LIST, DISCHARGE, MOVEMENT, DETAILS – unchanged
+        //  (I'm including them for completeness)
         // ===============================================================
         public async Task<IActionResult> Patients()
         {
@@ -324,6 +369,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(admission);
         }
 
+        // ===============================================================
+        //  EDIT ADMISSION (with notification on doctor/nurse change)
+        // ===============================================================
         [HttpGet]
         public async Task<IActionResult> EditAdmission(int id)
         {
@@ -331,7 +379,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
                 .Include(a => a.Doctor)
-                .Include(a => a.Nurse)           // added
+                .Include(a => a.Nurse)
                 .Include(a => a.AdmissionAllergies).ThenInclude(aa => aa.Allergy)
                 .Include(a => a.AdmissionMedications).ThenInclude(am => am.Medication)
                 .Include(a => a.AdmissionConditions).ThenInclude(ac => ac.Condition)
@@ -340,7 +388,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             ViewBag.PatientName = admission.Patient.FullName;
 
-            // Pre-selections
             ViewBag.SelectedAllergyIds = admission.AdmissionAllergies.Select(a => a.AllergyId).ToList();
             ViewBag.SelectedMedicationIds = admission.AdmissionMedications.Select(m => m.MedicationId).ToList();
             ViewBag.SelectedConditionIds = admission.AdmissionConditions.Select(c => c.ConditionId).ToList();
@@ -356,7 +403,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(e => e.Role == UserRole.DOCTOR && e.IsActive == Status.Active).OrderBy(e => e.LastName).ToListAsync(),
                 "EmployeeID", "FullName", admission.DoctorId);
 
-            // Nurses
             ViewBag.Nurses = new SelectList(await _context.Employees
                 .Where(e => e.Role == UserRole.NURSE && e.IsActive == Status.Active).OrderBy(e => e.LastName).ToListAsync(),
                 "EmployeeID", "FullName", admission.NurseId);
@@ -381,6 +427,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(a => a.Bed)
                 .FirstOrDefaultAsync(a => a.Id == id && a.IsActive == Status.Active);
             if (admission == null) return NotFound();
+
+            // Store old assignees for notification comparison
+            int oldDoctorId = admission.DoctorId;
+            int? oldNurseId = admission.NurseId;
 
             var doctor = await _context.Employees
                 .FirstOrDefaultAsync(e => e.EmployeeID == doctorId && e.Role == UserRole.DOCTOR && e.IsActive == Status.Active);
@@ -412,9 +462,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             admission.DoctorId = doctorId;
-            admission.NurseId = nurseId;          // update nurse
+            admission.NurseId = nurseId;
 
-            // replace allergies/meds/conditions
             _context.AdmissionAllergies.RemoveRange(admission.AdmissionAllergies);
             _context.AdmissionMedications.RemoveRange(admission.AdmissionMedications);
             _context.AdmissionConditions.RemoveRange(admission.AdmissionConditions);
@@ -426,9 +475,55 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 _context.AdmissionConditions.AddRange(conditionIds.Select(c => new AdmissionCondition { AdmissionId = id, ConditionId = c }));
 
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Admission updated successfully.";
+
+            // --------------- NOTIFICATIONS FOR ASSIGNEE CHANGES ---------------
+            try
+            {
+                string adminName = await GetCurrentWardAdminName();
+                string patientFullName = admission.Patient.FullName;
+
+                // Notify new doctor if changed
+                if (oldDoctorId != doctorId)
+                {
+                    await _notifService.NotifyUserAsync(
+                        doctorId, "Employee",
+                        $"{adminName} has assigned you to patient {patientFullName}.",
+                        Url.Action("PatientFolder", "Doctor", new { admissionId = id }));
+                }
+
+                // Notify new nurse if changed
+                if (oldNurseId != nurseId)
+                {
+                    await _notifService.NotifyUserAsync(
+                        nurseId, "Employee",
+                        $"{adminName} has assigned you to patient {patientFullName}.",
+                        Url.Action("Patients", "Nurse"));
+                }
+
+                
+                if (oldDoctorId != doctorId && oldDoctorId != 0)
+                {
+                    await _notifService.NotifyUserAsync(oldDoctorId, "Employee",
+                        $"You are no longer assigned to patient {patientFullName}.", null);
+                }
+                if (oldNurseId.HasValue && oldNurseId.Value != nurseId)
+                {
+                    await _notifService.NotifyUserAsync(oldNurseId.Value, "Employee",
+                        $"You are no longer assigned to patient {patientFullName}.", null);
+                }
+                
+
+                TempData["SuccessMessage"] = "Admission updated – staff notified.";
+            }
+            catch (Exception ex)
+            {
+                TempData["SuccessMessage"] = "Admission updated (notifications failed).";
+                Console.WriteLine("Edit notification error: " + ex.Message);
+            }
+
             return RedirectToAction("Details", new { id });
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAdmission(int id)
@@ -467,7 +562,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  PRIVATE HELPER
+        //  PRIVATE HELPERS
         // ===============================================================
         private static string GenerateRandomPassword(int length)
         {
@@ -479,6 +574,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 result[i] = chars[data[i] % chars.Length];
             }
             return new string(result);
+        }
+
+        private async Task<string> GetCurrentWardAdminName()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int adminId))
+            {
+                var admin = await _context.Employees.FindAsync(adminId);
+                if (admin != null)
+                    return $"{admin.FirstName} {admin.LastName}";
+            }
+            return "Hospital Staff";
         }
     }
 }

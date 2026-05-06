@@ -37,5 +37,10 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public string? CurrentLocation { get; set; }
 
         public ICollection<PatientMovement> PatientMovements { get; set; } = new List<PatientMovement>();
+
+
+        public int? CreatedByWardAdminId { get; set; }
+        [ForeignKey(nameof(CreatedByWardAdminId))]
+        public Employee? CreatedByWardAdmin { get; set; }
     }
 }

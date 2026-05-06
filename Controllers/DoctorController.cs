@@ -5,6 +5,7 @@ using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
+using WARDMANAGEMENTSYSTEM.Services;
 using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
@@ -12,10 +13,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
     public class DoctorController : Controller
     {
         private readonly WardDbContext _context;
+        private readonly INotificationService _notifService;   // <-- new
 
-        public DoctorController(WardDbContext context)
+        public DoctorController(WardDbContext context, INotificationService notifService)
         {
             _context = context;
+            _notifService = notifService;
         }
 
         // ------------------------------------------------------------------
@@ -521,7 +524,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             visit.DoctorId = doctorId.Value;
             visit.IsContactRecord = false;
-            visit.Instructions = null;   // no instructions yet – to be filled in later
+            visit.Instructions = null;
             visit.Notes = null;
 
             ModelState.Remove("Id");
@@ -529,7 +532,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("Admission");
             ModelState.Remove("Doctor");
             ModelState.Remove("ExternalDoctorName");
-            ModelState.Remove("Instructions");   // we'll add them later
+            ModelState.Remove("Instructions");
             ModelState.Remove("Notes");
 
             if (!ModelState.IsValid)
@@ -555,10 +558,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context.DoctorVisits.Add(visit);
             await _context.SaveChangesAsync();
 
+            // --------------- NOTIFICATION TO PATIENT ---------------
+            try
+            {
+                string doctorName = (await _context.Employees.FindAsync(doctorId))?.FullName ?? "Doctor";
+                var admission = await _context.Admissions.Include(a => a.Patient).FirstOrDefaultAsync(a => a.Id == visit.AdmissionId);
+                if (admission?.PatientId != null)
+                {
+                    string patientName = admission.Patient.FullName;
+                    string patientLink = Url.Action("MyPatientFolder", "Patient", new { admissionId = visit.AdmissionId });
+                    await _notifService.NotifyUserAsync(
+                        admission.PatientId,
+                        "Patient",
+                        $"{doctorName} has scheduled a visit for you on {visit.VisitDate:ddd, dd MMM yyyy HH:mm}.",
+                        patientLink);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
+
             TempData["SuccessMessage"] = "Visit scheduled.";
             return RedirectToAction("PatientFolder", new { admissionId = visit.AdmissionId });
         }
-
         // ==================================================================
         //  SCHEDULED VISITS (list upcoming visits for the current doctor)
         // ==================================================================
@@ -601,6 +621,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View();
         }
 
+        // ==================================================================
+        //  WRITE / EDIT INSTRUCTIONS for a scheduled visit (POST)
+        // ==================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> WriteInstructions(int visitId, string instructions)
@@ -609,15 +632,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (doctorId == null) return RedirectToAction("Login", "Account");
 
             var visit = await _context.DoctorVisits
+                .Include(dv => dv.Admission)
+                    .ThenInclude(a => a.Patient)
                 .FirstOrDefaultAsync(dv => dv.Id == visitId && dv.DoctorId == doctorId.Value && dv.IsActive == Status.Active);
             if (visit == null) return NotFound();
 
             if (string.IsNullOrWhiteSpace(instructions))
             {
                 ModelState.AddModelError("", "Instructions cannot be empty.");
-                ViewBag.PatientName = (await _context.Admissions
-                    .Include(a => a.Patient)
-                    .FirstOrDefaultAsync(a => a.Id == visit.AdmissionId))?.Patient.FullName;
+                ViewBag.PatientName = visit.Admission.Patient.FullName;
                 ViewBag.VisitId = visitId;
                 ViewBag.ExistingInstructions = visit.Instructions;
                 return View();
@@ -626,10 +649,32 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             visit.Instructions = instructions;
             await _context.SaveChangesAsync();
 
+            // --------------- NOTIFICATION TO ASSIGNED NURSE ---------------
+            try
+            {
+                // Find admission to get the assigned nurse
+                var admission = await _context.Admissions
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == visit.AdmissionId);
+
+                if (admission?.NurseId != null)
+                {
+                    string doctorName = (await _context.Employees.FindAsync(doctorId))?.FullName ?? "The doctor";
+                    string patientName = admission.Patient.FullName;
+                    string nurseLink = Url.Action("DoctorVisitsByAdmission", "Nurse", new { admissionId = visit.AdmissionId });
+
+                    await _notifService.NotifyUserAsync(
+                        admission.NurseId.Value,
+                        "Employee",
+                        $"{doctorName} has written new instructions for patient {patientName}.",
+                        nurseLink);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
+
             TempData["SuccessMessage"] = "Instructions saved.";
             return RedirectToAction("PatientFolder", new { admissionId = visit.AdmissionId });
         }
-
         // ==================================================================
         //  VIEW ALL INSTRUCTIONS FOR AN ADMISSION
         // ==================================================================
@@ -712,16 +757,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     .ToListAsync(),
                 "Id", "Name");
 
+            // Script Managers dropdown
+            ViewBag.ScriptManagers = new SelectList(
+                await _context.Employees
+                    .Where(e => e.Role == UserRole.SCRIPTMANAGER && e.IsActive == Status.Active)
+                    .OrderBy(e => e.LastName)
+                    .ToListAsync(),
+                "EmployeeID", "FullName");
+
             return View(new Prescription
             {
                 AdmissionId = admissionId,
                 PrescribedDate = DateTime.Now
             });
         }
-
         // ==================================================================
         //  PRESCRIBE MEDICATION – POST
         // ==================================================================
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PrescribeMedication(Prescription prescription)
@@ -733,6 +786,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
             ModelState.Remove("Medication");
+            ModelState.Remove("ScriptManager");
 
             if (!ModelState.IsValid)
             {
@@ -747,6 +801,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                         .Where(m => m.IsActive == Status.Active)
                         .OrderBy(m => m.Name).ToListAsync(),
                     "Id", "Name", prescription.MedicationId);
+                ViewBag.ScriptManagers = new SelectList(
+                    await _context.Employees
+                        .Where(e => e.Role == UserRole.SCRIPTMANAGER && e.IsActive == Status.Active)
+                        .OrderBy(e => e.LastName).ToListAsync(),
+                    "EmployeeID", "FullName", prescription.ScriptManagerId);
                 return View(prescription);
             }
 
@@ -755,13 +814,46 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (!valid) return BadRequest("You are not authorised to prescribe for this patient.");
 
             prescription.IsActive = Status.Active;
+            prescription.ScriptStatus = ScriptStatus.New;
             _context.Prescriptions.Add(prescription);
             await _context.SaveChangesAsync();
+
+            // --------------- NOTIFICATIONS ---------------
+            try
+            {
+                string doctorName = (await _context.Employees.FindAsync(doctorId))?.FullName ?? "Doctor";
+                var admission = await _context.Admissions.Include(a => a.Patient).FirstOrDefaultAsync(a => a.Id == prescription.AdmissionId);
+                string patientName = admission?.Patient.FullName ?? "a patient";
+                string medName = (await _context.Medications.FindAsync(prescription.MedicationId))?.Name ?? "medication";
+                string patientLink = Url.Action("MyInstructions", "Patient");   // or "MyPatientFolder", "Patient", new { admissionId = prescription.AdmissionId }
+
+                // 1. Notify Script Manager (if assigned)
+                if (prescription.ScriptManagerId.HasValue)
+                {
+                    string scriptLink = Url.Action("NewScripts", "ScriptManager");
+                    await _notifService.NotifyUserAsync(
+                        prescription.ScriptManagerId.Value,
+                        "Employee",
+                        $"{doctorName} assigned you a new prescription for {patientName}: {medName}.",
+                        scriptLink);
+                }
+
+                // 2. Notify Patient
+                int? patientUserId = admission?.PatientId;
+                if (patientUserId.HasValue)
+                {
+                    await _notifService.NotifyUserAsync(
+                        patientUserId.Value,
+                        "Patient",
+                        $"{doctorName} has prescribed {medName} for you.",
+                        patientLink);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
 
             TempData["SuccessMessage"] = "Medication prescribed.";
             return RedirectToAction("PrescriptionsByAdmission", new { admissionId = prescription.AdmissionId });
         }
-
         // ==================================================================
         //  EDIT PRESCRIPTION – GET
         // ==================================================================
@@ -933,7 +1025,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             await _context.SaveChangesAsync();
+            try
+            {
+                var admissionWithAdmin = await _context.Admissions
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == admissionId);
 
+                if (admissionWithAdmin?.CreatedByWardAdminId != null)
+                {
+                    string doctorName = (await _context.Employees.FindAsync(doctorId))?.FullName ?? "Doctor";
+                    string patientName = admissionWithAdmin.Patient.FullName;
+                    string notificationMsg = $"{doctorName} has initiated discharge for patient {patientName}.";
+                    if (!string.IsNullOrWhiteSpace(dischargeInstructions))
+                        notificationMsg += $" Instructions: {dischargeInstructions}";
+
+                    string link = Url.Action("Details", "WardAdmin", new { id = admissionId });
+
+                    await _notifService.NotifyUserAsync(
+                        admissionWithAdmin.CreatedByWardAdminId.Value,
+                        "Employee",
+                        notificationMsg,
+                        link);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
             TempData["SuccessMessage"] = "Patient discharged successfully.";
             return RedirectToAction("MyPatients");
         }

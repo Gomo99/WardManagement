@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
@@ -12,12 +13,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
     public class AdminController : Controller
     {
         private readonly WardDbContext _context;
-        private readonly IEmailService _emailService; // <-- new
+        private readonly IEmailService _emailService;
+        private readonly INotificationService _notifService;     // <-- new
 
-        public AdminController(WardDbContext context, IEmailService emailService)
+        public AdminController(WardDbContext context,
+                               IEmailService emailService,
+                               INotificationService notifService)
         {
             _context = context;
             _emailService = emailService;
+            _notifService = notifService;
         }
 
         // ---------------------------------------------------------------
@@ -41,14 +46,20 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  EMPLOYEES – CRUD + SOFT DELETE
         // ===============================================================
 
-        public async Task<IActionResult> Employees(UserRole? role, Status? status)
+        // LIST (defaults to Active employees)
+        public async Task<IActionResult> Employees(UserRole? role, string status = "Active")
         {
             var query = _context.Employees.AsQueryable();
 
             if (role.HasValue)
                 query = query.Where(e => e.Role == role.Value);
-            if (status.HasValue)
-                query = query.Where(e => e.IsActive == status.Value);
+
+            // Filter by status – default to Active
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(e => e.IsActive == parsedStatus);
+            }
+            // If status is "All" or any non‑parseable value, no filter is applied → shows all.
 
             var employees = await query
                 .OrderBy(e => e.LastName)
@@ -56,10 +67,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .ToListAsync();
 
             ViewBag.Roles = new SelectList(Enum.GetValues<UserRole>(), role);
-            ViewBag.Statuses = new SelectList(Enum.GetValues<Status>(), status);
+
+            // Build a SelectList with string keys so "All" can be passed
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Text = "Active", Value = "Active", Selected = (status == "Active") },
+        new SelectListItem { Text = "Inactive", Value = "Inactive", Selected = (status == "Inactive") },
+        new SelectListItem { Text = "All", Value = "All", Selected = (status == "All") }
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(employees);
         }
-
         // CREATE – GET
         public IActionResult CreateEmployee()
         {
@@ -73,7 +92,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateEmployee(Employee employee)
         {
-            // Remove fields that are not submitted by the form
             ModelState.Remove("EmployeeID");
             ModelState.Remove("FullName");
             ModelState.Remove("IsActive");
@@ -99,20 +117,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(employee);
             }
 
-            // 1. Generate a random temporary password
+            // 1. Generate temporary password
             string tempPassword = GenerateRandomPassword(12);
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(tempPassword);
-
-            // 2. Set remaining fields
-            employee.PasswordHash = hashedPassword;
+            employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
             employee.IsActive = Status.Active;
-            employee.MustChangePassword = true;    // force change on first login
+            employee.MustChangePassword = true;
             employee.FailedLoginAttempts = 0;
 
             _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();   // Employee now has an ID
 
-            // 3. Email the temporary password
+            // 2. Email the temporary password
             try
             {
                 string subject = "Your Ward Management System Account";
@@ -123,19 +138,40 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     <p><strong>Temporary Password:</strong> {tempPassword}</p>
                     <p><em>You will be required to change your password after your first login.</em></p>
                     <p>Please visit <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>the login page</a>.</p>";
-
                 await _emailService.SendEmailAsync(employee.Email, subject, body);
+
                 TempData["SuccessMessage"] = $"Employee created. Temporary password emailed to {employee.Email}.";
             }
             catch (Exception ex)
             {
-                // Email sending failed, still show success but warn
                 TempData["SuccessMessage"] = $"Employee created, but email delivery failed ({ex.Message}).";
+            }
+
+            // 3. Send in-app notification to the new employee
+            try
+            {
+                // Get the admin who is currently logged in
+                var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                string adminName = "System";
+                if (!string.IsNullOrEmpty(adminIdClaim) && int.TryParse(adminIdClaim, out int adminId))
+                {
+                    var admin = await _context.Employees.FindAsync(adminId);
+                    if (admin != null)
+                        adminName = $"{admin.FirstName} {admin.LastName}";
+                }
+
+                string notificationMsg = $"Your account was created by {adminName}. Please log in to change your password.";
+                await _notifService.NotifyUserAsync(employee.EmployeeID, "Employee",
+                    notificationMsg,
+                    Url.Action("Login", "Account", null, Request.Scheme));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Notification error: " + ex.Message);
             }
 
             return RedirectToAction(nameof(Employees));
         }
-
         // EDIT – GET
         public async Task<IActionResult> EditEmployee(int id)
         {
@@ -241,11 +277,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all wards
-        public async Task<IActionResult> Wards()
+        public async Task<IActionResult> Wards(string status = "Active")
         {
-            var wards = await _context.Wards
-                .OrderBy(w => w.Name)
-                .ToListAsync();
+            var query = _context.Wards.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(w => w.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all wards.
+
+            var wards = await query.OrderBy(w => w.Name).ToListAsync();
+
+            // Build a string‑based SelectList for the dropdown
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(wards);
         }
 
@@ -356,11 +408,20 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all beds (optionally filter by ward using query string ?wardId=)
-        public async Task<IActionResult> Beds(int? wardId)
+        public async Task<IActionResult> Beds(int? wardId, string status = "Active")
         {
             var query = _context.Beds.AsQueryable();
+
+            // Filter by ward
             if (wardId.HasValue)
                 query = query.Where(b => b.WardId == wardId.Value);
+
+            // Filter by status – default to Active
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(b => b.IsActive == parsedStatus);
+            }
+            // If status is "All" or any invalid value, no status filter is applied → shows all beds.
 
             var beds = await query
                 .Include(b => b.Ward)
@@ -368,7 +429,20 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .ThenBy(b => b.BedNumber)
                 .ToListAsync();
 
-            ViewBag.Wards = new SelectList(_context.Wards.Where(w => w.IsActive == Status.Active), "Id", "Name", wardId);
+            // Ward dropdown (only active wards)
+            ViewBag.Wards = new SelectList(
+                _context.Wards.Where(w => w.IsActive == Status.Active),
+                "Id", "Name", wardId);
+
+            // Status dropdown
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(beds);
         }
 
@@ -491,14 +565,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all consumables
-        public async Task<IActionResult> Consumables()
+        public async Task<IActionResult> Consumables(string status = "Active")
         {
-            var consumables = await _context.Consumables
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            var query = _context.Consumables.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(c => c.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all consumables.
+
+            var consumables = await query.OrderBy(c => c.Name).ToListAsync();
+
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(consumables);
         }
-
         // CREATE – GET
         public IActionResult CreateConsumable()
         {
@@ -606,14 +694,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all medications
-        public async Task<IActionResult> Medications()
+        public async Task<IActionResult> Medications(string status = "Active")
         {
-            var medications = await _context.Medications
-                .OrderBy(m => m.Name)
-                .ToListAsync();
+            var query = _context.Medications.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(m => m.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all medications.
+
+            var medications = await query.OrderBy(m => m.Name).ToListAsync();
+
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(medications);
         }
-
         // CREATE – GET
         public IActionResult CreateMedication()
         {
@@ -719,14 +821,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  ALLERGIES – CRUD + SOFT DELETE
         // ===============================================================
 
-        public async Task<IActionResult> Allergies()
+        public async Task<IActionResult> Allergies(string status = "Active")
         {
-            var allergies = await _context.Allergies
-                .OrderBy(a => a.Name)
-                .ToListAsync();
+            var query = _context.Allergies.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(a => a.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all allergies.
+
+            var allergies = await query.OrderBy(a => a.Name).ToListAsync();
+
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(allergies);
         }
-
         public IActionResult CreateAllergy() => View();
 
         [HttpPost]
@@ -808,14 +924,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  CONDITIONS – CRUD + SOFT DELETE
         // ===============================================================
 
-        public async Task<IActionResult> Conditions()
+        public async Task<IActionResult> Conditions(string status = "Active")
         {
-            var conditions = await _context.Conditions
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            var query = _context.Conditions.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
+            {
+                query = query.Where(c => c.IsActive == parsedStatus);
+            }
+            // If status is "All" or invalid, no filter → shows all conditions.
+
+            var conditions = await query.OrderBy(c => c.Name).ToListAsync();
+
+            var statusOptions = new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    };
+            ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
+
             return View(conditions);
         }
-
         public IActionResult CreateCondition() => View();
 
         [HttpPost]

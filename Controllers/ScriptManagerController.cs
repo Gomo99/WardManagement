@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
@@ -15,16 +16,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         {
             _context = context;
         }
-
+        private int? GetCurrentScriptManagerId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
+                return null;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (role != UserRole.SCRIPTMANAGER.ToString())
+                return null;
+            return id;
+        }
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
         public async Task<IActionResult> Dashboard()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
 
-            ViewBag.NewScriptsCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New);
-            ViewBag.ForwardedCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.ForwardedToPharmacy);
-            ViewBag.DeliveredCount = await _context.Prescriptions.CountAsync(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.Delivered);
+            ViewBag.NewScriptsCount = await _context.Prescriptions.CountAsync(p =>
+                p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New);
+            ViewBag.ForwardedCount = await _context.Prescriptions.CountAsync(p =>
+                p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.ForwardedToPharmacy);
+            ViewBag.DeliveredCount = await _context.Prescriptions.CountAsync(p =>
+                p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.Delivered);
             return View();
         }
 
@@ -33,10 +48,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         public async Task<IActionResult> NewScripts()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
             var newPrescriptions = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
-                .Where(p => p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New)
+                .Where(p => p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New)
                 .OrderBy(p => p.PrescribedDate)
                 .ToListAsync();
             return View(newPrescriptions);
@@ -47,6 +64,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         public async Task<IActionResult> ForwardedScripts()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var list = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -58,6 +78,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         public async Task<IActionResult> DeliveredScripts()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var list = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -73,6 +96,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public IActionResult Create()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             // Populate dropdowns for Admission and Medication
             ViewBag.Admissions = new SelectList(
                 _context.Admissions
@@ -148,6 +174,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var prescription = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -182,6 +211,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Prescription posted)
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
 
             ModelState.Remove("IsActive");
@@ -236,6 +268,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForwardToPharmacy(int id)
         {
+
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var prescription = await _context.Prescriptions.FindAsync(id);
             if (prescription == null || prescription.IsActive != Status.Active)
                 return NotFound();
@@ -282,6 +318,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveScriptConfirmed(int id)
         {
+
+
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var prescription = await _context.Prescriptions.FindAsync(id);
             if (prescription == null || prescription.IsActive != Status.Active)
                 return NotFound();
@@ -304,6 +345,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         public async Task<IActionResult> AllScripts()
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             var prescriptions = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -318,6 +363,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         public async Task<IActionResult> Details(int id)
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var prescription = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -333,6 +381,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteScript(int id)
         {
+
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             var prescription = await _context.Prescriptions.FindAsync(id);
             if (prescription == null) return NotFound();
 
@@ -350,6 +403,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreScript(int id)
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
             var prescription = await _context.Prescriptions.FindAsync(id);
             if (prescription == null) return NotFound();
 

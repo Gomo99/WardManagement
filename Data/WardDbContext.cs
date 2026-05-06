@@ -8,7 +8,7 @@ namespace WARDMANAGEMENTSYSTEM.Data
     public class WardDbContext : DbContext
     {
         public WardDbContext(DbContextOptions options) : base(options) { }
-
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<UserDevice> UserDevices { get; set; }
         public DbSet<Patient> Patients { get; set; }

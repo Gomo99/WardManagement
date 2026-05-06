@@ -9,6 +9,79 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
+
+
+        .nav-notification {
+            position: relative;
+        }
+
+        .notification-bell {
+            color: var(--gray-600);
+            font-size: 1.2rem;
+            position: relative;
+            text-decoration: none;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            font-size: .65rem;
+            padding: 2px 5px;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 35px;
+            right: 0;
+            width: 320px;
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.1);
+            z-index: 1000;
+        }
+
+        .notification-dropdown-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-list {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: .82rem;
+        }
+
+            .notification-item:hover {
+                background: var(--gray-50);
+            }
+
+            .notification-item.unread {
+                font-weight: 600;
+                background: #F0F7FF;
+            }
+
+            .notification-item a {
+                color: var(--navy);
+                text-decoration: none;
+            }
+
+            .notification-item small {
+                color: var(--gray-400);
+                display: block;
+                margin-top: 4px;
+            }
+
+
         :root {
             --navy:    #0B2545;
             --teal:    #0E8A8A;
@@ -442,6 +515,8 @@ else
                     <button type="submit" class="topbar-btn" data-tooltip="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
                 </form>
             </div>
+
+                @await Component.InvokeAsync("NotificationBell")
         </header>
 
         <main class="main-content">
@@ -482,6 +557,44 @@ else
             btn.querySelector('i').classList.toggle('fa-eye-slash');
         });
     });
+
+
+            document.getElementById('notificationBell')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            var dropdown = document.getElementById('notificationDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            if (dropdown.style.display === 'block') {
+                loadNotifications();
+            }
+        });
+
+        function loadNotifications() {
+            fetch('/Notification/Latest')
+                .then(response => response.json())
+                .then(data => {
+                    var list = document.getElementById('notificationList');
+                    list.innerHTML = '';
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-muted" style="padding:10px;">No notifications</div>';
+                        return;
+                    }
+                    data.forEach(n => {
+                        var item = document.createElement('div');
+                        item.className = 'notification-item' + (n.isRead ? '' : ' unread');
+                        item.innerHTML = (n.link ? '<a href="' + n.link + '">' + n.message + '</a>' : n.message) +
+                                         '<small>' + new Date(n.createdAt).toLocaleString() + '</small>';
+                        list.appendChild(item);
+                    });
+                });
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!document.getElementById('notificationDropdown')?.contains(e.target)) {
+                document.getElementById('notificationDropdown').style.display = 'none';
+            }
+        });
+
 </script>
 @RenderSection("Scripts", required: false)
 </body>

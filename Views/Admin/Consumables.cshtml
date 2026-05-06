@@ -20,6 +20,22 @@
     <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
 }
 
+
+
+<!-- STATUS FILTER -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="Consumables" style="display:flex; gap:10px; align-items:flex-end;">
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Status</label>
+                <select name="status" asp-items="ViewBag.Statuses" class="form-control" style="width:130px;"></select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+            <a asp-action="Consumables" class="btn btn-outline btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     @if (!Model.Any())
     {

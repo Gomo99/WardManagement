@@ -35,8 +35,9 @@
             <div>
                 <label class="form-label" style="margin-bottom:5px;">Filter by Status</label>
                 <select name="status" class="form-control" style="width:150px;">
-                    <option value="">All Statuses</option>
-                    @Html.DropDownList("status", ViewBag.Statuses as SelectList, "All Statuses", new { @class = "" })
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="All">All</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary btn-sm">
