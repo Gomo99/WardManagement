@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Porter Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Porter Dashboard</h1>
+        <p>Patient transport and movement management</p>
+    </div>
+    <div>
+        <span style="font-size:.8rem; color:var(--gray-400);">
+            <i class="fa-regular fa-clock"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </span>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-clock"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingMoves</div>
+            <div class="stat-label">Pending Requests</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.CompletedToday</div>
+            <div class="stat-label">Completed Today</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-list-check"></i> My Movement Requests</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View and action pending patient movement requests.</p>
+            <a asp-action="MyMovements" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View Requests</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-person-walking-arrow-loop-left"></i> Check‑In Patients</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Return patients to the ward after appointments.</p>
+            <a asp-action="CheckInList" class="btn btn-primary btn-sm"><i class="fa-solid fa-right-to-bracket"></i> Patients to Return</a>
+        </div>
+    </div>
+</div>

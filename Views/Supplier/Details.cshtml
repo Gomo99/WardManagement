@@ -1,0 +1,55 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.ConsumableOrder
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Order Details";
+    ViewData["Breadcrumb"] = "<a href='/Supplier/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Supplier/Index'>Orders</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Order #@Model.Id</h1>
+        <p>@Model.Consumable?.Name</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:500px;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem;">
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Consumable</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.Consumable?.Name</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Quantity Requested</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.QuantityRequested</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Requested</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.RequestDate.ToString("g")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Status</div>
+                    <span class="badge @(Model.OrderStatus == OrderStatus.Ordered ? "badge-gold" : Model.OrderStatus == OrderStatus.Fulfilled ? "badge-success" : "badge-navy")">
+                        <span class="badge-dot"></span> @Model.OrderStatus
+                    </span>
+                </div>
+                @if (Model.ReceivedDate.HasValue)
+                {
+                    <div>
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Received</div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.ReceivedDate.Value.ToString("g")</div>
+                    </div>
+                    <div>
+                        <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Qty Received</div>
+                        <div style="font-weight:500; color:var(--navy);">@Model.QuantityReceived</div>
+                    </div>
+                }
+                <div style="grid-column:1/-1;">
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Notes</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Notes ?? "—")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

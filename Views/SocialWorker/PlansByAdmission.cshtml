@@ -1,0 +1,78 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.DischargePlan>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Discharge Plans";
+    ViewData["Breadcrumb"] = "<a href='/SocialWorker/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/SocialWorker/Index'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Plans</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Discharge Plans</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a asp-action="Create" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Plan</a>
+        <a asp-action="Index" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-file-lines" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy);">No discharge plans yet</div>
+            <a asp-action="Create" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm" style="margin-top:12px;">Create First Plan</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Created</th>
+                        <th>Social Worker</th>
+                        <th>Plan Details</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var plan in Model)
+                    {
+                        <tr>
+                            <td>@plan.CreatedAt.ToString("g")</td>
+                            <td>@plan.SocialWorker?.FullName</td>
+                            <td>@(plan.PlanDetails.Length > 80 ? plan.PlanDetails.Substring(0, 80) + "..." : plan.PlanDetails)</td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@plan.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@plan.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                @if (plan.IsActive == Status.Active)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@plan.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                onclick="return confirm('Deactivate this plan?')">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="Restore" asp-route-id="@plan.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"><i class="fa-solid fa-rotate-left"></i></button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

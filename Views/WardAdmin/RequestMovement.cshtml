@@ -1,0 +1,48 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.PatientMovement
+@{
+    ViewData["Title"] = "Request Porter Movement";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/WardAdmin/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Request Movement</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Request Porter Movement</h1>
+        <p>@ViewBag.PatientName — @ViewBag.CurrentBed</p>
+    </div>
+    <a asp-action="Details" asp-route-id="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:560px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-person-walking-arrow-right"></i> Movement Details</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="RequestMovement" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="admissionId" value="@Model.AdmissionId" />
+
+                <div class="form-group">
+                    <label class="form-label" for="porterId">Assign Porter <span class="required">*</span></label>
+                    <select name="porterId" asp-items="ViewBag.Porters" class="form-control" required>
+                        <option value="">Select a porter</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="location">Destination <span class="required">*</span></label>
+                    <input name="location" class="form-control" placeholder="e.g. Theatre, X‑Ray, Physio" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="notes">Notes (optional)</label>
+                    <input name="notes" class="form-control" placeholder="Additional instructions" />
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Send Request</button>
+                    <a asp-action="Details" asp-route-id="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

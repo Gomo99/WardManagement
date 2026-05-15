@@ -353,7 +353,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
                 .FirstOrDefaultAsync(o => o.Id == orderId &&
-                                         o.OrderStatus == OrderStatus.Ordered &&
+                                         o.OrderStatus == OrderStatus.Fulfilled &&   // <-- changed
                                          o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
             return View(order);
@@ -363,13 +363,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived)
         {
-            int? managerId = GetCurrentManagerId();
+            nt? managerId = GetCurrentManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
                 .FirstOrDefaultAsync(o => o.Id == orderId &&
-                                         o.OrderStatus == OrderStatus.Ordered &&
+                                         o.OrderStatus == OrderStatus.Fulfilled &&   // <-- changed
                                          o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 

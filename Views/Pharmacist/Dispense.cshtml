@@ -1,0 +1,81 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Dispense Medication";
+    ViewData["Breadcrumb"] = "<a href='/Pharmacist/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Pharmacist/Index'>Prescriptions</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Dispense</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Dispense Medication</h1>
+        <p>Verify and dispense</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:600px;">
+    <!-- Verification Card -->
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clipboard-check"></i> Verify Prescription</span></div>
+        <div class="card-body">
+            <div style="background:var(--gray-50); border-radius:8px; padding:16px; margin-bottom:0;">
+                <h4 style="font-family:var(--font-serif); color:var(--navy); margin-bottom:12px;">@Model.Medication?.Name</h4>
+                <table style="font-size:.875rem; width:100%;">
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500); width:120px;">Patient:</td>
+                        <td style="color:var(--navy);">@Model.Admission?.Patient.FullName</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500);">Dosage:</td>
+                        <td style="color:var(--navy);">@(Model.Dosage ?? "—")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500);">Frequency:</td>
+                        <td style="color:var(--navy);">@(Model.Frequency ?? "—")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500);">Duration:</td>
+                        <td style="color:var(--navy);">@(Model.Duration ?? "—")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500);">Prescribed:</td>
+                        <td style="color:var(--navy);">@Model.PrescribedDate.ToString("g")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:500; padding:6px 0; color:var(--gray-500);">Status:</td>
+                        <td><span class="badge badge-gold">@Model.ScriptStatus</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispense Form -->
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-capsules"></i> Confirm Dispensing</span></div>
+        <div class="card-body">
+            <form asp-action="Dispense" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="form-group">
+                    <label class="form-label" for="batchNumber">Batch Number</label>
+                    <input name="batchNumber" class="form-control" placeholder="e.g. BN-2024-001" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="quantityDispensed">Quantity Dispensed</label>
+                    <input name="quantityDispensed" class="form-control" type="number" min="0" value="1" />
+                </div>
+
+                <div class="alert alert-info" style="margin-bottom:16px;">
+                    <i class="fa-solid fa-circle-info"></i> Dispensing this medication will mark it as ready for the ward to collect.
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Confirm Dispense</button>
+                    <a asp-action="Index" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

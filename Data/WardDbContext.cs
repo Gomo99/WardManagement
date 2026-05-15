@@ -16,6 +16,7 @@ namespace WARDMANAGEMENTSYSTEM.Data
         public DbSet<Bed> Beds { get; set; }
         public DbSet<Consumable> Consumables { get; set; }
         public DbSet<Allergy> Allergies { get; set; }
+        public DbSet<DischargePlan> DischargePlans { get; set; }
         public DbSet<Condition> Conditions { get; set; }
         public DbSet<HospitalInfo> HospitalInfos { get; set; }
         public DbSet<Medication> Medications { get; set; }
@@ -172,7 +173,71 @@ namespace WARDMANAGEMENTSYSTEM.Data
                     IsActive = Status.Active,
                     MustChangePassword = false,
                     IsTwoFactorEnabled = false
+                },
+
+                new Employee
+                {
+                    EmployeeID = 8,
+                    FirstName = "Robert",
+                    LastName = "Mkhize",
+                    UserName = "porter",
+                    Email = "porter@hospital.co.za",
+                    PasswordHash = "porter123",
+                    Gender = GenderType.Male,
+                    Role = UserRole.PORTER,
+                    HireDate = new DateTime(2024, 1, 15),
+                    IsActive = Status.Active,
+                    MustChangePassword = false,
+                    IsTwoFactorEnabled = false
+                },
+
+                new Employee
+                {
+                    EmployeeID = 9,
+                    FirstName = "Gizara",
+                    LastName = "Mkhize",
+                    UserName = "Pharmacist",
+                    Email = "pharmacist@hospital.co.za",
+                    PasswordHash = "pharmacist123",
+                    Gender = GenderType.Male,
+                    Role = UserRole.PHARMACIST,
+                    HireDate = new DateTime(2022, 1, 15),
+                    IsActive = Status.Active,
+                    MustChangePassword = false,
+                    IsTwoFactorEnabled = false
+                },
+
+                new Employee
+                {
+                    EmployeeID = 10,   // adjust ID as needed
+                    FirstName = "Nomsa",
+                    LastName = "Dlamini",
+                    UserName = "socialworker",
+                    Email = "socialworker@hospital.co.za",
+                    PasswordHash = "socialworker123",
+                    Gender = GenderType.Female,
+                    Role = UserRole.SOCIALWORKER,
+                    HireDate = new DateTime(2024, 2, 1),
+                    IsActive = Status.Active,
+                    MustChangePassword = false,
+                    IsTwoFactorEnabled = false
+                },
+                new Employee
+                {
+                    EmployeeID = 11,
+                    FirstName = "SupplyCo",
+                    LastName = "Vendor",
+                    UserName = "supplier",
+                    Email = "supplier@hospital.co.za",
+                    PasswordHash = "supplier123",
+                    Gender = GenderType.Male,
+                    Role = UserRole.SUPPLIER,
+                    HireDate = new DateTime(2024, 3, 1),
+                    IsActive = Status.Active,
+                    MustChangePassword = false,
+                    IsTwoFactorEnabled = false
                 }
+
             );
 
             // -- Patients --

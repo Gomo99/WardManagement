@@ -1,0 +1,61 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.PatientMovement>
+@{
+    ViewData["Title"] = "Movement History";
+    ViewData["Breadcrumb"] = "<a href='/Porter/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>History</span>";
+    string patientName = ViewBag.PatientName ?? "Patient";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Movement History</h1>
+        <p>@patientName</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy);">No movements recorded</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date / Time</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        <tr>
+                            <td>@(m.Timestamp is DateTime dt ? dt.ToString("g") : "Pending")</td>
+                            <td>
+                                @{
+                                    string badgeClass = m.MovementType switch
+                                    {
+                                        "Admission" => "badge badge-teal",
+                                        "CheckOut" or "CheckOutRequest" => "badge badge-gold",
+                                        "CheckIn" => "badge badge-success",
+                                        "Discharge" => "badge badge-danger",
+                                        _ => "badge badge-secondary"
+                                    };
+                                }
+                                <span class="@badgeClass"><span class="badge-dot"></span> @m.MovementType</span>
+                            </td>
+                            <td>@m.Location</td>
+                            <td>@(m.Notes ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -561,6 +561,97 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id });
         }
 
+
+
+        // ===============================================================
+        //  REQUEST PORTER MOVEMENT – GET
+        // ===============================================================
+        [HttpGet]
+        public async Task<IActionResult> RequestMovement(int admissionId)
+        {
+            var admission = await _context.Admissions
+                .Include(a => a.Patient)
+                .Include(a => a.Bed).ThenInclude(b => b.Ward)
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+
+            if (admission == null) return NotFound();
+
+            ViewBag.PatientName = admission.Patient.FullName;
+            ViewBag.CurrentBed = admission.Bed?.BedNumberWithWard;
+            ViewBag.CurrentLocation = admission.CurrentLocation ?? "In Ward";
+
+            // List of porters for dropdown
+            ViewBag.Porters = new SelectList(
+                await _context.Employees
+                    .Where(e => e.Role == UserRole.PORTER && e.IsActive == Status.Active)
+                    .OrderBy(e => e.LastName).ToListAsync(),
+                "EmployeeID", "FullName");
+
+            return View(new PatientMovement
+            {
+                AdmissionId = admissionId,
+                MovementType = "CheckOutRequest",
+                // Timestamp left null – pending request
+            });
+        }
+
+        // ===============================================================
+        //  REQUEST PORTER MOVEMENT – POST
+        // ===============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestMovement(int admissionId, int porterId,
+                                                          string location, string? notes)
+        {
+            var admission = await _context.Admissions
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
+            if (admission == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(location))
+            {
+                TempData["ErrorMessage"] = "Destination is required.";
+                return RedirectToAction(nameof(RequestMovement), new { admissionId });
+            }
+
+            var porter = await _context.Employees
+                .FirstOrDefaultAsync(e => e.EmployeeID == porterId && e.Role == UserRole.PORTER && e.IsActive == Status.Active);
+            if (porter == null)
+            {
+                TempData["ErrorMessage"] = "Invalid porter.";
+                return RedirectToAction(nameof(RequestMovement), new { admissionId });
+            }
+
+            // Create a pending movement request
+            var movement = new PatientMovement
+            {
+                AdmissionId = admissionId,
+                MovementType = "CheckOutRequest",
+                Location = location,
+                Notes = notes,
+                PorterId = porterId,
+                Timestamp = null       // pending until porter confirms
+            };
+
+            _context.PatientMovements.Add(movement);
+            await _context.SaveChangesAsync();
+
+            // Notify the porter
+            try
+            {
+                string wardAdminName = await GetCurrentWardAdminName();
+                await _notifService.NotifyUserAsync(
+                    porterId,
+                    "Employee",
+                    $"{wardAdminName} requests you to move {admission.Patient.FullName} to {location}.",
+                    Url.Action("MyMovements", "Porter"));
+            }
+            catch (Exception ex) { Console.WriteLine("Notify porter error: " + ex.Message); }
+
+            TempData["SuccessMessage"] = $"Movement request sent to {porter.FullName}.";
+            return RedirectToAction("Details", new { id = admissionId });
+        }
+
+
         // ===============================================================
         //  PRIVATE HELPERS
         // ===============================================================

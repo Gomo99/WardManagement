@@ -1,0 +1,67 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Prescription Details";
+    ViewData["Breadcrumb"] = "<a href='/Pharmacist/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Pharmacist/Index'>Prescriptions</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Prescription Details</h1>
+        <p>#@Model.Id — @Model.Admission?.Patient.FullName</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        @if (Model.ScriptStatus == ScriptStatus.ForwardedToPharmacy)
+        {
+            <a asp-action="Dispense" asp-route-id="@Model.Id" class="btn btn-success btn-sm"><i class="fa-solid fa-capsules"></i> Dispense</a>
+        }
+        <a asp-action="Index" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-circle-info"></i> Prescription Information</span></div>
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem;">
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Medication</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.Medication?.Name</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Schedule</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Medication?.Schedule?.ToString() ?? "Non‑scheduled")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Dosage</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Dosage ?? "—")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Frequency</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Frequency ?? "—")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Duration</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Duration ?? "—")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Prescribed</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.PrescribedDate.ToString("g")</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Status</div>
+                    <span class="badge @(Model.ScriptStatus == ScriptStatus.ForwardedToPharmacy ? "badge-gold" : Model.ScriptStatus == ScriptStatus.Dispensed ? "badge-success" : "badge-navy")">
+                        <span class="badge-dot"></span> @Model.ScriptStatus
+                    </span>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Patient</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.Admission?.Patient.FullName</div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Notes</div>
+                    <div style="font-weight:500; color:var(--navy);">@(Model.Notes ?? "—")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

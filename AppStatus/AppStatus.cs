@@ -9,14 +9,19 @@
         NURSINGSISTER,
         DOCTOR,
         SCRIPTMANAGER,
-        CONSUMABLESMANAGER
+        CONSUMABLESMANAGER,
+        PHARMACIST,
+        PORTER,
+        SOCIALWORKER,
+        SUPPLIER
     }
 
     public enum ScriptStatus
     {
         New,
         ForwardedToPharmacy,
-        Delivered
+        Delivered,
+        Dispensed
     }
 
 
@@ -42,6 +47,7 @@
         Ordered,
         PartiallyComplete,
         Complete,
+        Fulfilled,
         Cancelled
     }
 

@@ -1,0 +1,74 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Admission>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Patients to Return";
+    ViewData["Breadcrumb"] = "<a href='/Porter/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Check‑In</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Patients to Return</h1>
+        <p>@Model.Count() patient(s) awaiting return to ward</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-bed-pulse" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy);">No patients to return</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Current Location</th>
+                        <th>Home Bed</th>
+                        <th style="text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adm in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:32px; height:32px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">
+                                        @(adm.Patient.FirstName?[0])@(adm.Patient.LastName?[0])
+                                    </div>
+                                    <span style="font-weight:600; color:var(--navy);">@adm.Patient.FullName</span>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-warning">@adm.CurrentLocation</span></td>
+                            <td>@adm.Bed?.BedNumberWithWard</td>
+                            <td style="text-align:right;">
+                                <form asp-action="ConfirmCheckIn" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="admissionId" value="@adm.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm"
+                                            onclick="return confirm('Confirm that @adm.Patient.FullName has returned to the ward?')">
+                                        <i class="fa-solid fa-right-to-bracket"></i> Check‑In
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

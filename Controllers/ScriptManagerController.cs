@@ -291,10 +291,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         // ==================================================================
         //  RECEIVE & VERIFY SCRIPT – GET
-        // ==================================================================
         [HttpGet]
         public async Task<IActionResult> ReceiveScript(int id)
         {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var prescription = await _context.Prescriptions
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
@@ -302,24 +304,19 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             if (prescription == null) return NotFound();
 
-            if (prescription.ScriptStatus != ScriptStatus.ForwardedToPharmacy)
+            if (prescription.ScriptStatus != ScriptStatus.Dispensed)   // <-- changed
             {
-                TempData["ErrorMessage"] = "This prescription cannot be received at this stage.";
+                TempData["ErrorMessage"] = "This prescription has not been dispensed yet.";
                 return RedirectToAction(nameof(AllScripts));
             }
 
             return View(prescription);
         }
 
-        // ==================================================================
-        //  RECEIVE & VERIFY SCRIPT – POST (confirm delivery)
-        // ==================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveScriptConfirmed(int id)
         {
-
-
             int? managerId = GetCurrentScriptManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
@@ -327,9 +324,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (prescription == null || prescription.IsActive != Status.Active)
                 return NotFound();
 
-            if (prescription.ScriptStatus != ScriptStatus.ForwardedToPharmacy)
+            if (prescription.ScriptStatus != ScriptStatus.Dispensed)   // <-- changed
             {
-                TempData["ErrorMessage"] = "Prescription must be forwarded to pharmacy first.";
+                TempData["ErrorMessage"] = "Prescription must be dispensed by pharmacy first.";
                 return RedirectToAction(nameof(AllScripts));
             }
 
@@ -339,7 +336,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Medication verified and received on ward.";
             return RedirectToAction(nameof(AllScripts));
         }
-
         // ==================================================================
         //  VIEW ALL SCRIPTS
         // ==================================================================

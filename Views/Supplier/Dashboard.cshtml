@@ -1,0 +1,37 @@
+﻿@{
+    ViewData["Title"] = "Supplier Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Supplier Dashboard</h1>
+        <p>Order fulfilment and delivery tracking</p>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-clipboard-list"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingOrders</div>
+            <div class="stat-label">Pending Orders</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-truck-fast"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.FulfilledOrders</div>
+            <div class="stat-label">Fulfilled Orders</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-list-check"></i> Orders to Fulfill</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">View and confirm fulfilment of ward consumable orders.</p>
+            <a asp-action="Index" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View Orders</a>
+        </div>
+    </div>
+</div>

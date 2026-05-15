@@ -1,0 +1,37 @@
+﻿@{
+    ViewData["Title"] = "Social Worker Dashboard";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Social Worker Dashboard</h1>
+        <p>Discharge planning and patient support</p>
+    </div>
+</div>
+
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-bed-pulse"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.ActiveAdmissions</div>
+            <div class="stat-label">Active Patients</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon navy"><i class="fa-solid fa-file-lines"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.MyPlans</div>
+            <div class="stat-label">My Discharge Plans</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-list-check"></i> Patients</span></div>
+        <div class="card-body">
+            <p style="font-size:.82rem; color:var(--gray-400);">View all admitted patients and create discharge plans.</p>
+            <a asp-action="Index" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye"></i> View Patients</a>
+        </div>
+    </div>
+</div>

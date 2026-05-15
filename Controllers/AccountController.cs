@@ -109,6 +109,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 UserRole.WARDADMIN => RedirectToAction("Dashboard", "WardAdmin"),
                 UserRole.SCRIPTMANAGER => RedirectToAction("Dashboard", "ScriptManager"),
                 UserRole.CONSUMABLESMANAGER => RedirectToAction("Dashboard", "ConsumablesManager"),
+                UserRole.PHARMACIST => RedirectToAction("Dashboard", "Pharmacist"),
+                UserRole.PORTER => RedirectToAction("Dashboard", "Porter"),
+                UserRole.SOCIALWORKER => RedirectToAction("Dashboard", "SocialWorker"),
+                UserRole.SUPPLIER => RedirectToAction("Dashboard", "Supplier"),
                 _ => RedirectToAction("Login", "Account")
             };
         }

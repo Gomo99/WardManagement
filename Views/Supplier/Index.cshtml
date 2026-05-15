@@ -1,0 +1,89 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.ConsumableOrder>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Orders";
+    ViewData["Breadcrumb"] = "<a href='/Supplier/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Orders</span>";
+    string currentStatus = ViewBag.CurrentStatus ?? "Ordered";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Orders</h1>
+        <p>@Model.Count() order(s)</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<!-- Status Filter -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="Index" style="display:flex; gap:10px; align-items:flex-end;">
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Status</label>
+                <select name="status" class="form-control" style="width:150px;">
+                    <option value="Ordered" selected="@(currentStatus == "Ordered")">Pending</option>
+                    <option value="Fulfilled" selected="@(currentStatus == "Fulfilled")">Fulfilled</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-boxes-packing" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy);">No orders found</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumable</th>
+                        <th>Quantity</th>
+                        <th>Requested</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td>@order.Consumable?.Name</td>
+                            <td>@order.QuantityRequested</td>
+                            <td>@order.RequestDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="badge @(order.OrderStatus == OrderStatus.Ordered ? "badge-gold" : "badge-success")">
+                                    <span class="badge-dot"></span> @order.OrderStatus
+                                </span>
+                            </td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                @if (order.OrderStatus == OrderStatus.Ordered)
+                                {
+                                    <form asp-action="ConfirmFulfillment" asp-route-orderId="@order.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-success btn-sm"
+                                                onclick="return confirm('Mark this order as fulfilled?')">
+                                            <i class="fa-solid fa-check"></i> Fulfill
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,33 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.DischargePlan
+@{
+    ViewData["Title"] = "Discharge Plan Details";
+    ViewData["Breadcrumb"] = "<a href='/SocialWorker/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/SocialWorker/PlansByAdmission?admissionId=@Model.AdmissionId'>Plans</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Details</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Discharge Plan</h1>
+        <p>@Model.Admission?.Patient.FullName</p>
+    </div>
+    <a asp-action="PlansByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.875rem; margin-bottom:16px;">
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em;">Social Worker</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.SocialWorker?.FullName</div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em;">Created</div>
+                    <div style="font-weight:500; color:var(--navy);">@Model.CreatedAt.ToString("g")</div>
+                </div>
+            </div>
+            <div style="background:var(--gray-50); border-radius:8px; padding:14px;">
+                <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;">Plan Details</div>
+                <div style="font-weight:500; color:var(--navy); white-space:pre-wrap;">@Model.PlanDetails</div>
+            </div>
+        </div>
+    </div>
+</div>

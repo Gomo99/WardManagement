@@ -1,0 +1,80 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Prescription>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Prescriptions to Dispense";
+    ViewData["Breadcrumb"] = "<a href='/Pharmacist/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Prescriptions</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Prescriptions to Dispense</h1>
+        <p>@Model.Count() prescription(s) awaiting dispensing</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px; color:var(--gray-400);">
+            <i class="fa-solid fa-prescription-bottle-medical" style="font-size:2.5rem; margin-bottom:12px; display:block; color:var(--gray-200);"></i>
+            <div style="font-weight:600; color:var(--navy); margin-bottom:4px;">No prescriptions awaiting dispensing</div>
+            <div style="font-size:.82rem;">All prescriptions have been processed.</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Medication</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                        <th>Prescribed</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var script in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:32px; height:32px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">
+                                        @(script.Admission?.Patient.FirstName?[0])@(script.Admission?.Patient.LastName?[0])
+                                    </div>
+                                    <span style="font-weight:600; color:var(--navy);">@script.Admission?.Patient.FullName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-pills" style="color:var(--teal);"></i>
+                                    <span>@script.Medication?.Name</span>
+                                </div>
+                            </td>
+                            <td>@(script.Dosage ?? "—")</td>
+                            <td>@(script.Frequency ?? "—")</td>
+                            <td>@(script.Duration ?? "—")</td>
+                            <td>@script.PrescribedDate.ToString("dd MMM yyyy")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="Details" asp-route-id="@script.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                <a asp-action="Dispense" asp-route-id="@script.Id" class="btn btn-primary btn-sm"><i class="fa-solid fa-capsules"></i> Dispense</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
