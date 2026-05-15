@@ -363,7 +363,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived)
         {
-            nt? managerId = GetCurrentManagerId();
+            int? managerId = GetCurrentManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var order = await _context.ConsumableOrders

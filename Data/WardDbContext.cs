@@ -240,6 +240,20 @@ namespace WARDMANAGEMENTSYSTEM.Data
 
             );
 
+
+            modelBuilder.Entity<DischargePlan>()
+               .HasOne(dp => dp.Admission)
+               .WithMany()
+               .HasForeignKey(dp => dp.AdmissionId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DischargePlan>()
+                .HasOne(dp => dp.SocialWorker)
+                .WithMany()
+                .HasForeignKey(dp => dp.SocialWorkerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
             // -- Patients --
             modelBuilder.Entity<Patient>().HasData(
                 new Patient

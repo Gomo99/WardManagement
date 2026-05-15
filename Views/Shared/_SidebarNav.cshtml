@@ -1,8 +1,8 @@
-@using WARDMANAGEMENTSYSTEM.Models
+﻿@using WARDMANAGEMENTSYSTEM.Models
 @{
     var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-    var current = ViewContext.RouteData.Values["controller"]?.ToString() + "/" + ViewContext.RouteData.Values["action"]?.ToString();
-    string Active(string ctrl, string act = "") {
+    string Active(string ctrl, string act = "")
+    {
         var c = ViewContext.RouteData.Values["controller"]?.ToString();
         var a = ViewContext.RouteData.Values["action"]?.ToString();
         return (c == ctrl && (act == "" || a == act)) ? "active" : "";
@@ -12,80 +12,101 @@
 @if (role == "ADMINISTRATOR")
 {
     <p class="nav-section-label">Administration</p>
-    <a class="nav-link @Active("Admin","Dashboard")" asp-controller="Admin" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("Admin","Employees")" asp-controller="Admin" asp-action="Employees"><i class="fa-solid fa-users"></i>Employees</a>
-    <a class="nav-link @Active("Admin","Wards")" asp-controller="Admin" asp-action="Wards"><i class="fa-solid fa-bed-pulse"></i>Wards & Beds</a>
-    <a class="nav-link @Active("Admin","Medication")" asp-controller="Admin" asp-action="Medication"><i class="fa-solid fa-pills"></i>Medication</a>
-    <a class="nav-link @Active("Admin","Consumables")" asp-controller="Admin" asp-action="Consumables"><i class="fa-solid fa-box-open"></i>Consumables</a>
-    <a class="nav-link @Active("Admin","Allergies")" asp-controller="Admin" asp-action="Allergies"><i class="fa-solid fa-triangle-exclamation"></i>Allergies</a>
-    <a class="nav-link @Active("Admin","Conditions")" asp-controller="Admin" asp-action="Conditions"><i class="fa-solid fa-heart-pulse"></i>Conditions</a>
+    <a class="nav-link @Active("Admin", "Dashboard")" asp-controller="Admin" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Admin", "Employees")" asp-controller="Admin" asp-action="Employees"><i class="fa-solid fa-users"></i>Employees</a>
+    <a class="nav-link @Active("Admin", "Wards")" asp-controller="Admin" asp-action="Wards"><i class="fa-solid fa-bed-pulse"></i>Wards &amp; Beds</a>
+    <a class="nav-link @Active("Admin", "Medications")" asp-controller="Admin" asp-action="Medications"><i class="fa-solid fa-pills"></i>Medications</a>
+    <a class="nav-link @Active("Admin", "Consumables")" asp-controller="Admin" asp-action="Consumables"><i class="fa-solid fa-box-open"></i>Consumables</a>
+    <a class="nav-link @Active("Admin", "Allergies")" asp-controller="Admin" asp-action="Allergies"><i class="fa-solid fa-triangle-exclamation"></i>Allergies</a>
+    <a class="nav-link @Active("Admin", "Conditions")" asp-controller="Admin" asp-action="Conditions"><i class="fa-solid fa-heart-pulse"></i>Conditions</a>
 }
 else if (role == "WARDADMIN")
 {
     <p class="nav-section-label">Ward Administration</p>
-    <a class="nav-link @Active("WardAdmin","Dashboard")" asp-controller="WardAdmin" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("WardAdmin","AdmitPatient")" asp-controller="WardAdmin" asp-action="AdmitPatient"><i class="fa-solid fa-person-walking-arrow-right"></i>Admit Patient</a>
-    <a class="nav-link @Active("WardAdmin","Patients")" asp-controller="WardAdmin" asp-action="Patients"><i class="fa-solid fa-bed-pulse"></i>Active Patients</a>
-    <a class="nav-link @Active("WardAdmin","DischargePatient")" asp-controller="WardAdmin" asp-action="DischargePatient"><i class="fa-solid fa-person-walking-arrow-loop-left"></i>Discharge</a>
-    <a class="nav-link @Active("WardAdmin","Movement")" asp-controller="WardAdmin" asp-action="Movement"><i class="fa-solid fa-route"></i>Patient Movement</a>
+    <a class="nav-link @Active("WardAdmin", "Dashboard")" asp-controller="WardAdmin" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("WardAdmin", "AdmitPatient")" asp-controller="WardAdmin" asp-action="AdmitPatient"><i class="fa-solid fa-user-plus"></i>Admit Patient</a>
+    <a class="nav-link @Active("WardAdmin", "Patients")" asp-controller="WardAdmin" asp-action="Patients"><i class="fa-solid fa-bed-pulse"></i>Active Patients</a>
 }
 else if (role == "NURSE")
 {
     <p class="nav-section-label">Patient Care</p>
-    <a class="nav-link @Active("Nurse","Dashboard")" asp-controller="Nurse" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("Nurse","Patients")" asp-controller="Nurse" asp-action="Patients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
-    <a class="nav-link @Active("Nurse","Vitals")" asp-controller="Nurse" asp-action="Vitals"><i class="fa-solid fa-heart-pulse"></i>Record Vitals</a>
-    <a class="nav-link @Active("Nurse","Treatments")" asp-controller="Nurse" asp-action="Treatments"><i class="fa-solid fa-syringe"></i>Treatments</a>
-    <a class="nav-link @Active("Nurse","Medication")" asp-controller="Nurse" asp-action="Medication"><i class="fa-solid fa-pills"></i>Administer Meds</a>
-    <a class="nav-link @Active("Nurse","DoctorInstructions")" asp-controller="Nurse" asp-action="DoctorInstructions"><i class="fa-solid fa-clipboard-list"></i>Doctor Instructions</a>
+    <a class="nav-link @Active("Nurse", "Dashboard")" asp-controller="Nurse" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Nurse", "Patients")" asp-controller="Nurse" asp-action="Patients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
+    <a class="nav-link @Active("Nurse", "VitalsByAdmission")" asp-controller="Nurse" asp-action="VitalsByAdmission"><i class="fa-solid fa-heart-pulse"></i>Vitals</a>
+    <a class="nav-link @Active("Nurse", "TreatmentsByAdmission")" asp-controller="Nurse" asp-action="TreatmentsByAdmission"><i class="fa-solid fa-syringe"></i>Treatments</a>
+    <a class="nav-link @Active("Nurse", "MedicationAdministrationsByAdmission")" asp-controller="Nurse" asp-action="MedicationAdministrationsByAdmission"><i class="fa-solid fa-pills"></i>Medications</a>
+    <a class="nav-link @Active("Nurse", "DoctorVisitsByAdmission")" asp-controller="Nurse" asp-action="DoctorVisitsByAdmission"><i class="fa-solid fa-clipboard-list"></i>Doctor Visits</a>
 }
 else if (role == "NURSINGSISTER")
 {
     <p class="nav-section-label">Patient Care</p>
-    <a class="nav-link @Active("NursingSister","Dashboard")" asp-controller="NursingSister" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("NursingSister","Patients")" asp-controller="NursingSister" asp-action="Patients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
-    <a class="nav-link @Active("NursingSister","Vitals")" asp-controller="NursingSister" asp-action="Vitals"><i class="fa-solid fa-heart-pulse"></i>Record Vitals</a>
-    <a class="nav-link @Active("NursingSister","Medication")" asp-controller="NursingSister" asp-action="Medication"><i class="fa-solid fa-pills"></i>Scheduled Meds</a>
-    <a class="nav-link @Active("NursingSister","DoctorInstructions")" asp-controller="NursingSister" asp-action="DoctorInstructions"><i class="fa-solid fa-clipboard-list"></i>Doctor Instructions</a>
+    <a class="nav-link @Active("NursingSister", "Dashboard")" asp-controller="NursingSister" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("NursingSister", "MedicationAdministrationsByAdmission")" asp-controller="NursingSister" asp-action="MedicationAdministrationsByAdmission"><i class="fa-solid fa-users-rectangle"></i>Medication Admin level 5</a>
+    <a class="nav-link @Active("NursingSister", "Patients")" asp-controller="NursingSister" asp-action="Patients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
 }
 else if (role == "DOCTOR")
 {
     <p class="nav-section-label">Doctor</p>
-    <a class="nav-link @Active("Doctor","Dashboard")" asp-controller="Doctor" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("Doctor","Patients")" asp-controller="Doctor" asp-action="Patients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
-    <a class="nav-link @Active("Doctor","VisitSchedule")" asp-controller="Doctor" asp-action="VisitSchedule"><i class="fa-solid fa-calendar-check"></i>Visit Schedule</a>
-    <a class="nav-link @Active("Doctor","Prescriptions")" asp-controller="Doctor" asp-action="Prescriptions"><i class="fa-solid fa-file-prescription"></i>Prescriptions</a>
-    <a class="nav-link @Active("Doctor","Instructions")" asp-controller="Doctor" asp-action="Instructions"><i class="fa-solid fa-clipboard-list"></i>Instructions</a>
+    <a class="nav-link @Active("Doctor", "Dashboard")" asp-controller="Doctor" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Doctor", "MyPatients")" asp-controller="Doctor" asp-action="MyPatients"><i class="fa-solid fa-users-rectangle"></i>My Patients</a>
+    <a class="nav-link @Active("Doctor", "MyScheduledVisits")" asp-controller="Doctor" asp-action="MyScheduledVisits"><i class="fa-solid fa-calendar-check"></i>Visit Schedule</a>
+    <a class="nav-link @Active("Doctor", "RecordVisit")" asp-controller="Doctor" asp-action="RecordVisit"><i class="fa-solid fa-calendar-check"></i>Record Visit</a>
+
+
 }
 else if (role == "SCRIPTMANAGER")
 {
     <p class="nav-section-label">Script Management</p>
-    <a class="nav-link @Active("ScriptManager","Dashboard")" asp-controller="ScriptManager" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("ScriptManager","NewScripts")" asp-controller="ScriptManager" asp-action="NewScripts"><i class="fa-solid fa-file-medical"></i>New Scripts <span class="nav-badge">!</span></a>
-    <a class="nav-link @Active("ScriptManager","ProcessScripts")" asp-controller="ScriptManager" asp-action="ProcessScripts"><i class="fa-solid fa-rotate"></i>Process Scripts</a>
-    <a class="nav-link @Active("ScriptManager","ReceiveMedication")" asp-controller="ScriptManager" asp-action="ReceiveMedication"><i class="fa-solid fa-boxes-stacked"></i>Receive Medication</a>
+    <a class="nav-link @Active("ScriptManager", "Dashboard")" asp-controller="ScriptManager" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("ScriptManager", "NewScripts")" asp-controller="ScriptManager" asp-action="NewScripts"><i class="fa-solid fa-file-medical"></i>New Scripts</a>
+    <a class="nav-link @Active("ScriptManager", "AllScripts")" asp-controller="ScriptManager" asp-action="AllScripts"><i class="fa-solid fa-list-check"></i>All Scripts</a>
 }
 else if (role == "CONSUMABLESMANAGER")
 {
-    <p class="nav-section-label">Consumables</p>
-    <a class="nav-link @Active("ConsumablesManager","Dashboard")" asp-controller="ConsumablesManager" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("ConsumablesManager","Stock")" asp-controller="ConsumablesManager" asp-action="Stock"><i class="fa-solid fa-boxes-stacked"></i>Stock Levels</a>
-    <a class="nav-link @Active("ConsumablesManager","RequestOrder")" asp-controller="ConsumablesManager" asp-action="RequestOrder"><i class="fa-solid fa-cart-plus"></i>Request Order</a>
-    <a class="nav-link @Active("ConsumablesManager","ReceiveStock")" asp-controller="ConsumablesManager" asp-action="ReceiveStock"><i class="fa-solid fa-truck-ramp-box"></i>Receive Stock</a>
-    <a class="nav-link @Active("ConsumablesManager","Stocktake")" asp-controller="ConsumablesManager" asp-action="Stocktake"><i class="fa-solid fa-clipboard-check"></i>Stocktake</a>
+    <p class="nav-section-label">Consumables Management</p>
+    <a class="nav-link @Active("ConsumablesManager", "Dashboard")" asp-controller="ConsumablesManager" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("ConsumablesManager", "Consumables")" asp-controller="ConsumablesManager" asp-action="Consumables"><i class="fa-solid fa-boxes-stacked"></i>Stock Levels</a>
+    <a class="nav-link @Active("ConsumablesManager", "RequestConsumable")" asp-controller="ConsumablesManager" asp-action="RequestConsumable"><i class="fa-solid fa-cart-plus"></i>Request Order</a>
+    <a class="nav-link @Active("ConsumablesManager", "ReceiveStockList")" asp-controller="ConsumablesManager" asp-action="ReceiveStockList"><i class="fa-solid fa-truck-ramp-box"></i>Receive Stock</a>
+    <a class="nav-link @Active("ConsumablesManager", "Orders")" asp-controller="ConsumablesManager" asp-action="Orders"><i class="fa-solid fa-clipboard-list"></i>All Orders</a>
+    <a class="nav-link @Active("ConsumablesManager", "StockTakes")" asp-controller="ConsumablesManager" asp-action="StockTakes"><i class="fa-solid fa-clipboard-check"></i>Stocktakes</a>
+}
+else if (role == "PHARMACIST")
+{
+    <p class="nav-section-label">Pharmacy</p>
+    <a class="nav-link @Active("Pharmacist", "Dashboard")" asp-controller="Pharmacist" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Pharmacist", "Index")" asp-controller="Pharmacist" asp-action="Index"><i class="fa-solid fa-prescription-bottle-medical"></i>Prescriptions</a>
+}
+else if (role == "PORTER")
+{
+    <p class="nav-section-label">Porter</p>
+    <a class="nav-link @Active("Porter", "Dashboard")" asp-controller="Porter" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Porter", "MyMovements")" asp-controller="Porter" asp-action="MyMovements"><i class="fa-solid fa-person-walking-arrow-right"></i>My Movements</a>
+    <a class="nav-link @Active("Porter", "CheckInList")" asp-controller="Porter" asp-action="CheckInList"><i class="fa-solid fa-person-walking-arrow-loop-left"></i>Check‑In</a>
+}
+else if (role == "SOCIALWORKER")
+{
+    <p class="nav-section-label">Social Work</p>
+    <a class="nav-link @Active("SocialWorker", "Dashboard")" asp-controller="SocialWorker" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("SocialWorker", "Index")" asp-controller="SocialWorker" asp-action="Index"><i class="fa-solid fa-users-rectangle"></i>Patients</a>
+}
+else if (role == "SUPPLIER")
+{
+    <p class="nav-section-label">Supplier</p>
+    <a class="nav-link @Active("Supplier", "Dashboard")" asp-controller="Supplier" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Supplier", "Index")" asp-controller="Supplier" asp-action="Index"><i class="fa-solid fa-clipboard-list"></i>Orders</a>
 }
 else if (role == "PATIENT")
 {
     <p class="nav-section-label">Patient Portal</p>
-    <a class="nav-link @Active("Patient","Dashboard")" asp-controller="Patient" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-    <a class="nav-link @Active("Patient","MyRecord")" asp-controller="Patient" asp-action="MyRecord"><i class="fa-solid fa-folder-open"></i>My Record</a>
-    <a class="nav-link @Active("Patient","Vitals")" asp-controller="Patient" asp-action="Vitals"><i class="fa-solid fa-heart-pulse"></i>Vital Signs</a>
-    <a class="nav-link @Active("Patient","Medication")" asp-controller="Patient" asp-action="Medication"><i class="fa-solid fa-pills"></i>Medication</a>
+    <a class="nav-link @Active("Patient", "Dashboard")" asp-controller="Patient" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+    <a class="nav-link @Active("Patient", "MyAdmissions")" asp-controller="Patient" asp-action="MyAdmissions"><i class="fa-solid fa-folder-open"></i>My Admissions</a>
+    <a class="nav-link @Active("Patient", "MyInstructions")" asp-controller="Patient" asp-action="MyInstructions"><i class="fa-solid fa-clipboard-list"></i>My Instructions</a>
 }
 
 <div style="height:12px"></div>
 <p class="nav-section-label">Account</p>
-<a class="nav-link @Active("Account","EditProfile")" asp-controller="Account" asp-action="EditProfile"><i class="fa-regular fa-circle-user"></i>My Profile</a>
-<a class="nav-link @Active("Account","ChangePassword")" asp-controller="Account" asp-action="ChangePassword"><i class="fa-solid fa-key"></i>Change Password</a>
-<a class="nav-link @Active("Account","ManageTwoFactor")" asp-controller="Account" asp-action="ManageTwoFactor"><i class="fa-solid fa-shield-halved"></i>2FA Security</a>
-<a class="nav-link @Active("Account","ManageDevices")" asp-controller="Account" asp-action="ManageDevices"><i class="fa-solid fa-laptop"></i>Devices</a>
+<a class="nav-link @Active("Account", "EditProfile")" asp-controller="Account" asp-action="EditProfile"><i class="fa-regular fa-circle-user"></i>My Profile</a>
+<a class="nav-link @Active("Account", "ChangePassword")" asp-controller="Account" asp-action="ChangePassword"><i class="fa-solid fa-key"></i>Change Password</a>
+<a class="nav-link @Active("Account", "ManageTwoFactor")" asp-controller="Account" asp-action="ManageTwoFactor"><i class="fa-solid fa-shield-halved"></i>2FA Security</a>
+<a class="nav-link @Active("Account", "ManageDevices")" asp-controller="Account" asp-action="ManageDevices"><i class="fa-solid fa-laptop"></i>Devices</a>

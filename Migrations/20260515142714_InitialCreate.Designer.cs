@@ -12,8 +12,8 @@ using WARDMANAGEMENTSYSTEM.Data;
 namespace WARDMANAGEMENTSYSTEM.Migrations
 {
     [DbContext(typeof(WardDbContext))]
-    [Migration("20260515114154_db")]
-    partial class db
+    [Migration("20260515142714_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -401,6 +401,41 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                     b.ToTable("ConsumableOrders");
                 });
 
+            modelBuilder.Entity("WARDMANAGEMENTSYSTEM.Models.DischargePlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AdmissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IsActive")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlanDetails")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("SocialWorkerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdmissionId");
+
+                    b.HasIndex("SocialWorkerId");
+
+                    b.ToTable("DischargePlans");
+                });
+
             modelBuilder.Entity("WARDMANAGEMENTSYSTEM.Models.DoctorVisit", b =>
                 {
                     b.Property<int>("Id")
@@ -682,6 +717,38 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                             PasswordHash = "pharmacist123",
                             Role = "PHARMACIST",
                             UserName = "Pharmacist"
+                        },
+                        new
+                        {
+                            EmployeeID = 10,
+                            Email = "socialworker@hospital.co.za",
+                            FailedLoginAttempts = 0,
+                            FirstName = "Nomsa",
+                            Gender = "Female",
+                            HireDate = new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = "Active",
+                            IsTwoFactorEnabled = "False",
+                            LastName = "Dlamini",
+                            MustChangePassword = "False",
+                            PasswordHash = "socialworker123",
+                            Role = "SOCIALWORKER",
+                            UserName = "socialworker"
+                        },
+                        new
+                        {
+                            EmployeeID = 11,
+                            Email = "supplier@hospital.co.za",
+                            FailedLoginAttempts = 0,
+                            FirstName = "SupplyCo",
+                            Gender = "Male",
+                            HireDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsActive = "Active",
+                            IsTwoFactorEnabled = "False",
+                            LastName = "Vendor",
+                            MustChangePassword = "False",
+                            PasswordHash = "supplier123",
+                            Role = "SUPPLIER",
+                            UserName = "supplier"
                         });
                 });
 
@@ -1005,12 +1072,17 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<int?>("PorterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("Timestamp")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AdmissionId");
+
+                    b.HasIndex("PorterId");
 
                     b.ToTable("PatientMovements");
                 });
@@ -1424,6 +1496,25 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                     b.Navigation("CreatedBy");
                 });
 
+            modelBuilder.Entity("WARDMANAGEMENTSYSTEM.Models.DischargePlan", b =>
+                {
+                    b.HasOne("WARDMANAGEMENTSYSTEM.Models.Admission", "Admission")
+                        .WithMany()
+                        .HasForeignKey("AdmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WARDMANAGEMENTSYSTEM.Models.Employee", "SocialWorker")
+                        .WithMany()
+                        .HasForeignKey("SocialWorkerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Admission");
+
+                    b.Navigation("SocialWorker");
+                });
+
             modelBuilder.Entity("WARDMANAGEMENTSYSTEM.Models.DoctorVisit", b =>
                 {
                     b.HasOne("WARDMANAGEMENTSYSTEM.Models.Admission", "Admission")
@@ -1468,7 +1559,13 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("WARDMANAGEMENTSYSTEM.Models.Employee", "Porter")
+                        .WithMany()
+                        .HasForeignKey("PorterId");
+
                     b.Navigation("Admission");
+
+                    b.Navigation("Porter");
                 });
 
             modelBuilder.Entity("WARDMANAGEMENTSYSTEM.Models.Prescription", b =>

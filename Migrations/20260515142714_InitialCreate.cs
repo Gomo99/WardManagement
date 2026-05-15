@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace WARDMANAGEMENTSYSTEM.Migrations
 {
     /// <inheritdoc />
-    public partial class db : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -443,6 +443,35 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DischargePlans",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AdmissionId = table.Column<int>(type: "int", nullable: false),
+                    SocialWorkerId = table.Column<int>(type: "int", nullable: false),
+                    PlanDetails = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsActive = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DischargePlans", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DischargePlans_Admissions_AdmissionId",
+                        column: x => x.AdmissionId,
+                        principalTable: "Admissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DischargePlans_Employees_SocialWorkerId",
+                        column: x => x.SocialWorkerId,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeID",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DoctorVisits",
                 columns: table => new
                 {
@@ -513,7 +542,8 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                     MovementType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Location = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PorterId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -524,6 +554,11 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                         principalTable: "Admissions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PatientMovements_Employees_PorterId",
+                        column: x => x.PorterId,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeID");
                 });
 
             migrationBuilder.CreateTable(
@@ -663,7 +698,9 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                     { 6, "script@hospital.co.za", null, null, 0, "David", "Male", new DateTime(2023, 5, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Wilson", null, "False", "script123", null, null, null, null, "SCRIPTMANAGER", null, null, "script" },
                     { 7, "consum@hospital.co.za", null, null, 0, "Laura", "Female", new DateTime(2023, 6, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Taylor", null, "False", "consum123", null, null, null, null, "CONSUMABLESMANAGER", null, null, "consum" },
                     { 8, "porter@hospital.co.za", null, null, 0, "Robert", "Male", new DateTime(2024, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Mkhize", null, "False", "porter123", null, null, null, null, "PORTER", null, null, "porter" },
-                    { 9, "pharmacist@hospital.co.za", null, null, 0, "Gizara", "Male", new DateTime(2022, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Mkhize", null, "False", "pharmacist123", null, null, null, null, "PHARMACIST", null, null, "Pharmacist" }
+                    { 9, "pharmacist@hospital.co.za", null, null, 0, "Gizara", "Male", new DateTime(2022, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Mkhize", null, "False", "pharmacist123", null, null, null, null, "PHARMACIST", null, null, "Pharmacist" },
+                    { 10, "socialworker@hospital.co.za", null, null, 0, "Nomsa", "Female", new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Dlamini", null, "False", "socialworker123", null, null, null, null, "SOCIALWORKER", null, null, "socialworker" },
+                    { 11, "supplier@hospital.co.za", null, null, 0, "SupplyCo", "Male", new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Active", "False", "Vendor", null, "False", "supplier123", null, null, null, null, "SUPPLIER", null, null, "supplier" }
                 });
 
             migrationBuilder.InsertData(
@@ -778,6 +815,16 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                 column: "CreatedByEmployeeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DischargePlans_AdmissionId",
+                table: "DischargePlans",
+                column: "AdmissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DischargePlans_SocialWorkerId",
+                table: "DischargePlans",
+                column: "SocialWorkerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DoctorVisits_AdmissionId",
                 table: "DoctorVisits",
                 column: "AdmissionId");
@@ -801,6 +848,11 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
                 name: "IX_PatientMovements_AdmissionId",
                 table: "PatientMovements",
                 column: "AdmissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PatientMovements_PorterId",
+                table: "PatientMovements",
+                column: "PorterId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Prescriptions_AdmissionId",
@@ -862,6 +914,9 @@ namespace WARDMANAGEMENTSYSTEM.Migrations
 
             migrationBuilder.DropTable(
                 name: "ConsumableOrders");
+
+            migrationBuilder.DropTable(
+                name: "DischargePlans");
 
             migrationBuilder.DropTable(
                 name: "DoctorVisits");
