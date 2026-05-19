@@ -128,17 +128,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             await _context.SaveChangesAsync();   // Employee now has an ID
 
             // 2. Email the temporary password
+            // In AdminController.CreateEmployee POST method, replace the email sending section:
+
             try
             {
-                string subject = "Your Ward Management System Account";
-                string body = $@"
-                    <h3>Welcome, {employee.FirstName} {employee.LastName}!</h3>
-                    <p>Your account has been created. Use the following credentials to log in:</p>
-                    <p><strong>Email:</strong> {employee.Email}</p>
-                    <p><strong>Temporary Password:</strong> {tempPassword}</p>
-                    <p><em>You will be required to change your password after your first login.</em></p>
-                    <p>Please visit <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>the login page</a>.</p>";
-                await _emailService.SendEmailAsync(employee.Email, subject, body);
+                string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+                await _emailService.SendEmployeeWelcomeEmailAsync(
+                    employee.Email,
+                    employee.FirstName,
+                    employee.LastName,
+                    employee.Email,
+                    tempPassword,
+                    loginUrl);
 
                 TempData["SuccessMessage"] = $"Employee created. Temporary password emailed to {employee.Email}.";
             }

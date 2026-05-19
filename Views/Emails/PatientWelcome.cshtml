@@ -1,0 +1,34 @@
+﻿@* Views/Emails/PatientWelcome.cshtml *@
+@model WARDMANAGEMENTSYSTEM.ViewModel.PatientWelcomeEmailViewModel
+@{
+    Layout = "_EmailLayout";
+}
+
+<h2>Welcome, @Model.FirstName @Model.LastName!</h2>
+
+<p>Thank you for choosing our hospital. A patient account has been created for you to help manage your care.</p>
+
+<div class="credentials-box">
+    <p><strong>Email:</strong> @Model.Email</p>
+    <p><strong>Temporary Password:</strong> @Model.TempPassword</p>
+</div>
+
+<div class="warning">
+    <strong>🔒 Security Notice:</strong> You will be required to change your password after your first login to ensure your account security.
+</div>
+
+<p style="text-align: center;">
+    <a href="@Model.LoginUrl" class="button">Access Your Patient Portal</a>
+</p>
+
+<h3>What you can do with your account:</h3>
+<ul>
+    <li>View your admission details and medical instructions</li>
+    <li>Check your prescribed medications</li>
+    <li>Access your treatment history</li>
+    <li>Communicate with your healthcare team</li>
+</ul>
+
+<p>If you need any assistance accessing your account, please speak with our staff.</p>
+
+<p>Wishing you a speedy recovery,<br />The Hospital Team</p>

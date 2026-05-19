@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Services;
+using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation; // Add this using directive
+// ^^^ Add this line to ensure the extension method is available
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +32,11 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
+builder.Services.AddTransient<IRazorViewToStringRenderer, RazorViewToStringRenderer>();
 
+// Ensure you have Razor Pages configured
+builder.Services.AddControllersWithViews()
+    .AddRazorRuntimeCompilation(); // This will now work with the correct using directive
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -44,9 +50,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
-
-
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

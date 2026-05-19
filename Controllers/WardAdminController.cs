@@ -89,17 +89,19 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             // 2. Email the temporary password
             try
             {
-                string subject = "Welcome to Our Hospital – Your Patient Account";
-                string body = $@"
-                    <h3>Hello {patient.FirstName} {patient.LastName},</h3>
-                    <p>An account has been created for you at our hospital.</p>
-                    <p><strong>Email:</strong> {patient.Email}</p>
-                    <p><strong>Temporary Password:</strong> {tempPassword}</p>
-                    <p>You will be required to change your password after your first login.</p>
-                    <p>Visit the login page: <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>Login</a></p>";
-                await _emailService.SendEmailAsync(patient.Email, subject, body);
+                string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+                await _emailService.SendPatientWelcomeEmailAsync(
+                    patient.Email,
+                    patient.FirstName,
+                    patient.LastName,
+                    patient.Email,
+                    tempPassword,
+                    loginUrl);
             }
-            catch (Exception ex) { Console.WriteLine("Email error: " + ex.Message); }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Email error: " + ex.Message);
+            }
 
             // 3. In-app notification to the new patient
             try
@@ -808,16 +810,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             // Email the new password
             try
             {
-                string subject = "Your Ward Management System – New Temporary Password";
-                string body = $@"
-            <h3>Hello {patient.FirstName} {patient.LastName},</h3>
-            <p>A new temporary password has been generated for your account.</p>
-            <p><strong>Email:</strong> {patient.Email}</p>
-            <p><strong>Temporary Password:</strong> {tempPassword}</p>
-            <p>You will be required to change your password after your first login.</p>
-            <p>Please visit <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>the login page</a>.</p>";
+                string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+                await _emailService.SendPatientWelcomeEmailAsync(
+                    patient.Email,
+                    patient.FirstName,
+                    patient.LastName,
+                    patient.Email,
+                    tempPassword,
+                    loginUrl);
 
-                await _emailService.SendEmailAsync(patient.Email, subject, body);
                 TempData["SuccessMessage"] = $"New temporary password sent to {patient.Email}.";
             }
             catch (Exception ex)

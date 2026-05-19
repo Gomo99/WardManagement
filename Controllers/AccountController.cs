@@ -677,32 +677,46 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
+
             var emp = await _context.Employees.FirstOrDefaultAsync(e => e.Email == model.Email);
             var pat = await _context.Patients.FirstOrDefaultAsync(p => p.Email == model.Email);
+
             if (emp == null && pat == null)
             {
                 SetSuccess("If an account exists, a reset link has been sent.");
                 return RedirectToAction(nameof(ForgotPasswordConfirmation));
             }
+
+            // Declare token and expiry ONCE at this level
             string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             DateTime expiry = DateTime.Now.AddHours(1);
+
             if (emp != null)
             {
-                emp.ResetToken = token; emp.ResetTokenExpiry = expiry;
+                // Remove the duplicate declarations - just use the variables
+                emp.ResetToken = token;
+                emp.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
+
                 var link = Url.Action("ResetPassword", "Account", new { email = emp.Email, token }, Request.Scheme)!;
-                await _emailService.SendEmailAsync(emp.Email, "Password Reset", $"Reset link: {link}");
+                await _emailService.SendPasswordResetEmailAsync(emp.Email, emp.Email, link);
             }
             else if (pat != null)
             {
-                pat.ResetToken = token; pat.ResetTokenExpiry = expiry;
+                // Remove the duplicate declarations - just use the variables
+                pat.ResetToken = token;
+                pat.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
+
                 var link = Url.Action("ResetPassword", "Account", new { email = pat.Email, token }, Request.Scheme)!;
-                await _emailService.SendEmailAsync(pat.Email, "Password Reset", $"Reset link: {link}");
+                await _emailService.SendPasswordResetEmailAsync(pat.Email, pat.Email, link);
             }
+
             SetSuccess("If an account exists, a reset link has been sent.");
             return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
+
+
 
         [HttpGet]
         public IActionResult ForgotPasswordConfirmation() => View();

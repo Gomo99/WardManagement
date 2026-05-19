@@ -1,0 +1,26 @@
+﻿@* Views/Emails/EmployeeWelcome.cshtml *@
+@model WARDMANAGEMENTSYSTEM.ViewModel.EmployeeWelcomeEmailViewModel
+@{
+    Layout = "_EmailLayout";
+}
+
+<h2>Welcome to the Team, @Model.FirstName @Model.LastName!</h2>
+
+<p>Your employee account has been successfully created in the Ward Management System.</p>
+
+<div class="credentials-box">
+    <p><strong>Email:</strong> @Model.Email</p>
+    <p><strong>Temporary Password:</strong> @Model.TempPassword</p>
+</div>
+
+<div class="warning">
+    <strong>⚠️ Important:</strong> You will be required to change your password after your first login for security purposes.
+</div>
+
+<p style="text-align: center;">
+    <a href="@Model.LoginUrl" class="button">Login to Your Account</a>
+</p>
+
+<p>If you have any questions or need assistance, please contact your system administrator.</p>
+
+<p>Best regards,<br />The Ward Management Team</p>
