@@ -54,6 +54,7 @@
 </div>
 
 <!-- Movement History -->
+<!-- Movement History -->
 <div class="card" style="margin-bottom:16px;">
     <div class="card-header"><span class="card-title">Movement History</span></div>
     <div class="card-body">
@@ -65,17 +66,46 @@
         {
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Notes</th></tr>
-                    <th>Porta</th></thead>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Notes</th>
+                            <th>Porter</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @foreach (var m in Model.PatientMovements)
                         {
                             <tr>
-                                <td>@(m.Timestamp is DateTime dt ? dt.ToString("g") : m.Timestamp.ToString())</td>
-                                <td>@m.MovementType</td>
+                                <td>@(m.Timestamp is DateTime dt ? dt.ToString("g") : "Pending")</td>
+                                <td>
+                                    @{
+                                        string badgeClass = m.MovementType switch
+                                        {
+                                            "Admission" => "badge badge-teal",
+                                            "CheckOut" or "CheckOutRequest" => "badge badge-gold",
+                                            "CheckIn" => "badge badge-success",
+                                            "Discharge" => "badge badge-danger",
+                                            _ => "badge badge-secondary"
+                                        };
+                                    }
+                                    <span class="@badgeClass"><span class="badge-dot"></span> @m.MovementType</span>
+                                </td>
                                 <td>@m.Location</td>
-                                <td>@m.Notes</td>
-                                <td>@m.Porter?.FullName</td>
+                                <td>@(m.Notes ?? "—")</td>
+                                <td>@(m.Porter?.FullName ?? "—")</td>
+                                <td style="text-align:right;">
+                                    <form asp-action="DeleteMovement" asp-route-id="@m.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                onclick="return confirm('Delete this movement record?')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -89,37 +119,27 @@
 @if (Model.IsActive == Status.Active)
 {
     <div class="card">
-        <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-person-walking-arrow-right"></i> Manage Movement</span>
-        </div>
-        <div class="card-body">
-            @if (string.IsNullOrEmpty(Model.CurrentLocation))
-            {
-                <!-- Patient is in ward → show check‑out form -->
-                <form asp-action="CheckOut" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="admissionId" value="@Model.Id" />
-                    <div class="form-group">
-                        <label class="form-label" for="location">Destination <span class="required">*</span></label>
-                        <input name="location" class="form-control" placeholder="e.g. Theatre, X‑Ray, Physio" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="notes">Notes (optional)</label>
-                        <input name="notes" class="form-control" placeholder="Reason or additional info" />
-                    </div>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-person-walking-arrow-right"></i> Check‑Out Patient</button>
-                </form>
-            }
-            else
-            {
-                <!-- Patient is out → show check‑in button -->
-                <p><strong>Status:</strong> Patient is currently at <strong>@Model.CurrentLocation</strong>.</p>
-                <form asp-action="CheckIn" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="admissionId" value="@Model.Id" />
-                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-person-walking-arrow-loop-left"></i> Check‑In to Ward</button>
-                </form>
-            }
+       
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-person-walking-arrow-right"></i> Request Porter Movement</span>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Current status:</strong>
+                    @if (string.IsNullOrEmpty(Model.CurrentLocation))
+                    {
+                        <span class="badge badge-success">In Ward</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-warning">Currently at @Model.CurrentLocation</span>
+                    }
+                </p>
+                <a asp-action="RequestMovement" asp-route-admissionId="@Model.Id" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i> Request Porter
+                </a>
+            </div>
         </div>
     </div>
 }

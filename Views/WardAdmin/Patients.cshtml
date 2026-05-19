@@ -39,6 +39,7 @@
                         <th>Patient</th>
                         <th>Bed / Ward</th>
                         <th>Doctor</th>
+                        <th>Nurse</th>
                         <th>Location</th>
                         <th>Admitted</th>
                         <th style="text-align:right;">Actions</th>
@@ -58,6 +59,7 @@
                             </td>
                             <td>@adm.Bed?.BedNumberWithWard</td>
                             <td>@adm.Doctor?.FullName</td>
+                            <td>@adm.Nurse?.FullName</td>
                             <td>
                                 @if (string.IsNullOrEmpty(adm.CurrentLocation))
                                 {
@@ -70,12 +72,37 @@
                             </td>
                             <td>@adm.AdmissionDate.ToString("dd MMM yyyy")</td>
                             <td style="text-align:right;">
-                                <a asp-action="Details" asp-route-id="@adm.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-folder-open"></i> Folder</a>
-                                <form asp-action="Discharge" asp-route-admissionId="@adm.Id" method="post" style="display:inline;">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
-                                            onclick="return confirm('Discharge this patient?')"><i class="fa-solid fa-right-from-bracket"></i> Discharge</button>
-                                </form>
+                                <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                                    <a asp-action="Details" asp-route-id="@adm.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-folder-open"></i> Folder</a>
+                                    <a asp-action="RequestMovement" asp-route-admissionId="@adm.Id" class="btn btn-outline btn-sm" title="Request porter to move this patient">
+                                        <i class="fa-solid fa-person-walking-arrow-right"></i>
+                                    </a>
+                                    <a asp-action="EditAdmission" asp-route-id="@adm.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+                                    <form asp-action="Discharge" asp-route-admissionId="@adm.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                onclick="return confirm('Discharge this patient?')">
+                                            <i class="fa-solid fa-right-from-bracket"></i> Discharge
+                                        </button>
+                                    </form>
+                                    @if (adm.IsActive == Status.Active)
+                                    {
+                                        <form asp-action="DeleteAdmission" asp-route-id="@adm.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                    onclick="return confirm('Soft‑delete this admission? The bed will be freed.')">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RestoreAdmission" asp-route-id="@adm.Id" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"><i class="fa-solid fa-rotate-left"></i></button>
+                                        </form>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }

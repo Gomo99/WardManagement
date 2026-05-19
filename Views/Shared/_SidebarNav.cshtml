@@ -25,7 +25,8 @@ else if (role == "WARDADMIN")
     <p class="nav-section-label">Ward Administration</p>
     <a class="nav-link @Active("WardAdmin", "Dashboard")" asp-controller="WardAdmin" asp-action="Dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
     <a class="nav-link @Active("WardAdmin", "AdmitPatient")" asp-controller="WardAdmin" asp-action="AdmitPatient"><i class="fa-solid fa-user-plus"></i>Admit Patient</a>
-    <a class="nav-link @Active("WardAdmin", "Patients")" asp-controller="WardAdmin" asp-action="Patients"><i class="fa-solid fa-bed-pulse"></i>Active Patients</a>
+    <a class="nav-link @Active("WardAdmin", "Patients")" asp-controller="WardAdmin" asp-action="Patients"><i class="fa-solid fa-bed-pulse"></i>Admitted Patients</a>
+    <a class="nav-link @Active("WardAdmin", "PatientRecords")" asp-controller="WardAdmin" asp-action="PatientRecords"><i class="fa-solid fa-address-card"></i>Patient Records</a>
 }
 else if (role == "NURSE")
 {

@@ -1,0 +1,111 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Patient>
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    ViewData["Title"] = "Patient Records";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Patient Records</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Patient Records</h1>
+        <p>@Model.Count() patient(s)</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
+}
+
+<!-- Status Filter -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="PatientRecords" style="display:flex; gap:10px; align-items:flex-end;">
+            <div>
+                <label class="form-label" style="margin-bottom:5px;">Status</label>
+                <select name="status" asp-items="ViewBag.Statuses" class="form-control" style="width:130px;"></select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+            <a asp-action="PatientRecords" class="btn btn-outline btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:56px 24px;">
+            <i class="fa-solid fa-users-slash" style="font-size:2.5rem; color:var(--gray-200); margin-bottom:12px; display:block;"></i>
+            <div style="font-weight:600; color:var(--navy);">No patients found</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>ID Number</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pat in Model)
+                    {
+                        <tr>
+                            <td>@pat.FullName</td>
+                            <td>@pat.SouthAfricanIdNumber</td>
+                            <td>@pat.Email</td>
+                            <td>@pat.CellphoneNumber</td>
+                            <td>
+                                @if (pat.IsActive == Status.Active)
+                                {
+                                    <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning"><span class="badge-dot"></span> Inactive</span>
+                                }
+                            </td>
+                            <td style="text-align:right;">
+                                <a asp-action="EditPatient" asp-route-id="@pat.Id" class="btn btn-outline btn-sm">
+                                    <i class="fa-solid fa-pen"></i> Edit
+                                </a>
+                                <form asp-action="ResendPatientPassword" asp-route-id="@pat.Id" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline btn-sm"
+                                            onclick="return confirm('Generate a new temporary password and email it to @pat.FullName?')">
+                                        <i class="fa-solid fa-key"></i> Resend Password
+                                    </button>
+                                </form>
+                                @if (pat.IsActive == Status.Active)
+                                {
+                                    <form asp-action="DeletePatient" asp-route-id="@pat.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
+                                                onclick="return confirm('Deactivate @pat.FullName?')">
+                                            <i class="fa-solid fa-ban"></i> Delete
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="RestorePatient" asp-route-id="@pat.Id" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                            <i class="fa-solid fa-rotate-left"></i> Restore
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

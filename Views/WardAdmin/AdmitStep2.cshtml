@@ -7,7 +7,7 @@
 <div class="page-header">
     <div class="page-header-title">
         <h1>Admit Patient – Step 2</h1>
-        <p>@patientName — Medical information, doctor, and bed assignment</p>
+        <p>@patientName — Medical information, doctor, nurse, and bed assignment</p>
     </div>
     <a asp-action="AdmitPatient" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Step 1</a>
 </div>
@@ -25,6 +25,14 @@
                     <label class="form-label" for="doctorId">Attending Doctor <span class="required">*</span></label>
                     <select name="doctorId" asp-items="ViewBag.Doctors" class="form-control" required>
                         <option value="">Select doctor</option>
+                    </select>
+                </div>
+
+                <!-- Nurse -->
+                <div class="form-group">
+                    <label class="form-label" for="nurseId">Assigned Nurse <span class="required">*</span></label>
+                    <select name="nurseId" asp-items="ViewBag.Nurses" class="form-control" required>
+                        <option value="">Select nurse</option>
                     </select>
                 </div>
 

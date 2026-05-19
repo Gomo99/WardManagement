@@ -1,0 +1,77 @@
+﻿@model WARDMANAGEMENTSYSTEM.Models.Patient
+@{
+    ViewData["Title"] = "Edit Patient Details";
+    ViewData["Breadcrumb"] = "<a href='/WardAdmin/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/WardAdmin/PatientRecords'>Patient Records</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit</span>";
+}
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>Edit Patient Details</h1>
+        <p>@Model.FullName</p>
+    </div>
+    <a asp-action="PatientRecords" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div style="max-width:760px;">
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-address-card"></i> Personal Information</span></div>
+        <div class="card-body">
+            <form asp-action="EditPatient" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+                <input asp-for="IsActive" type="hidden" />
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="FirstName">First Name <span class="required">*</span></label>
+                        <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="LastName">Last Name <span class="required">*</span></label>
+                        <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="SouthAfricanIdNumber">ID Number <span class="required">*</span></label>
+                    <input asp-for="SouthAfricanIdNumber" class="form-control" />
+                    <span asp-validation-for="SouthAfricanIdNumber" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="DateOfBirth">Date of Birth <span class="required">*</span></label>
+                    <input asp-for="DateOfBirth" class="form-control" type="date" />
+                    <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="CellphoneNumber">Cellphone</label>
+                        <input asp-for="CellphoneNumber" class="form-control" />
+                        <span asp-validation-for="CellphoneNumber" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Email">Email</label>
+                        <input asp-for="Email" class="form-control" type="email" />
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="HomeAddress">Address</label>
+                    <textarea asp-for="HomeAddress" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="HomeAddress" class="field-validation-error"></span>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    <a asp-action="PatientRecords" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

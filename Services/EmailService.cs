@@ -1,5 +1,7 @@
-﻿using System.Net;
-using System.Net.Mail;
+﻿using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Configuration;
+using MimeKit;
 
 namespace WARDMANAGEMENTSYSTEM.Services
 {
@@ -14,48 +16,58 @@ namespace WARDMANAGEMENTSYSTEM.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
         {
-            await SendAsync(toEmail, subject, htmlBody);
-        }
+            var host = _config["Email:Host"];
+            var port = int.Parse(_config["Email:Port"]);
+            var username = _config["Email:Username"];
+            var password = _config["Email:Password"];
+            var from = _config["Email:SenderEmail"];
+            var senderName = _config["Email:SenderName"];
 
-        public async Task SendAsync(string toEmail, string subject, string htmlBody)
-        {
+            var email = new MimeMessage();
+
+            // From
+            email.From.Add(new MailboxAddress(senderName, from));
+
+            // To
+            email.To.Add(MailboxAddress.Parse(toEmail));
+
+            // Subject
+            email.Subject = subject;
+
+            // Body (HTML)
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = htmlBody
+            };
+
+            email.Body = bodyBuilder.ToMessageBody();
+
             try
             {
-                var smtp = _config["Email:Host"];
-                var portStr = _config["Email:Port"];
-                var user = _config["Email:Username"];
-                var pass = _config["Email:Password"];
-                var from = _config["Email:SenderEmail"];
+                using var smtp = new SmtpClient();
 
-                if (string.IsNullOrEmpty(smtp))
-                    throw new Exception("Email Host is not configured.");
-                if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))
-                    throw new Exception("Email Port is not configured correctly.");
-                if (string.IsNullOrEmpty(user))
-                    throw new Exception("Email Username is missing.");
-                if (string.IsNullOrEmpty(pass))
-                    throw new Exception("Email Password is missing.");
-                if (string.IsNullOrEmpty(from))
-                    throw new Exception("Email Sender address is missing.");
+                // IMPORTANT: bypass certificate issues if needed
+                smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-                using var client = new SmtpClient(smtp, port)
-                {
-                    Credentials = new NetworkCredential(user, pass),
-                    EnableSsl = true
-                };
+                await smtp.ConnectAsync(host, port, SecureSocketOptions.StartTls);
 
-                var message = new MailMessage(from, toEmail, subject, htmlBody)
-                {
-                    IsBodyHtml = true
-                };
+                await smtp.AuthenticateAsync(username, password);
 
-                await client.SendMailAsync(message);
+                await smtp.SendAsync(email);
+
+                await smtp.DisconnectAsync(true);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("EMAIL ERROR: " + ex.Message);
                 throw;
             }
+        }
+
+        // backward compatibility
+        public async Task SendAsync(string toEmail, string subject, string htmlBody)
+        {
+            await SendEmailAsync(toEmail, subject, htmlBody);
         }
     }
 }

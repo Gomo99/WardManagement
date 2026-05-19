@@ -364,6 +364,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(a => a.AdmissionMedications).ThenInclude(am => am.Medication)
                 .Include(a => a.AdmissionConditions).ThenInclude(ac => ac.Condition)
                 .Include(a => a.PatientMovements.OrderByDescending(m => m.Timestamp))
+                 .ThenInclude(m => m.Porter)
                 .FirstOrDefaultAsync(a => a.Id == id);
             if (admission == null) return NotFound();
             return View(admission);
@@ -604,6 +605,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                                                           string location, string? notes)
         {
             var admission = await _context.Admissions
+                .Include(a => a.Patient)    // <-- ADD THIS INCLUDE
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
             if (admission == null) return NotFound();
 
@@ -650,6 +652,190 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = $"Movement request sent to {porter.FullName}.";
             return RedirectToAction("Details", new { id = admissionId });
         }
+
+
+        // ===============================================================
+        //  DELETE MOVEMENT RECORD (soft delete)
+        // ===============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMovement(int id)
+        {
+            var movement = await _context.PatientMovements.FindAsync(id);
+            if (movement == null) return NotFound();
+
+            movement.IsActive = Status.Inactive;
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Movement record deleted.";
+            return RedirectToAction("Details", new { id = movement.AdmissionId });
+        }
+
+
+        // ===============================================================
+        //  PATIENT RECORDS (personal details, not admissions)
+        // ===============================================================
+        public async Task<IActionResult> PatientRecords(string status = "Active")
+        {
+            var query = _context.Patients.AsQueryable();
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsed))
+                query = query.Where(p => p.IsActive == parsed);
+
+            var patients = await query.OrderBy(p => p.LastName).ToListAsync();
+
+            ViewBag.Statuses = new SelectList(new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    }, "Value", "Text", status);
+
+            return View(patients);
+        }
+
+
+
+        // EDIT PATIENT PERSONAL DETAILS – GET
+        [HttpGet]
+        public async Task<IActionResult> EditPatient(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+            return View(patient);
+        }
+
+        // EDIT PATIENT PERSONAL DETAILS – POST
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPatient(int id, Models.Patient posted)
+        {
+            if (id != posted.Id) return BadRequest();
+
+            ModelState.Remove("PasswordHash");
+            ModelState.Remove("MustChangePassword");
+            ModelState.Remove("ResetToken");
+            ModelState.Remove("ResetTokenExpiry");
+            ModelState.Remove("Status");
+            ModelState.Remove("FailedLoginAttempts");
+            ModelState.Remove("LockoutEnd");
+            ModelState.Remove("IsTwoFactorEnabled");
+            ModelState.Remove("TwoFactorSecretKey");
+            ModelState.Remove("TwoFactorRecoveryCodes");
+
+            if (!ModelState.IsValid) return View(posted);
+
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            // Check unique ID number if changed
+            if (patient.SouthAfricanIdNumber != posted.SouthAfricanIdNumber)
+            {
+                bool exists = await _context.Patients.AnyAsync(p => p.SouthAfricanIdNumber == posted.SouthAfricanIdNumber && p.Id != id);
+                if (exists)
+                {
+                    ModelState.AddModelError("SouthAfricanIdNumber", "This ID number is already in use.");
+                    return View(posted);
+                }
+            }
+
+            patient.FirstName = posted.FirstName;
+            patient.LastName = posted.LastName;
+            patient.SouthAfricanIdNumber = posted.SouthAfricanIdNumber;
+            patient.DateOfBirth = posted.DateOfBirth;
+            patient.CellphoneNumber = posted.CellphoneNumber;
+            patient.Email = posted.Email;
+            patient.HomeAddress = posted.HomeAddress;
+            patient.IsActive = Status.Active;
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Patient details updated.";
+            return RedirectToAction(nameof(PatientRecords));
+        }
+
+
+
+        // SOFT DELETE PATIENT
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePatient(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            patient.IsActive = Status.Inactive;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Patient deactivated.";
+            return RedirectToAction(nameof(PatientRecords));
+        }
+
+        // RESTORE PATIENT
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestorePatient(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            patient.IsActive = Status.Active;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Patient reactivated.";
+            return RedirectToAction(nameof(PatientRecords));
+        }
+
+
+
+
+
+
+        // ===============================================================
+        //  RESEND PATIENT PASSWORD (generate new temporary password & email)
+        // ===============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResendPatientPassword(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            // Generate new temporary password
+            string tempPassword = GenerateRandomPassword(12);
+            patient.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+            patient.MustChangePassword = true;
+            await _context.SaveChangesAsync();
+
+            // Email the new password
+            try
+            {
+                string subject = "Your Ward Management System – New Temporary Password";
+                string body = $@"
+            <h3>Hello {patient.FirstName} {patient.LastName},</h3>
+            <p>A new temporary password has been generated for your account.</p>
+            <p><strong>Email:</strong> {patient.Email}</p>
+            <p><strong>Temporary Password:</strong> {tempPassword}</p>
+            <p>You will be required to change your password after your first login.</p>
+            <p>Please visit <a href='{Url.Action("Login", "Account", null, Request.Scheme)}'>the login page</a>.</p>";
+
+                await _emailService.SendEmailAsync(patient.Email, subject, body);
+                TempData["SuccessMessage"] = $"New temporary password sent to {patient.Email}.";
+            }
+            catch (Exception ex)
+            {
+                TempData["SuccessMessage"] = $"Password updated, but email delivery failed ({ex.Message}).";
+            }
+
+            return RedirectToAction(nameof(PatientRecords));
+        }
+
+
+
+
+
+
+
+
+
 
 
         // ===============================================================

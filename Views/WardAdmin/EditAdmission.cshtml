@@ -33,6 +33,14 @@
                     </select>
                 </div>
 
+
+                <div class="form-group">
+                    <label class="form-label" for="nurseId">Assigned Nurse <span class="required">*</span></label>
+                    <select name="nurseId" asp-items="ViewBag.Nurses" class="form-control" required>
+                        <option value="">Select nurse</option>
+                    </select>
+                </div>
+
                 <!-- Bed -->
                 <div class="form-group">
                     <label class="form-label" for="bedId">Assigned Bed <span class="required">*</span></label>
