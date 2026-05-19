@@ -9,7 +9,7 @@ using WARDMANAGEMENTSYSTEM.Services;   // for INotificationService
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "Pharmacist")]
+    [Authorize(Roles = "PHARMACIST")]
 
     public class PharmacistController : Controller
     {

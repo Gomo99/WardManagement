@@ -7,7 +7,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize (Roles = "Supplier")]
+    [Authorize (Roles = "SUPPLIER")]
     public class SupplierController : Controller
     {
         private readonly WardDbContext _context;

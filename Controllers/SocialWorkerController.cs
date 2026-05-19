@@ -8,7 +8,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "SocialWorker")]
+    [Authorize(Roles = "SOCIALWORKER")]
 
     public class SocialWorkerController : Controller
     {

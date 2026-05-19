@@ -3,22 +3,28 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Services;
-using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation; // Add this using directive
-// ^^^ Add this line to ensure the extension method is available
+using WARDMANAGEMENTSYSTEM.Hubs;   
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Database
 builder.Services.AddDbContext<WardDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddScoped<IPdfReportService, PdfReportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme; // For external login
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignOutScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    options.DefaultForbidScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {
@@ -32,16 +38,16 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
-builder.Services.AddTransient<IRazorViewToStringRenderer, RazorViewToStringRenderer>();
 
-// Ensure you have Razor Pages configured
+// Razor Views & Controllers
 builder.Services.AddControllersWithViews()
-    .AddRazorRuntimeCompilation(); // This will now work with the correct using directive
+    .AddRazorRuntimeCompilation();
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
+builder.Services.AddTransient<IRazorViewToStringRenderer, RazorViewToStringRenderer>();
 builder.Services.AddSession();
+
+// SignalR
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -58,8 +64,11 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

@@ -11,7 +11,7 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "Patient")]
+    [Authorize(Roles = "PATIENT")]
 
 
     public class PatientController : Controller

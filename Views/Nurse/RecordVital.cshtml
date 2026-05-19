@@ -13,6 +13,7 @@
         <div class="card-body">
             <form asp-action="RecordVital" method="post">
                 @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="text-danger"></div>
                 <input asp-for="AdmissionId" type="hidden" />
                 <div class="form-group">
                     <label class="form-label" asp-for="DateRecorded">Date &amp; Time</label>
@@ -25,7 +26,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" asp-for="TemperatureCelsius">Temperature (°C)</label>
-                        <input asp-for="TemperatureCelsius" class="form-control" type="number" step="0.1" />
+                        <input asp-for="TemperatureCelsius" class="form-control" type="number" step="0.1" placeholder="e.g. 36.5" />
                     </div>
                     <div class="form-group">
                         <label class="form-label" asp-for="BloodSugarMmolL">Blood Sugar (mmol/L)</label>

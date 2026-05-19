@@ -12,7 +12,7 @@ using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "WardAdmin")]
+    [Authorize(Roles = "WARDADMIN")]
 
     public class WardAdminController : Controller
     {
@@ -670,7 +670,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var movement = await _context.PatientMovements.FindAsync(id);
             if (movement == null) return NotFound();
 
-            movement.IsActive = Status.Inactive;
 
             await _context.SaveChangesAsync();
 

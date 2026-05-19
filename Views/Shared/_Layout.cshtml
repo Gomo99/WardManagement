@@ -1,3 +1,4 @@
+@using System.Security.Claims
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,77 +9,66 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <style>
-
 
         .nav-notification {
             position: relative;
         }
 
         .notification-bell {
-            color: var(--gray-600);
-            font-size: 1.2rem;
             position: relative;
-            text-decoration: none;
         }
 
         .notification-count {
             position: absolute;
-            top: -8px;
-            right: -10px;
-            font-size: .65rem;
-            padding: 2px 5px;
+            top: -5px;
+            right: -5px;
         }
 
         .notification-dropdown {
             position: absolute;
-            top: 35px;
+            top: 45px;
             right: 0;
-            width: 320px;
-            background: #fff;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.1);
-            z-index: 1000;
+            width: 350px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            box-shadow: 0 10px 25px rgba(0,0,0,.15);
+            z-index: 9999;
         }
 
         .notification-dropdown-header {
-            padding: 10px 15px;
-            border-bottom: 1px solid var(--gray-100);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
         }
 
         .notification-list {
-            max-height: 280px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
         .notification-item {
-            padding: 10px 15px;
-            border-bottom: 1px solid var(--gray-100);
-            font-size: .82rem;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
         }
 
             .notification-item:hover {
-                background: var(--gray-50);
+                background: #f7f7f7;
             }
 
             .notification-item.unread {
+                background: #eef7ff;
                 font-weight: 600;
-                background: #F0F7FF;
-            }
-
-            .notification-item a {
-                color: var(--navy);
-                text-decoration: none;
             }
 
             .notification-item small {
-                color: var(--gray-400);
                 display: block;
-                margin-top: 4px;
+                margin-top: 5px;
+                color: gray;
             }
 
 
@@ -495,29 +485,53 @@ else
 
     <!-- MAIN -->
     <div class="main-wrap">
-        <header class="topbar">
-            <div class="topbar-left">
-                <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                @if (ViewData["Breadcrumb"] != null)
-                {
-                    <nav class="breadcrumb-nav">
-                        @Html.Raw(ViewData["Breadcrumb"])
-                    </nav>
-                }
-            </div>
-            <div class="topbar-right">
-                <button class="topbar-btn" data-tooltip="Notifications"><i class="fa-regular fa-bell"></i></button>
-                <a asp-controller="Account" asp-action="EditProfile" class="topbar-btn" data-tooltip="Profile"><i class="fa-regular fa-circle-user"></i></a>
-                <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="topbar-btn" data-tooltip="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
-                </form>
-            </div>
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-toggle"
+                            onclick="document.getElementById('sidebar').classList.toggle('open')">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
 
-                @await Component.InvokeAsync("NotificationBell")
-        </header>
+                    @if (ViewData["Breadcrumb"] != null)
+                    {
+                        <nav class="breadcrumb-nav">
+                            @Html.Raw(ViewData["Breadcrumb"])
+                        </nav>
+                    }
+                </div>
+
+                <div class="topbar-right">
+
+                    @await Component.InvokeAsync("NotificationBell")
+
+                    <a asp-controller="Account"
+                       asp-action="EditProfile"
+                       class="topbar-btn"
+                       data-tooltip="Profile">
+
+                        <i class="fa-regular fa-circle-user"></i>
+
+                    </a>
+
+                    <form asp-controller="Account"const bell=
+                          asp-action="Logout"
+                          method="post"
+                          style="display:inline">
+
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="topbar-btn"
+                                data-tooltip="Logout">
+
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+
+                        </button>
+
+                    </form>
+
+                </div>
+            </header>
 
         <main class="main-content">
             @if (TempData["SuccessMessage"] != null)
@@ -539,6 +553,7 @@ else
     </div>
 }
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
     // Auto-dismiss alerts
     setTimeout(() => {
@@ -548,6 +563,7 @@ else
             setTimeout(() => a.remove(), 400);
         });
     }, 5000);
+
     // Toggle password visibility
     document.querySelectorAll('.input-suffix[data-toggle-pw]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -558,44 +574,128 @@ else
         });
     });
 
+    // ── RELATIVE TIME HELPER ──────────────────────────
+    function timeAgo(isoString) {
+        if (!isoString) return '';
+        const now = new Date();
+        const then = new Date(isoString);
+        const seconds = Math.floor((now - then) / 1000);
+        let interval = Math.floor(seconds / 31536000);
+        if (interval > 1) return interval + ' years ago';
+        interval = Math.floor(seconds / 2592000);
+        if (interval > 1) return interval + ' months ago';
+        interval = Math.floor(seconds / 86400);
+        if (interval > 1) return interval + ' days ago';
+        if (interval === 1) return 'yesterday';
+        interval = Math.floor(seconds / 3600);
+        if (interval > 1) return interval + ' hours ago';
+        if (interval === 1) return '1 hour ago';
+        interval = Math.floor(seconds / 60);
+        if (interval > 1) return interval + ' minutes ago';
+        if (interval === 1) return '1 minute ago';
+        return 'just now';
+    }
 
-            document.getElementById('notificationBell')?.addEventListener('click', function(e) {
+    // ── NOTIFICATION BELL LOGIC ───────────────────────
+    const bell = document.getElementById('notificationBell');
+    const dropdown = document.getElementById('notificationDropdown');
+    const list = document.getElementById('notificationList');
+
+    if (bell && dropdown && list) {
+        bell.addEventListener('click', function (e) {
             e.preventDefault();
-            var dropdown = document.getElementById('notificationDropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-            if (dropdown.style.display === 'block') {
-                loadNotifications();
-            }
+            e.stopPropagation();
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) loadNotifications();
         });
 
-        function loadNotifications() {
-            fetch('/Notification/Latest')
-                .then(response => response.json())
-                .then(data => {
-                    var list = document.getElementById('notificationList');
-                    list.innerHTML = '';
-                    if (data.length === 0) {
-                        list.innerHTML = '<div class="text-muted" style="padding:10px;">No notifications</div>';
-                        return;
-                    }
-                    data.forEach(n => {
-                        var item = document.createElement('div');
-                        item.className = 'notification-item' + (n.isRead ? '' : ' unread');
-                        item.innerHTML = (n.link ? '<a href="' + n.link + '">' + n.message + '</a>' : n.message) +
-                                         '<small>' + new Date(n.createdAt).toLocaleString() + '</small>';
-                        list.appendChild(item);
-                    });
+        dropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        window.addEventListener('click', function () {
+            dropdown.style.display = 'none';
+        });
+    }
+
+    function loadNotifications() {
+        fetch('/Notification/Latest')
+            .then(response => response.json())
+            .then(data => {
+                list.innerHTML = '';
+                if (data.length === 0) {
+                    list.innerHTML = '<div style="padding:15px; text-align:center;">No notifications</div>';
+                    return;
+                }
+                data.forEach(n => {
+                    const item = document.createElement('div');
+                    item.className = 'notification-item' + (n.isRead ? '' : ' unread');
+                    item.innerHTML =
+                        (n.link ? '<a href="' + n.link + '">' + n.message + '</a>' : n.message) +
+                        '<small>' + timeAgo(n.createdAt) + '</small>';
+                    list.appendChild(item);
                 });
+            })
+            .catch(error => {
+                list.innerHTML = '<div style="padding:15px; color:red;">Could not load notifications</div>';
+            });
+    }
+
+    // ── SIGNALR REAL‑TIME (if hub is mapped) ──────────
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub")
+        .build();
+
+    connection.on("NewNotification", function (notification) {
+        // Update badge
+        let badge = document.querySelector('.notification-count');
+        if (badge) {
+            let currentCount = parseInt(badge.innerText) || 0;
+            badge.innerText = currentCount + 1;
+            badge.style.display = 'inline-block';
+        } else {
+            if (bell) {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'badge badge-danger notification-count';
+                newBadge.innerText = '1';
+                bell.appendChild(newBadge);
+            }
         }
 
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function(e) {
-            if (!document.getElementById('notificationDropdown')?.contains(e.target)) {
-                document.getElementById('notificationDropdown').style.display = 'none';
-            }
-        });
+        // Prepend to list if dropdown is open
+        if (list && dropdown.style.display === 'block') {
+            const item = document.createElement('div');
+            item.className = 'notification-item unread';
+            item.innerHTML =
+                (notification.link ? '<a href="' + notification.link + '">' + notification.message + '</a>' : notification.message) +
+                '<small>' + timeAgo(notification.createdAt) + '</small>';
+            list.insertBefore(item, list.firstChild);
+        }
+    });
 
+    connection.start().then(function () {
+        // Subscribe to groups using server-rendered claims
+        @{
+            var userIdClaim = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var roleClaim = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role);
+        }
+        var userId = '@userIdClaim';
+        var role = '@roleClaim';
+
+        if (userId && userId !== '') {
+            connection.invoke("SubscribeToUser", userId).catch(console.error);
+        }
+        if (role && role !== '') {
+            connection.invoke("SubscribeToRole", role).catch(console.error);
+        }
+        connection.invoke("SubscribeToAll").catch(console.error);
+    }).catch(function (err) {
+        console.warn("SignalR connection failed (this is OK if not using real-time): " + err.toString());
+    });
 </script>
+
+
 @RenderSection("Scripts", required: false)
 </body>
 </html>

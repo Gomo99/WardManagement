@@ -20,7 +20,6 @@ namespace WARDMANAGEMENTSYSTEM.Models
 
         [StringLength(200)]
         public string? Notes { get; set; }
-        public Status IsActive { get; set; } = Status.Active;
 
         public DateTime? Timestamp { get; set; }   // null = pending, set when completed
 

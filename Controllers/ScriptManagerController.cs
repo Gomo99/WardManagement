@@ -9,7 +9,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "ScriptManager")]
+    [Authorize(Roles = "SCRIPTMANAGER")]
 
     public class ScriptManagerController : Controller
     {

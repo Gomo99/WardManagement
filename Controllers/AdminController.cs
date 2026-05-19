@@ -11,7 +11,7 @@ using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "ADMINISTRATOR")]
 
     public class AdminController : Controller
     {

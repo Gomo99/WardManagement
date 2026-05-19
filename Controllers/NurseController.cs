@@ -10,7 +10,7 @@ using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "Nurse")]
+    [Authorize(Roles = "NURSE")]
 
     public class NurseController : Controller
     {

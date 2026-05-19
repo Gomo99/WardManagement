@@ -9,7 +9,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize(Roles = "ConsumablesManager")]
+    [Authorize(Roles = "CONSUMABLESMANAGER")]
 
     public class ConsumablesManagerController : Controller
     {
