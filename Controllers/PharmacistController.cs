@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
@@ -8,6 +9,8 @@ using WARDMANAGEMENTSYSTEM.Services;   // for INotificationService
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize(Roles = "Pharmacist")]
+
     public class PharmacistController : Controller
     {
         private readonly WardDbContext _context;

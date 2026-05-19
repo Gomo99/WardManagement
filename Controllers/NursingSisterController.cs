@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WARDMANAGEMENTSYSTEM.AppStatus;
@@ -7,6 +8,8 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize(Roles = "NursingSister")]
+
     public class NursingSisterController : Controller
     {
         private readonly WardDbContext _context;

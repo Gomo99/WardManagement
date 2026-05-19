@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
@@ -7,6 +8,8 @@ using WARDMANAGEMENTSYSTEM.Models;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize(Roles = "Porter")]
+
     public class PorterController : Controller
     {
         private readonly WardDbContext _context;

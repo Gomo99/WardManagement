@@ -11,6 +11,9 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize(Roles = "Patient")]
+
+
     public class PatientController : Controller
     {
         private readonly WardDbContext _context;

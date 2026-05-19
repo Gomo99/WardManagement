@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -8,8 +9,11 @@ using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
 using WARDMANAGEMENTSYSTEM.Services;
 
+
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize(Roles = "WardAdmin")]
+
     public class WardAdminController : Controller
     {
         private readonly WardDbContext _context;
