@@ -11,12 +11,11 @@ using WARDMANAGEMENTSYSTEM.Services;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "NURSE")]
-    [Route("[controller]")]
-
+    // [Route("[controller]")]   ← REMOVED
     public class NurseController : Controller
     {
         private readonly WardDbContext _context;
-        private readonly INotificationService _notifService;   // <-- new
+        private readonly INotificationService _notifService;
 
         public NurseController(WardDbContext context, INotificationService notifService)
         {
@@ -31,30 +30,29 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         {
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ViewBag.ActivePatients = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active);
             ViewBag.PendingVitals = await _context.Vitals.CountAsync(v => v.DateRecorded.Date == DateTime.Today && v.IsActive == Status.Active);
             return View();
         }
-
 
         private int? GetCurrentNurseId()
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
                 return null;
-            // Verify that the user is actually a nurse
+
             var role = User.FindFirstValue(ClaimTypes.Role);
             if (role != UserRole.NURSE.ToString())
                 return null;
+
             return id;
         }
-
 
         // ===============================================================
         //  VIEW ADMITTED PATIENTS
         // ===============================================================
-
-        [HttpGet("Patients")]
+        [HttpGet]
         public async Task<IActionResult> Patients()
         {
             int? nurseId = GetCurrentNurseId();
@@ -66,14 +64,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(a => a.NurseId == nurseId.Value && a.IsActive == Status.Active)
                 .OrderBy(a => a.Patient.LastName)
                 .ToListAsync();
+
             return View(admissions);
         }
 
         // ===============================================================
-        //  VITALS (unchanged)
+        //  VITALS
         // ===============================================================
-        [HttpGet("VitalsByAdmission/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> VitalsByAdmission(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -94,7 +92,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(vitals);
         }
 
-        [HttpGet("RecordVital/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RecordVital(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -110,7 +108,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(new Vitals { AdmissionId = admissionId, DateRecorded = DateTime.Now });
         }
 
-        [HttpPost("RecordVital")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordVital(Vitals vitals)
         {
@@ -148,7 +146,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(VitalsByAdmission), new { admissionId = vitals.AdmissionId });
         }
 
-        [HttpGet("EditVital/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditVital(int id)
         {
             int? nurseId = GetCurrentNurseId();
@@ -163,7 +161,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(vital);
         }
 
-        [HttpPost("EditVital/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditVital(int id, Vitals posted)
         {
@@ -201,8 +199,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(VitalsByAdmission), new { admissionId = existing.AdmissionId });
         }
 
-        [HttpGet("VitalDetails/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> VitalDetails(int id)
         {
             int? nurseId = GetCurrentNurseId();
@@ -215,11 +212,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(vital);
         }
 
-        [HttpPost("DeleteVital/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteVital(int id)
         {
-             int? nurseId = GetCurrentNurseId();
+            int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
             var vital = await _context.Vitals.FindAsync(id);
@@ -233,10 +230,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  TREATMENTS (unchanged)
+        //  TREATMENTS
         // ===============================================================
-        [HttpGet("TreatmentsByAdmission/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> TreatmentsByAdmission(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -257,8 +253,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(treatments);
         }
 
-        [HttpGet("RecordTreatment/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> RecordTreatment(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -274,11 +269,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(new Treatment { AdmissionId = admissionId, TreatmentDate = DateTime.Now });
         }
 
-        [HttpPost("RecordTreatment")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordTreatment(Treatment treatment)
         {
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -310,7 +304,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(TreatmentsByAdmission), new { admissionId = treatment.AdmissionId });
         }
 
-        [HttpGet("EditTreatment/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditTreatment(int id)
         {
             int? nurseId = GetCurrentNurseId();
@@ -325,11 +319,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(treatment);
         }
 
-        [HttpPost("EditTreatment/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditTreatment(int id, Treatment posted)
         {
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -359,8 +352,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(TreatmentsByAdmission), new { admissionId = existing.AdmissionId });
         }
 
-
-        [HttpGet("TreatmentDetails/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> TreatmentDetails(int id)
         {
             int? nurseId = GetCurrentNurseId();
@@ -373,7 +365,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(treatment);
         }
 
-        [HttpPost("DeleteTreatment/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTreatment(int id)
         {
@@ -392,7 +384,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(TreatmentsByAdmission), new { admissionId = treatment.AdmissionId });
         }
 
-        [HttpPost("RestoreTreatment/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreTreatment(int id)
         {
@@ -412,10 +404,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  MEDICATION ADMINISTRATION (unchanged)
+        //  MEDICATION ADMINISTRATION
         // ===============================================================
-
-        [HttpGet("MedicationAdministrationsByAdmission/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> MedicationAdministrationsByAdmission(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -437,8 +428,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(administrations);
         }
 
-        [HttpGet("AdministerMedication/{int:id}")]
-        [ValidateAntiForgeryToken]
+        [HttpGet]
         public async Task<IActionResult> AdministerMedication(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -466,20 +456,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             });
         }
 
-        [HttpPost("AdministerMedication/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AdministerMedication(MedicationAdministration administration)
         {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
             ModelState.Remove("Medication");
-
-
-
-                        int? nurseId = GetCurrentNurseId();
-            if (nurseId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
@@ -524,10 +511,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(MedicationAdministrationsByAdmission), new { admissionId = administration.AdmissionId });
         }
 
-        [HttpGet("EditMedicationAdministration/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditMedicationAdministration(int id)
         {
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -545,7 +531,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(administration);
         }
 
-        [HttpPost("EditMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMedicationAdministration(int id, MedicationAdministration posted)
         {
@@ -554,12 +540,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ModelState.Remove("Admission");
             ModelState.Remove("Medication");
 
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
-
-
-
 
             var existing = await _context.MedicationAdministrations
                 .Include(ma => ma.Admission).ThenInclude(a => a.Patient)
@@ -601,15 +583,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(MedicationAdministrationsByAdmission), new { admissionId = existing.AdmissionId });
         }
 
-        [HttpPost("DeleteMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedicationAdministration(int id)
         {
-
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
-
 
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();
@@ -621,11 +600,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(MedicationAdministrationsByAdmission), new { admissionId = administration.AdmissionId });
         }
 
-        [HttpPost("RestoreMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedicationAdministration(int id)
         {
-
             int? nurseId = GetCurrentNurseId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -641,10 +619,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         // ===============================================================
         //  DOCTOR VISITS / INSTRUCTIONS
-        //  (View instructions from doctor visits + record phone advice)
         // ===============================================================
-
-        [HttpGet("DoctorVisitsByAdmission/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DoctorVisitsByAdmission(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -667,8 +643,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(visits);
         }
 
-        // Record a phone contact / advice received from a doctor
-        [HttpGet("RecordDoctorContact/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RecordDoctorContact(int admissionId)
         {
             int? nurseId = GetCurrentNurseId();
@@ -696,7 +671,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             });
         }
 
-        [HttpPost("RecordDoctorContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordDoctorContact(DoctorVisit visit)
         {
@@ -765,9 +740,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Doctor contact recorded.";
             return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
         }
-        // View details of a doctor visit
 
-        [HttpGet("DoctorVisitDetails/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DoctorVisitDetails(int id)
         {
             var visit = await _context.DoctorVisits
@@ -778,8 +752,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(visit);
         }
 
-        // Edit a doctor visit (e.g., update instructions after the fact)
-        [HttpGet("EditDoctorVisit/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditDoctorVisit(int id)
         {
             var visit = await _context.DoctorVisits
@@ -797,7 +770,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(visit);
         }
 
-        [HttpPost("EditDoctorVisit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditDoctorVisit(int id, DoctorVisit posted)
         {
@@ -838,7 +811,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = existing.AdmissionId });
         }
 
-        [HttpPost("DeleteDoctorVisit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteDoctorVisit(int id)
         {
@@ -852,7 +825,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
         }
 
-        [HttpPost("RestoreDoctorVisit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreDoctorVisit(int id)
         {

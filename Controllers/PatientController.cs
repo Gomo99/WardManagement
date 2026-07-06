@@ -14,22 +14,17 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "PATIENT")]
-        [Route("[controller]")]
-
-
     public class PatientController : Controller
     {
         private readonly WardDbContext _context;
         private readonly INotificationService _notifService;
+
         public PatientController(WardDbContext context, INotificationService notificationService)
         {
             _context = context;
             _notifService = notificationService;
         }
 
-        // ------------------------------------------------------------------
-        //  HELPER – get current logged‑in user ID and role
-        // ------------------------------------------------------------------
         private int? GetCurrentUserId()
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -58,7 +53,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (patient == null || patient.IsActive != Status.Active)
                 return RedirectToAction("Login", "Account");
 
-            // Show summary: number of admissions, etc.
             var admissions = await _context.Admissions
                 .Where(a => a.PatientId == userId.Value)
                 .OrderByDescending(a => a.AdmissionDate)
@@ -73,8 +67,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENT SELF‑SERVICE – VIEW PROFILE
         // ==================================================================
-
-        [HttpGet("MyProfile")]
+        [HttpGet]
         public async Task<IActionResult> MyProfile()
         {
             var userId = GetCurrentUserId();
@@ -89,7 +82,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENT SELF‑SERVICE – EDIT PROFILE
         // ==================================================================
-        [HttpGet("EditMyProfile")]
+        [HttpGet]
         public async Task<IActionResult> EditMyProfile()
         {
             var userId = GetCurrentUserId();
@@ -110,7 +103,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             });
         }
 
-        [HttpPost("EditMyProfile")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMyProfile(EditPatientProfileViewModel model)
         {
@@ -129,7 +122,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             patient.CellphoneNumber = model.CellphoneNumber;
             patient.Email = model.Email;
             patient.HomeAddress = model.HomeAddress;
-            // Date of birth and ID number should not be changed by patient
 
             await _context.SaveChangesAsync();
 
@@ -140,8 +132,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENT SELF‑SERVICE – MY ADMISSIONS
         // ==================================================================
-
-        [HttpGet("MyAdmissions")]
+        [HttpGet]
         public async Task<IActionResult> MyAdmissions()
         {
             var userId = GetCurrentUserId();
@@ -159,10 +150,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ==================================================================
-        //  PATIENT SELF‑SERVICE – VIEW FOLDER (similar to doctor folder)
+        //  PATIENT SELF‑SERVICE – VIEW FOLDER
         // ==================================================================
-
-        [HttpGet("MyPatientFolder/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> MyPatientFolder(int admissionId)
         {
             var userId = GetCurrentUserId();
@@ -199,9 +189,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ==================================================================
-        //  PATIENT SELF‑SERVICE – DEACTIVATE ACCOUNT (soft delete)
+        //  PATIENT SELF‑SERVICE – DEACTIVATE ACCOUNT
         // ==================================================================
-        [HttpPost("DeactivateMyAccount")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeactivateMyAccount()
         {
@@ -215,7 +205,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             patient.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
 
-            // Log out
             await HttpContext.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
 
             TempData["SuccessMessage"] = "Your account has been deactivated.";
@@ -225,21 +214,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENT SELF‑SERVICE – VIEW ALL DOCTOR INSTRUCTIONS
         // ==================================================================
-
-        [HttpGet("MyInstructions")]
+        [HttpGet]
         public async Task<IActionResult> MyInstructions()
         {
             var userId = GetCurrentUserId();
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Get all admissions for this patient
             var admissions = await _context.Admissions
                 .Where(a => a.PatientId == userId.Value)
                 .Select(a => a.Id)
                 .ToListAsync();
 
-            // Collect all doctor visit instructions across all admissions
             var instructions = await _context.DoctorVisits
                 .Include(v => v.Admission)
                     .ThenInclude(a => a.Patient)
@@ -261,14 +247,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(instructions);
         }
 
-        [HttpGet("MyMedications")]
+        [HttpGet]
         public async Task<IActionResult> MyMedications()
         {
             var userId = GetCurrentUserId();
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Find the active admission for this patient
             var activeAdmission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.PatientId == userId.Value && a.IsActive == Status.Active);
@@ -279,13 +264,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction("Dashboard");
             }
 
-            // Active prescriptions for this admission
             var prescriptions = await _context.Prescriptions
                 .Include(p => p.Medication)
                 .Where(p => p.AdmissionId == activeAdmission.Id && p.IsActive == Status.Active)
                 .ToListAsync();
 
-            // Last administration time for each medication in this admission
             var medicationIds = prescriptions.Select(p => p.MedicationId).Distinct().ToList();
             var lastAdministeredDict = await _context.MedicationAdministrations
                 .Where(ma => ma.AdmissionId == activeAdmission.Id &&
@@ -295,7 +278,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Select(g => new { MedicationId = g.Key, LastGiven = g.Max(ma => ma.DateAdministered) })
                 .ToDictionaryAsync(x => x.MedicationId, x => x.LastGiven);
 
-            // Build the view model
             var model = prescriptions.Select(p => new MyMedicationViewModel
             {
                 MedicationName = p.Medication?.Name ?? "Unknown",
@@ -312,15 +294,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(model);
         }
 
-
-        [HttpGet("DischargeSummary/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DischargeSummary(int admissionId)
         {
             var userId = GetCurrentUserId();
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Load admission – must belong to patient and be discharged (Inactive)
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
@@ -338,7 +318,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction("MyAdmissions");
             }
 
-            // Gather data for the summary
             var treatments = await _context.Treatments
                 .Where(t => t.AdmissionId == admissionId && t.IsActive == Status.Active)
                 .OrderBy(t => t.TreatmentDate)
@@ -358,7 +337,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Select(v => v.Instructions)
                 .ToListAsync();
 
-            // Build view model
             var vm = new DischargeSummaryViewModel
             {
                 PatientName = admission.Patient?.FullName ?? "N/A",
@@ -394,27 +372,21 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 FollowUpInstructions = doctorInstructions
             };
 
-            // Render the HTML view to a string
             var html = await this.RenderViewAsync("DischargeSummaryPdf", vm, true);
-
-            // Convert HTML to PDF using DinkToPdf
             var pdf = HtmlToPdfConverter.Convert(html);
             return File(pdf, "application/pdf", $"DischargeSummary_{admissionId}.pdf");
         }
 
-
         // ==================================================================
         //  PATIENT SELF‑SERVICE – UPCOMING DOCTOR VISITS (MY APPOINTMENTS)
         // ==================================================================
-
-        [HttpGet("MyAppointments")]
+        [HttpGet]
         public async Task<IActionResult> MyAppointments()
         {
             var userId = GetCurrentUserId();
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Get all admissions for this patient (active or discharged)
             var admissionIds = await _context.Admissions
                 .Where(a => a.PatientId == userId.Value)
                 .Select(a => a.Id)
@@ -430,8 +402,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(v => v.Doctor)
                 .Where(v => admissionIds.Contains(v.AdmissionId)
                             && v.IsActive == Status.Active
-                            && v.VisitDate > DateTime.Now        // future only
-                            && v.IsContactRecord == false)       // real scheduled visits
+                            && v.VisitDate > DateTime.Now
+                            && v.IsContactRecord == false)
                 .OrderBy(v => v.VisitDate)
                 .Select(v => new PatientAppointmentViewModel
                 {
@@ -447,18 +419,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(upcomingVisits);
         }
 
-
         // ==================================================================
         //  NEW: REQUEST OUTPATIENT FOLLOW‑UP APPOINTMENT (GET)
         // ==================================================================
-        [HttpGet("RequestFollowUp/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RequestFollowUp(int admissionId)
         {
             var userId = GetCurrentUserId();
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Admission must belong to patient and be discharged (Inactive)
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == admissionId
@@ -476,12 +446,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     .Where(e => e.Role == UserRole.DOCTOR && e.IsActive == Status.Active)
                     .OrderBy(e => e.LastName).ToListAsync(),
                 "EmployeeID", "FullName",
-                admission.DoctorId);  // pre‑select the doctor from the admission
+                admission.DoctorId);
 
             var model = new FollowUpRequestViewModel
             {
                 AdmissionId = admissionId,
-                PreferredDate = DateTime.Now.AddDays(7),   // default to a week from now
+                PreferredDate = DateTime.Now.AddDays(7),
             };
 
             return View(model);
@@ -490,7 +460,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  NEW: REQUEST OUTPATIENT FOLLOW‑UP APPOINTMENT (POST)
         // ==================================================================
-        [HttpPost("RequestFollowUp")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestFollowUp(FollowUpRequestViewModel model)
         {
@@ -498,7 +468,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (userId == null || GetCurrentUserRole() != UserRole.PATIENT.ToString())
                 return RedirectToAction("Login", "Account");
 
-            // Re‑validate admission
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == model.AdmissionId
@@ -526,7 +495,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(model);
             }
 
-            // Save the request
             var request = new FollowUpRequest
             {
                 PatientId = userId.Value,
@@ -542,11 +510,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context.FollowUpRequests.Add(request);
             await _context.SaveChangesAsync();
 
-            // Notify the Ward Admin (or a specific admin role)
             try
             {
                 string patientName = admission.Patient?.FullName ?? "A patient";
-                string link = Url.Action("Index", "FollowUpRequests", null);   // hypothetical admin controller
+                string link = Url.Action("Index", "FollowUpRequests");
                 await _notifService.NotifyRoleAsync(
                     UserRole.WARDADMIN.ToString(),
                     $"Patient {patientName} has requested an outpatient follow‑up appointment.",
@@ -561,8 +528,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EMERGENCY CONTACTS – LIST
         // ==================================================================
-
-        [HttpGet("MyEmergencyContacts")]
+        [HttpGet]
         public async Task<IActionResult> MyEmergencyContacts()
         {
             var userId = GetCurrentUserId();
@@ -580,7 +546,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD EMERGENCY CONTACT – GET
         // ==================================================================
-        [HttpGet("AddEmergencyContact")]
+        [HttpGet]
         public IActionResult AddEmergencyContact()
         {
             var userId = GetCurrentUserId();
@@ -593,7 +559,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD EMERGENCY CONTACT – POST
         // ==================================================================
-        [HttpPost("AddEmergencyContact")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddEmergencyContact(EmergencyContact contact)
         {
@@ -619,7 +585,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT EMERGENCY CONTACT – GET
         // ==================================================================
-        [HttpGet("EditEmergencyContact/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditEmergencyContact(int id)
         {
             var userId = GetCurrentUserId();
@@ -636,7 +602,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT EMERGENCY CONTACT – POST
         // ==================================================================
-        [HttpPost("EditEmergencyContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditEmergencyContact(int id, EmergencyContact posted)
         {
@@ -669,7 +635,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE EMERGENCY CONTACT – POST
         // ==================================================================
-        [HttpPost("DeleteEmergencyContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteEmergencyContact(int id)
         {
@@ -687,7 +653,5 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Emergency contact removed.";
             return RedirectToAction(nameof(MyEmergencyContacts));
         }
-
     }
-
 }

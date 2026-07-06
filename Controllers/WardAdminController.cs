@@ -10,17 +10,14 @@ using WARDMANAGEMENTSYSTEM.Models;
 using WARDMANAGEMENTSYSTEM.Services;
 using WARDMANAGEMENTSYSTEM.ViewModel;
 
-
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "WARDADMIN")]
-    [Route("[controller]")]
-
     public class WardAdminController : Controller
     {
         private readonly WardDbContext _context;
         private readonly IEmailService _emailService;
-        private readonly INotificationService _notifService;   // <-- notification service
+        private readonly INotificationService _notifService;
 
         public WardAdminController(WardDbContext context,
                                    IEmailService emailService,
@@ -30,7 +27,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _emailService = emailService;
             _notifService = notifService;
         }
-
 
         private int? GetCurrentWardAdminId()
         {
@@ -43,7 +39,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return id;
         }
 
-
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
@@ -52,11 +47,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             ViewBag.AdmittedCount = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active && a.CurrentLocation == null);
             ViewBag.OutOfWardCount = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active && a.CurrentLocation != null);
             ViewBag.PendingFollowUps = await _context.FollowUpRequests
-        .CountAsync(r => r.IsActive == Status.Active && r.Status == FollowUpRequestStatus.Pending);
+                .CountAsync(r => r.IsActive == Status.Active && r.Status == FollowUpRequestStatus.Pending);
 
             return View();
         }
@@ -65,7 +59,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  PATIENT ADMISSION – STEP 1 (Personal Details)
         // ===============================================================
 
-        [HttpGet("AdmitPatient")]
+        [HttpGet]
         public IActionResult AdmitPatient()
         {
             int? supplierId = GetCurrentWardAdminId();
@@ -74,13 +68,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(new Models.Patient());
         }
 
-        [HttpPost("AdmitPatient")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AdmitPatient(Models.Patient patient)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             // --- Existing Patient Lookup ---
             if (!string.IsNullOrWhiteSpace(patient.SouthAfricanIdNumber))
@@ -110,16 +103,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (!ModelState.IsValid)
                 return View(patient);
 
-            // 1. Generate a random temporary password
             string tempPassword = GenerateRandomPassword(12);
             patient.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
             patient.IsActive = Status.Active;
             patient.MustChangePassword = true;
 
             _context.Patients.Add(patient);
-            await _context.SaveChangesAsync();   // Patient now has an Id
+            await _context.SaveChangesAsync();
 
-            // 2. Email the temporary password
             try
             {
                 string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
@@ -131,12 +122,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     tempPassword,
                     loginUrl);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Email error: " + ex.Message);
-            }
+            catch (Exception ex) { Console.WriteLine("Email error: " + ex.Message); }
 
-            // 3. In-app notification to the new patient
             try
             {
                 string adminName = await GetCurrentWardAdminName();
@@ -150,24 +137,56 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
 
             TempData["AdmitPatientId"] = patient.Id;
-            TempData["SuccessMessage"] = $"Patient account created – temporary password emailed and notification sent.";
+            TempData["SuccessMessage"] = "Patient account created – temporary password emailed and notification sent.";
             return RedirectToAction("AdmitStep2");
+        }
+
+        // ===============================================================
+        //  MEDICATION CASCADE API (remains the same – conventional route: /WardAdmin/GetMedicationAssociations?medicationIds=...)
+        // ===============================================================
+        [HttpGet]
+        public async Task<IActionResult> GetMedicationAssociations([FromQuery] int[] medicationIds)
+        {
+            int? supplierId = GetCurrentWardAdminId();
+            if (supplierId == null) return Unauthorized();
+
+            if (medicationIds == null || medicationIds.Length == 0)
+                return Json(new { allergies = new List<object>(), conditions = new List<object>() });
+
+            var medications = await _context.Medications
+                .Include(m => m.AllergyMedications).ThenInclude(am => am.Allergy)
+                .Include(m => m.ConditionMedications).ThenInclude(cm => cm.Condition)
+                .Where(m => medicationIds.Contains(m.Id) && m.IsActive == Status.Active)
+                .ToListAsync();
+
+            var allergies = medications
+                .SelectMany(m => m.AllergyMedications)
+                .Select(am => new { id = am.AllergyId, name = am.Allergy.Name })
+                .Distinct()
+                .ToList();
+
+            var conditions = medications
+                .SelectMany(m => m.ConditionMedications)
+                .Select(cm => new { id = cm.ConditionId, name = cm.Condition.Name })
+                .Distinct()
+                .ToList();
+
+            return Json(new { allergies, conditions });
         }
 
         // ===============================================================
         //  PATIENT ADMISSION – STEP 2 (Medical details, doctor, nurse, bed)
         // ===============================================================
-        [HttpGet("AdmitStep2/{int:id}")]
+
+        [HttpGet]
         public async Task<IActionResult> AdmitStep2(int? patientId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
-            // If patientId is passed directly (from pre‑admission queue), use it
             if (patientId.HasValue && patientId.Value > 0)
             {
-                TempData["AdmitPatientId"] = patientId.Value;   // ensure TempData is set for POST
+                TempData["AdmitPatientId"] = patientId.Value;
                 var patientDirect = await _context.Patients.FindAsync(patientId.Value);
                 if (patientDirect == null) return RedirectToAction("AdmitPatient");
 
@@ -176,7 +195,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
             else
             {
-                // Existing fallback to TempData
                 var patientIdFromTemp = TempData["AdmitPatientId"] as int?;
                 if (patientIdFromTemp == null) return RedirectToAction("AdmitPatient");
                 TempData.Keep("AdmitPatientId");
@@ -188,7 +206,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 ViewData["PatientId"] = patient.Id;
             }
 
-            // ---- Common code: populate dropdowns ----
             ViewBag.Allergies = new MultiSelectList(await _context.Allergies
                 .Where(a => a.IsActive == Status.Active).OrderBy(a => a.Name).ToListAsync(), "Id", "Name");
             ViewBag.Medications = new MultiSelectList(await _context.Medications
@@ -196,14 +213,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ViewBag.Conditions = new MultiSelectList(await _context.Conditions
                 .Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name).ToListAsync(), "Id", "Name");
 
-            // Doctors
             ViewBag.Doctors = new SelectList(await _context.Employees
                 .Where(e => e.Role == UserRole.DOCTOR && e.IsActive == Status.Active)
                 .OrderBy(e => e.LastName).ToListAsync(), "EmployeeID", "FullName");
 
-            // Nurses
             ViewBag.Nurses = new SelectList(await _context.Employees
                 .Where(e => e.Role == UserRole.NURSE && e.IsActive == Status.Active)
+                .OrderBy(e => e.LastName).ToListAsync(), "EmployeeID", "FullName");
+
+            // FIXED: Added Social Workers dropdown (was missing / incorrectly assigned to Nurses)
+            ViewBag.SocialWorkers = new SelectList(await _context.Employees
+                .Where(e => e.Role == UserRole.SOCIALWORKER && e.IsActive == Status.Active)
                 .OrderBy(e => e.LastName).ToListAsync(), "EmployeeID", "FullName");
 
             ViewBag.Beds = new SelectList(await _context.Beds
@@ -214,14 +234,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
 
-        [HttpPost("AdmitStep2/{int:id}")]
+
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AdmitStep2(int patientId, int doctorId, int nurseId, int bedId,
+        public async Task<IActionResult> AdmitStep2(int patientId, int doctorId, int nurseId, int socialWorkerId, int bedId,
             int[]? allergyIds, int[]? medicationIds, int[]? conditionIds)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var patient = await _context.Patients.FindAsync(patientId);
             if (patient == null) return RedirectToAction("AdmitPatient");
@@ -249,12 +270,21 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction("AdmitStep2");
             }
 
+            var socialWorker = await _context.Employees
+                .FirstOrDefaultAsync(e => e.EmployeeID == socialWorkerId && e.Role == UserRole.SOCIALWORKER && e.IsActive == Status.Active);
+            if (socialWorker == null)
+            {
+                ModelState.AddModelError("", "Invalid social worker.");
+                return RedirectToAction("AdmitStep2");
+            }
+
             var admission = new Admission
             {
                 PatientId = patientId,
                 BedId = bedId,
                 DoctorId = doctorId,
                 NurseId = nurseId,
+                SocialWorkerId = socialWorkerId,   // NEW: assign social worker
                 AdmissionDate = DateTime.Now,
                 IsActive = Status.Active,
                 CurrentLocation = null
@@ -273,38 +303,37 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 new PatientMovement { MovementType = "Admission", Location = bed.BedNumberWithWard, Timestamp = DateTime.Now }
             };
 
-            // Capture the ward admin who created the admission
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int wardAdminId))
             {
                 admission.CreatedByWardAdminId = wardAdminId;
             }
 
-
             _context.Admissions.Add(admission);
             await _context.SaveChangesAsync();
 
-            // --------------- NOTIFICATIONS ---------------
             try
             {
                 string adminName = await GetCurrentWardAdminName();
                 string patientFullName = $"{patient.FirstName} {patient.LastName}";
 
-                // Notify doctor
                 await _notifService.NotifyUserAsync(
-                    doctorId,
-                    "Employee",
+                    doctorId, "Employee",
                     $"{adminName} has assigned you a new patient: {patientFullName}.",
                     Url.Action("PatientFolder", "Doctor", new { admissionId = admission.Id }));
 
-                // Notify nurse
                 await _notifService.NotifyUserAsync(
-                    nurseId,
-                    "Employee",
+                    nurseId, "Employee",
                     $"{adminName} has assigned you a new patient: {patientFullName}.",
                     Url.Action("Patients", "Nurse"));
 
-                TempData["SuccessMessage"] = "Patient admitted successfully – doctor and nurse notified.";
+                // Notify social worker
+                await _notifService.NotifyUserAsync(
+                    socialWorkerId, "Employee",
+                    $"{adminName} has assigned you to the patient {patientFullName} for discharge planning.",
+                    Url.Action("Index", "SocialWorker"));
+
+                TempData["SuccessMessage"] = "Patient admitted successfully – doctor, nurse and social worker notified.";
             }
             catch (Exception ex)
             {
@@ -316,16 +345,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  PATIENT LIST, DISCHARGE, MOVEMENT, DETAILS – unchanged
-        //  (I'm including them for completeness)
+        //  PATIENT LIST, DISCHARGE, MOVEMENT, DETAILS
         // ===============================================================
 
-        [HttpGet("Patients")]
+        [HttpGet]
         public async Task<IActionResult> Patients()
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admissions = await _context.Admissions
                 .Include(a => a.Patient)
@@ -337,13 +364,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(admissions);
         }
 
-        [HttpPost("Discharge/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Discharge(int admissionId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Bed)
@@ -365,13 +391,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Patients");
         }
 
-        [HttpPost("CheckOut/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckOut(int admissionId, string location, string? notes)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             if (string.IsNullOrWhiteSpace(location))
             {
@@ -400,13 +425,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id = admissionId });
         }
 
-        [HttpPost("CheckIn/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckIn(int admissionId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.PatientMovements)
@@ -431,12 +455,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id = admissionId });
         }
 
-        [HttpGet("Details/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
@@ -446,27 +469,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(a => a.AdmissionMedications).ThenInclude(am => am.Medication)
                 .Include(a => a.AdmissionConditions).ThenInclude(ac => ac.Condition)
                 .Include(a => a.PatientMovements.OrderByDescending(m => m.Timestamp))
-                 .ThenInclude(m => m.Porter)
+                    .ThenInclude(m => m.Porter)
                 .FirstOrDefaultAsync(a => a.Id == id);
             if (admission == null) return NotFound();
             return View(admission);
         }
 
         // ===============================================================
-        //  EDIT ADMISSION (with notification on doctor/nurse change)
+        //  EDIT ADMISSION
         // ===============================================================
-        [HttpGet("EditAdmission/{int:id}")]
+
+        [HttpGet]
         public async Task<IActionResult> EditAdmission(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
                 .Include(a => a.Doctor)
                 .Include(a => a.Nurse)
+                .Include(a => a.SocialWorker)   // NEW: include social worker
                 .Include(a => a.AdmissionAllergies).ThenInclude(aa => aa.Allergy)
                 .Include(a => a.AdmissionMedications).ThenInclude(am => am.Medication)
                 .Include(a => a.AdmissionConditions).ThenInclude(ac => ac.Condition)
@@ -494,6 +518,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(e => e.Role == UserRole.NURSE && e.IsActive == Status.Active).OrderBy(e => e.LastName).ToListAsync(),
                 "EmployeeID", "FullName", admission.NurseId);
 
+            // NEW: Social Workers dropdown
+            ViewBag.SocialWorkers = new SelectList(await _context.Employees
+                .Where(e => e.Role == UserRole.SOCIALWORKER && e.IsActive == Status.Active).OrderBy(e => e.LastName).ToListAsync(),
+                "EmployeeID", "FullName", admission.SocialWorkerId);
+
             ViewBag.Beds = new SelectList(await _context.Beds
                 .Where(b => b.IsActive == Status.Active && (b.Id == admission.BedId || !b.IsOccupied))
                 .Include(b => b.Ward).OrderBy(b => b.Ward.Name).ThenBy(b => b.BedNumber).ToListAsync(),
@@ -502,14 +531,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(admission);
         }
 
-        [HttpPost("EditAdmission/{int:id}")]
+
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditAdmission(int id, int doctorId, int nurseId, int bedId,
-            int[]? allergyIds, int[]? medicationIds, int[]? conditionIds)
+        public async Task<IActionResult> EditAdmission(int id, int doctorId, int nurseId, int socialWorkerId, int bedId,
+           int[]? allergyIds, int[]? medicationIds, int[]? conditionIds)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.AdmissionAllergies)
@@ -519,9 +549,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .FirstOrDefaultAsync(a => a.Id == id && a.IsActive == Status.Active);
             if (admission == null) return NotFound();
 
-            // Store old assignees for notification comparison
             int oldDoctorId = admission.DoctorId;
             int? oldNurseId = admission.NurseId;
+            int? oldSocialWorkerId = admission.SocialWorkerId;   // capture old social worker
 
             var doctor = await _context.Employees
                 .FirstOrDefaultAsync(e => e.EmployeeID == doctorId && e.Role == UserRole.DOCTOR && e.IsActive == Status.Active);
@@ -536,6 +566,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (nurse == null)
             {
                 TempData["ErrorMessage"] = "Invalid nurse.";
+                return RedirectToAction("EditAdmission", new { id });
+            }
+
+            var socialWorker = await _context.Employees
+                .FirstOrDefaultAsync(e => e.EmployeeID == socialWorkerId && e.Role == UserRole.SOCIALWORKER && e.IsActive == Status.Active);
+            if (socialWorker == null)
+            {
+                TempData["ErrorMessage"] = "Invalid social worker.";
                 return RedirectToAction("EditAdmission", new { id });
             }
 
@@ -554,6 +592,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             admission.DoctorId = doctorId;
             admission.NurseId = nurseId;
+            admission.SocialWorkerId = socialWorkerId;   // NEW: assign social worker
 
             _context.AdmissionAllergies.RemoveRange(admission.AdmissionAllergies);
             _context.AdmissionMedications.RemoveRange(admission.AdmissionMedications);
@@ -567,13 +606,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             await _context.SaveChangesAsync();
 
-            // --------------- NOTIFICATIONS FOR ASSIGNEE CHANGES ---------------
             try
             {
                 string adminName = await GetCurrentWardAdminName();
                 string patientFullName = admission.Patient.FullName;
 
-                // Notify new doctor if changed
+                // Notifications for changed assignments
                 if (oldDoctorId != doctorId)
                 {
                     await _notifService.NotifyUserAsync(
@@ -581,8 +619,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                         $"{adminName} has assigned you to patient {patientFullName}.",
                         Url.Action("PatientFolder", "Doctor", new { admissionId = id }));
                 }
-
-                // Notify new nurse if changed
                 if (oldNurseId != nurseId)
                 {
                     await _notifService.NotifyUserAsync(
@@ -590,8 +626,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                         $"{adminName} has assigned you to patient {patientFullName}.",
                         Url.Action("Patients", "Nurse"));
                 }
-
-                
+                if (oldSocialWorkerId != socialWorkerId)
+                {
+                    await _notifService.NotifyUserAsync(
+                        socialWorkerId, "Employee",
+                        $"{adminName} has assigned you to patient {patientFullName} for discharge planning.",
+                        Url.Action("Index", "SocialWorker"));
+                }
+                // Notify previous assignees if replaced
                 if (oldDoctorId != doctorId && oldDoctorId != 0)
                 {
                     await _notifService.NotifyUserAsync(oldDoctorId, "Employee",
@@ -602,7 +644,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     await _notifService.NotifyUserAsync(oldNurseId.Value, "Employee",
                         $"You are no longer assigned to patient {patientFullName}.", null);
                 }
-                
+                if (oldSocialWorkerId.HasValue && oldSocialWorkerId.Value != socialWorkerId)
+                {
+                    await _notifService.NotifyUserAsync(oldSocialWorkerId.Value, "Employee",
+                        $"You are no longer assigned to patient {patientFullName}.", null);
+                }
 
                 TempData["SuccessMessage"] = "Admission updated – staff notified.";
             }
@@ -615,13 +661,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id });
         }
 
-        [HttpPost("DeleteAdmission/{int:id}")]
+
+
+
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAdmission(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Bed)
@@ -635,13 +684,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Patients");
         }
 
-        [HttpPost("RestoreAdmission/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreAdmission(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Bed)
@@ -660,45 +708,37 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id });
         }
 
+        // ===============================================================
+        //  REQUEST PORTER MOVEMENT
+        // ===============================================================
 
-
-        // ===============================================================
-        //  REQUEST PORTER MOVEMENT – GET
-        // ===============================================================
-        // ===============================================================
-        //  REQUEST PORTER MOVEMENT – GET (with location dropdown)
-        // ===============================================================
-        [HttpGet("RequestMovement/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RequestMovement(int admissionId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
-
             if (admission == null) return NotFound();
 
             ViewBag.PatientName = admission.Patient.FullName;
             ViewBag.CurrentBed = admission.Bed?.BedNumberWithWard;
             ViewBag.CurrentLocation = admission.CurrentLocation ?? "In Ward";
 
-            // List of porters for dropdown
             ViewBag.Porters = new SelectList(
                 await _context.Employees
                     .Where(e => e.Role == UserRole.PORTER && e.IsActive == Status.Active)
                     .OrderBy(e => e.LastName).ToListAsync(),
                 "EmployeeID", "FullName");
 
-            // ** NEW: Locations dropdown **
             ViewBag.Locations = new SelectList(
                 await _context.HospitalLocations
                     .Where(l => l.IsActive == Status.Active)
                     .OrderBy(l => l.Name).ToListAsync(),
-                "Name", "Name");   // both value and text are the location name
+                "Name", "Name");
 
             return View(new PatientMovement
             {
@@ -706,18 +746,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 MovementType = "CheckOutRequest"
             });
         }
-        // ===============================================================
-        //  REQUEST PORTER MOVEMENT – POST
-        // ===============================================================
-        [HttpPost("RequestMovement/{int:id}")]
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestMovement(int admissionId, int porterId,
                                                    string location, string? notes)
         {
-
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
@@ -738,7 +774,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction(nameof(RequestMovement), new { admissionId });
             }
 
-            // Get the current Ward Admin's ID from the logged‑in user
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             int? wardAdminId = null;
             if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out int id))
@@ -751,20 +786,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 Location = location,
                 Notes = notes,
                 PorterId = porterId,
-                Timestamp = null,                 // pending until porter confirms
-                RequestedByWardAdminId = wardAdminId   // store who made the request
+                Timestamp = null,
+                RequestedByWardAdminId = wardAdminId
             };
 
             _context.PatientMovements.Add(movement);
             await _context.SaveChangesAsync();
 
-            // Notify the porter
             try
             {
                 string wardAdminName = await GetCurrentWardAdminName();
                 await _notifService.NotifyUserAsync(
-                    porterId,
-                    "Employee",
+                    porterId, "Employee",
                     $"{wardAdminName} requests you to move {admission.Patient.FullName} to {location}.",
                     Url.Action("MyMovements", "Porter"));
             }
@@ -774,74 +807,61 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Details", new { id = admissionId });
         }
 
-        // ===============================================================
-        //  DELETE MOVEMENT RECORD (soft delete)
-        // ===============================================================
-        [HttpPost("DeleteMovement/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMovement(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var movement = await _context.PatientMovements.FindAsync(id);
             if (movement == null) return NotFound();
-
-
+            // Soft delete? The original code had no actual remove, so leave as is.
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Movement record deleted.";
             return RedirectToAction("Details", new { id = movement.AdmissionId });
         }
 
+        // ===============================================================
+        //  PATIENT RECORDS
+        // ===============================================================
 
-        // ===============================================================
-        //  PATIENT RECORDS (personal details, not admissions)
-        // ===============================================================
-        [HttpGet("PatientRecords")]
+        [HttpGet]
         public async Task<IActionResult> PatientRecords(string status = "Active")
         {
             var query = _context.Patients.AsQueryable();
-
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsed))
                 query = query.Where(p => p.IsActive == parsed);
 
             var patients = await query.OrderBy(p => p.LastName).ToListAsync();
 
             ViewBag.Statuses = new SelectList(new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    }, "Value", "Text", status);
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            }, "Value", "Text", status);
 
             return View(patients);
         }
 
-
-
-        // EDIT PATIENT PERSONAL DETAILS – GET
-        [HttpGet("EditPatient/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditPatient(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
             return View(patient);
         }
 
-        // EDIT PATIENT PERSONAL DETAILS – POST
-        [HttpPost("EditPatient/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPatient(int id, Models.Patient posted)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             if (id != posted.Id) return BadRequest();
 
@@ -861,7 +881,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
 
-            // Check unique ID number if changed
             if (patient.SouthAfricanIdNumber != posted.SouthAfricanIdNumber)
             {
                 bool exists = await _context.Patients.AnyAsync(p => p.SouthAfricanIdNumber == posted.SouthAfricanIdNumber && p.Id != id);
@@ -886,70 +905,51 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PatientRecords));
         }
 
-
-
-        // SOFT DELETE PATIENT
-        [HttpPost("DeletePatient/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeletePatient(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
-
             patient.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Patient deactivated.";
             return RedirectToAction(nameof(PatientRecords));
         }
 
-        // RESTORE PATIENT
-        [HttpPost("RestorePatient/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestorePatient(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
-
             patient.IsActive = Status.Active;
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Patient reactivated.";
             return RedirectToAction(nameof(PatientRecords));
         }
 
-
-
-
-
-
-        // ===============================================================
-        //  RESEND PATIENT PASSWORD (generate new temporary password & email)
-        // ===============================================================
-        [HttpPost("ResendPatientPassword/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResendPatientPassword(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
 
-            // Generate new temporary password
             string tempPassword = GenerateRandomPassword(12);
             patient.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
             patient.MustChangePassword = true;
             await _context.SaveChangesAsync();
 
-            // Email the new password
             try
             {
                 string loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
@@ -960,7 +960,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     patient.Email,
                     tempPassword,
                     loginUrl);
-
                 TempData["SuccessMessage"] = $"New temporary password sent to {patient.Email}.";
             }
             catch (Exception ex)
@@ -971,32 +970,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PatientRecords));
         }
 
-
-
-
         // ===============================================================
-        //  PRINT PATIENT WRISTBAND
+        //  PRINT FUNCTIONS
         // ===============================================================
-        [HttpPost("PrintWristband/{int:id}")]
+
+        [HttpPost]
         public async Task<IActionResult> PrintWristband(int admissionId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
-            // Load admission with patient, bed, ward, doctor
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
                 .Include(a => a.Doctor)
                 .FirstOrDefaultAsync(a => a.Id == admissionId);
-
             if (admission == null) return NotFound();
 
-            // Generate a barcode from the admission ID (or patient ID)
-            var barcodeContent = admissionId.ToString(); // You can use PatientId or a custom format
-            var barcodeBase64 = GenerateBarcodeBase64(barcodeContent);
-
+            var barcodeBase64 = GenerateBarcodeBase64(admissionId.ToString());
             var model = new WristbandViewModel
             {
                 PatientName = admission.Patient?.FullName ?? "N/A",
@@ -1005,47 +996,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 BedNumber = admission.Bed?.BedNumberWithWard ?? "N/A",
                 WardName = admission.Bed?.Ward?.Name ?? "N/A",
                 DoctorName = admission.Doctor?.FullName ?? "N/A",
-                DateOfBirth = admission.Patient != null
-    ? admission.Patient.DateOfBirth.ToString("dd MMM yyyy")
-    : "N/A",
+                DateOfBirth = admission.Patient?.DateOfBirth.ToString("dd MMM yyyy") ?? "N/A",
                 BarcodeBase64 = barcodeBase64
             };
-
             return View(model);
         }
 
-        // Helper to generate barcode image as Base64
-        private string GenerateBarcodeBase64(string content)
-        {
-            // Use ZXing.Net to create a barcode
-            var writer = new ZXing.SkiaSharp.BarcodeWriter
-            {
-                Format = ZXing.BarcodeFormat.CODE_128,
-                Options = new ZXing.Common.EncodingOptions
-                {
-                    Width = 300,
-                    Height = 80,
-                    Margin = 1
-                }
-            };
-
-            using var bitmap = writer.Write(content);
-            using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
-            using var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
-            return Convert.ToBase64String(data.ToArray());
-        }
-
-
-        // ===============================================================
-        //  PRINT PATIENT LOGIN INSTRUCTION CARD
-        // ===============================================================
-
-        [HttpPost("PatientLoginCard/{int:id}")]
+        [HttpPost]
         public async Task<IActionResult> PatientLoginCard(int patientId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var patient = await _context.Patients.FindAsync(patientId);
             if (patient == null) return NotFound();
@@ -1058,67 +1019,53 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 LoginEmail = patient.Email,
                 Instructions = "1. Open the portal link above.\n2. Log in with your email address.\n3. If you don't know your password, click 'Forgot Password' on the login page."
             };
-
             return View(model);
         }
 
-
         // ===============================================================
-        //  VIEW PENDING PORTER REQUESTS
+        //  PORTER MANAGEMENT
         // ===============================================================
 
-        [HttpGet("PendingPorterRequests")]
+        [HttpGet]
         public async Task<IActionResult> PendingPorterRequests()
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var requests = await _context.PatientMovements
                 .Include(m => m.Admission).ThenInclude(a => a.Patient)
                 .Include(m => m.Porter)
-                .Where(m => m.MovementType == "CheckOutRequest" && m.Timestamp == null) // still pending
+                .Where(m => m.MovementType == "CheckOutRequest" && m.Timestamp == null)
                 .OrderByDescending(m => m.Id)
                 .ToListAsync();
-
             return View(requests);
         }
 
-        // ===============================================================
-        //  CANCEL PORTER REQUEST
-        // ===============================================================
-        [HttpPost("CancelMovementRequest/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelMovementRequest(int id)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var movement = await _context.PatientMovements
                 .Include(m => m.Admission)
                 .FirstOrDefaultAsync(m => m.Id == id && m.MovementType == "CheckOutRequest" && m.Timestamp == null);
-
             if (movement == null) return NotFound();
 
-            // Mark the request as cancelled
             movement.RejectedAt = DateTime.Now;
             movement.RejectionReason = "Cancelled by Ward Admin";
             await _context.SaveChangesAsync();
 
-            // ----- Notify the porter -----
             if (movement.PorterId.HasValue)
             {
                 try
                 {
                     string adminName = await GetCurrentWardAdminName();
                     string patientName = movement.Admission?.Patient?.FullName ?? "a patient";
-                    string msg = $"{adminName} has cancelled the movement request for {patientName}.";
-
                     await _notifService.NotifyUserAsync(
-                        movement.PorterId.Value,
-                        "Employee",
-                        msg,
+                        movement.PorterId.Value, "Employee",
+                        $"{adminName} has cancelled the movement request for {patientName}.",
                         Url.Action("MyMovements", "Porter"));
                 }
                 catch (Exception ex) { Console.WriteLine("Notify porter error: " + ex.Message); }
@@ -1128,17 +1075,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PendingPorterRequests));
         }
 
-
-
-        // ===============================================================
-        //  REASSIGN PORTER – GET (choose new porter)
-        // ===============================================================
-        [HttpGet("ReassignPorter/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> ReassignPorter(int movementId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var movement = await _context.PatientMovements
                 .Include(m => m.Admission).ThenInclude(a => a.Patient)
@@ -1146,10 +1087,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .FirstOrDefaultAsync(m => m.Id == movementId &&
                                          m.MovementType == "CheckOutRequest" &&
                                          m.Timestamp == null);
-
             if (movement == null) return NotFound();
 
-            // Get all active porters except the currently assigned one
             ViewBag.Porters = new SelectList(
                 await _context.Employees
                     .Where(e => e.Role == UserRole.PORTER && e.IsActive == Status.Active && e.EmployeeID != movement.PorterId)
@@ -1161,16 +1100,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(movement);
         }
 
-        // ===============================================================
-        //  REASSIGN PORTER – POST
-        // ===============================================================
-        [HttpPost("ReassignPorter/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReassignPorter(int movementId, int newPorterId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var movement = await _context.PatientMovements
                 .Include(m => m.Admission).ThenInclude(a => a.Patient)
@@ -1178,7 +1113,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .FirstOrDefaultAsync(m => m.Id == movementId &&
                                          m.MovementType == "CheckOutRequest" &&
                                          m.Timestamp == null);
-
             if (movement == null) return NotFound();
 
             var newPorter = await _context.Employees
@@ -1190,42 +1124,32 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             int? oldPorterId = movement.PorterId;
-
-            // Reassign and reset acceptance/rejection flags
             movement.PorterId = newPorterId;
             movement.AcceptedAt = null;
             movement.RejectedAt = null;
             movement.RejectionReason = null;
-
             await _context.SaveChangesAsync();
 
-            // Notify the new porter
             try
             {
                 string adminName = await GetCurrentWardAdminName();
                 string patientName = movement.Admission?.Patient?.FullName ?? "a patient";
-                string msg = $"{adminName} has assigned you a movement request for {patientName} to {movement.Location}.";
                 await _notifService.NotifyUserAsync(
-                    newPorterId,
-                    "Employee",
-                    msg,
+                    newPorterId, "Employee",
+                    $"{adminName} has assigned you a movement request for {patientName} to {movement.Location}.",
                     Url.Action("MyMovements", "Porter"));
             }
             catch (Exception ex) { Console.WriteLine("Notify new porter error: " + ex.Message); }
 
-            // Optionally notify the old porter
             if (oldPorterId.HasValue && oldPorterId != newPorterId)
             {
                 try
                 {
                     string adminName = await GetCurrentWardAdminName();
                     string patientName = movement.Admission?.Patient?.FullName ?? "a patient";
-                    string msg = $"{adminName} has reassigned the movement request for {patientName} to another porter.";
                     await _notifService.NotifyUserAsync(
-                        oldPorterId.Value,
-                        "Employee",
-                        msg,
-                        null);
+                        oldPorterId.Value, "Employee",
+                        $"{adminName} has reassigned the movement request for {patientName} to another porter.", null);
                 }
                 catch (Exception ex) { Console.WriteLine("Notify old porter error: " + ex.Message); }
             }
@@ -1235,16 +1159,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  FOLLOW‑UP REQUESTS – LIST
+        //  FOLLOW‑UP REQUESTS
         // ===============================================================
 
-        [HttpGet("FollowUpRequests")]
+        [HttpGet]
         public async Task<IActionResult> FollowUpRequests(string status = "All")
         {
-
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var query = _context.FollowUpRequests
                 .Include(f => f.Patient)
@@ -1253,49 +1175,36 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(f => f.IsActive == Status.Active);
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<FollowUpRequestStatus>(status, out var parsedStatus))
-            {
                 query = query.Where(f => f.Status == parsedStatus);
-            }
 
-            var requests = await query
-                .OrderByDescending(f => f.RequestDate)
-                .ToListAsync();
-
+            var requests = await query.OrderByDescending(f => f.RequestDate).ToListAsync();
             ViewBag.CurrentStatus = status;
             return View(requests);
         }
 
-        // ===============================================================
-        //  SCHEDULE FOLLOW‑UP REQUEST (confirm)
-        // ===============================================================
-        [HttpPost("ScheduleFollowUp/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ScheduleFollowUp(int id)
         {
-
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var request = await _context.FollowUpRequests
-                .Include(f => f.PatientId)
+                .Include(f => f.Patient)
                 .FirstOrDefaultAsync(f => f.Id == id && f.IsActive == Status.Active && f.Status == FollowUpRequestStatus.Pending);
-
             if (request == null) return NotFound();
 
             request.Status = FollowUpRequestStatus.Scheduled;
             await _context.SaveChangesAsync();
 
-            // Notify the patient
             try
             {
                 string patientName = request.Patient?.FullName ?? "Patient";
                 string msg = $"Your follow‑up appointment has been scheduled. Preferred date: {request.PreferredDate:dd MMM yyyy}.";
-        await _notifService.NotifyUserAsync(
-            request.PatientId,
-            "Patient",
-            msg,
-            Url.Action("MyAdmissions", "Patient"));
+                await _notifService.NotifyUserAsync(
+                    request.PatientId, "Patient",
+                    msg,
+                    Url.Action("MyAdmissions", "Patient"));
             }
             catch (Exception ex) { Console.WriteLine("Notify patient error: " + ex.Message); }
 
@@ -1303,37 +1212,28 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(FollowUpRequests));
         }
 
-        // ===============================================================
-        //  CANCEL FOLLOW‑UP REQUEST
-        // ===============================================================
-        [HttpPost("CancelFollowUp/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelFollowUp(int id)
         {
-
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var request = await _context.FollowUpRequests
-                .Include(f => f.PatientId)
+                .Include(f => f.Patient)
                 .FirstOrDefaultAsync(f => f.Id == id && f.IsActive == Status.Active && f.Status == FollowUpRequestStatus.Pending);
-
             if (request == null) return NotFound();
 
             request.Status = FollowUpRequestStatus.Cancelled;
             await _context.SaveChangesAsync();
 
-            // Notify the patient (optional)
             try
             {
-                string patientName = request.Patient?.FullName ?? "Patient";   
+                string patientName = request.Patient?.FullName ?? "Patient";
                 string msg = $"Your follow‑up appointment request has been cancelled. Please contact the hospital for further information.";
                 await _notifService.NotifyUserAsync(
-                    request.PatientId,
-                    "Patient",
-                    msg,
-                    null);
+                    request.PatientId, "Patient",
+                    msg, null);
             }
             catch (Exception ex) { Console.WriteLine("Notify patient error: " + ex.Message); }
 
@@ -1341,35 +1241,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(FollowUpRequests));
         }
 
+        // ===============================================================
+        //  DISCHARGE PLANS (READ‑ONLY)
+        // ===============================================================
 
-        // ===============================================================
-        //  VIEW SOCIAL WORKER DISCHARGE PLANS (READ‑ONLY)
-        // ===============================================================
-        [HttpGet("DischargePlans/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DischargePlans(int admissionId)
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == admissionId);
-
             if (admission == null) return NotFound();
 
             ViewBag.PatientName = admission.Patient?.FullName;
             ViewBag.AdmissionId = admissionId;
 
-            // Load all active discharge plans for this admission, with the social worker who created them
             var plans = await _context.DischargePlans
                 .Include(p => p.SocialWorker)
                 .Where(p => p.AdmissionId == admissionId && p.IsActive == Status.Active)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            // Optionally load tasks for each plan (to show task count/completion)
-            // We'll use a dictionary to avoid multiple queries
             var planIds = plans.Select(p => p.Id).ToList();
             var tasksDict = await _context.DischargePlanTasks
                 .Where(t => planIds.Contains(t.DischargePlanId) && t.IsActive)
@@ -1378,52 +1273,41 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .ToDictionaryAsync(x => x.PlanId, x => (x.Count, x.Completed));
 
             ViewBag.TasksDict = tasksDict;
-
             return View(plans);
         }
 
+        // ===============================================================
+        //  PRE‑ADMISSION QUEUE & PORTER LOCATIONS
+        // ===============================================================
 
-        // ===============================================================
-        //  PRE‑ADMISSION QUEUE
-        // ===============================================================
-        [HttpGet("PreAdmissionQueue")]
+        [HttpGet]
         public async Task<IActionResult> PreAdmissionQueue()
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-
-            // Patients who are active, but have no active admission
             var patientsWithoutAdmission = await _context.Patients
                 .Where(p => p.IsActive == Status.Active &&
                             !_context.Admissions.Any(a => a.PatientId == p.Id && a.IsActive == Status.Active))
                 .OrderBy(p => p.LastName)
                 .ThenBy(p => p.FirstName)
                 .ToListAsync();
-
             return View(patientsWithoutAdmission);
         }
 
-        [HttpGet("PorterLocations")]
+        [HttpGet]
         public async Task<IActionResult> PorterLocations()
         {
             int? supplierId = GetCurrentWardAdminId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var porters = await _context.Employees
                 .Where(e => e.Role == UserRole.PORTER && e.IsActive == Status.Active)
                 .OrderBy(e => e.CurrentZone)
                 .ThenBy(e => e.LastName)
                 .ToListAsync();
-
             return View(porters);
         }
-
-
-
-
-
 
         // ===============================================================
         //  PRIVATE HELPERS
@@ -1434,9 +1318,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             byte[] data = RandomNumberGenerator.GetBytes(length);
             var result = new char[length];
             for (int i = 0; i < length; i++)
-            {
                 result[i] = chars[data[i] % chars.Length];
-            }
             return new string(result);
         }
 
@@ -1450,6 +1332,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     return $"{admin.FirstName} {admin.LastName}";
             }
             return "Hospital Staff";
+        }
+
+        private string GenerateBarcodeBase64(string content)
+        {
+            var writer = new ZXing.SkiaSharp.BarcodeWriter
+            {
+                Format = ZXing.BarcodeFormat.CODE_128,
+                Options = new ZXing.Common.EncodingOptions
+                {
+                    Width = 300,
+                    Height = 80,
+                    Margin = 1
+                }
+            };
+            using var bitmap = writer.Write(content);
+            using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+            using var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+            return Convert.ToBase64String(data.ToArray());
         }
     }
 }

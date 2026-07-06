@@ -5,13 +5,11 @@ using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
-using WARDMANAGEMENTSYSTEM.Services;   // for INotificationService
+using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "PHARMACIST")]
-    [Route("[controller]")]
-
     public class PharmacistController : Controller
     {
         private readonly WardDbContext _context;
@@ -23,9 +21,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _notifService = notifService;
         }
 
-        // ------------------------------------------------------------------
-        //  HELPER – get current Pharmacist's EmployeeID from login
-        // ------------------------------------------------------------------
         private int? GetCurrentPharmacistId()
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -59,8 +54,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW PRESCRIPTIONS FORWARDED TO PHARMACY (ready to dispense)
         // ==================================================================
-
-        [HttpGet("Index")]
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             int? pharmacistId = GetCurrentPharmacistId();
@@ -80,7 +74,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISPENSE MEDICATION – GET (verification step)
         // ==================================================================
-        [HttpGet("Dispense/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Dispense(int id)
         {
             int? pharmacistId = GetCurrentPharmacistId();
@@ -100,7 +94,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISPENSE MEDICATION – POST (confirm dispensing)
         // ==================================================================
-        [HttpPost("Dispense/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Dispense(int id, string? batchNumber, int quantityDispensed = 0)
         {
@@ -117,10 +111,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             // Update prescription status
             prescription.ScriptStatus = ScriptStatus.Dispensed;
-            prescription.PharmacistId = pharmacistId;   // optional, if you added the property
+            prescription.PharmacistId = pharmacistId;
 
-            // You could also record batch number and quantity dispensed in a separate table
-            // For now we simply add a note (you can extend this later)
             prescription.Notes = (prescription.Notes ?? "") +
                                  $" | Dispensed by pharmacist #{pharmacistId} on {DateTime.Now:g}";
             if (!string.IsNullOrWhiteSpace(batchNumber))
@@ -154,8 +146,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW DETAILS OF A PRESCRIPTION (optional)
         // ==================================================================
-
-        [HttpGet("Details/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             int? pharmacistId = GetCurrentPharmacistId();

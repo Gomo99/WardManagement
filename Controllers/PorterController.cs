@@ -11,12 +11,9 @@ using WARDMANAGEMENTSYSTEM.Services;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "PORTER")]
-    [Route("[controller]")]
-
     public class PorterController : Controller
     {
         private readonly WardDbContext _context;
-
         private readonly INotificationService _notifService;
 
         public PorterController(WardDbContext context, INotificationService notifService)
@@ -59,8 +56,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PENDING MOVEMENT REQUESTS (assigned to this porter)
         // ==================================================================
-
-        [HttpGet("MyMovements")]
+        [HttpGet]
         public async Task<IActionResult> MyMovements()
         {
             int? porterId = GetCurrentPorterId();
@@ -71,8 +67,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(m => m.Admission.Bed).ThenInclude(b => b.Ward)
                 .Where(m => m.PorterId == porterId &&
                             m.MovementType == "CheckOutRequest" &&
-                           m.Timestamp == null &&
-            m.RejectedAt == null)
+                            m.Timestamp == null &&
+                            m.RejectedAt == null)
                 .OrderByDescending(m => m.Id)
                 .ToListAsync();
 
@@ -82,7 +78,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CONFIRM CHECK‑OUT (porter physically takes patient)
         // ==================================================================
-        [HttpPost("ConfirmCheckOut/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmCheckOut(int movementId)
         {
@@ -112,8 +108,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENTS CURRENTLY OUT (by this porter) – ready for check‑in
         // ==================================================================
-
-        [HttpGet("CheckInList")]
+        [HttpGet]
         public async Task<IActionResult> CheckInList()
         {
             int? porterId = GetCurrentPorterId();
@@ -147,7 +142,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CONFIRM CHECK‑IN (porter returns patient to ward)
         // ==================================================================
-        [HttpPost("ConfirmCheckIn/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmCheckIn(int admissionId)
         {
@@ -200,8 +195,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  MOVEMENT HISTORY FOR A PATIENT (anyone can view)
         // ==================================================================
-
-        [HttpGet("History/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> History(int admissionId)
         {
             var admission = await _context.Admissions
@@ -212,7 +206,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ViewBag.PatientName = $"{admission.Patient.FirstName} {admission.Patient.LastName}";
 
             var movements = await _context.PatientMovements
-                .Include(m => m.Porter)   // to show porter name
+                .Include(m => m.Porter)
                 .Where(m => m.AdmissionId == admissionId)
                 .OrderByDescending(m => m.Timestamp)
                 .ToListAsync();
@@ -220,12 +214,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(movements);
         }
 
-
         // ==================================================================
         //  ACCEPT MOVEMENT REQUEST
         // ==================================================================
-
-        [HttpGet("AcceptMovement/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AcceptMovement(int movementId)
         {
             int? porterId = GetCurrentPorterId();
@@ -247,11 +239,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             ViewBag.PatientName = movement.Admission?.Patient?.FullName;
             ViewBag.Destination = movement.Location;
-            return View(movement);   // view will have an input for minutes
+            return View(movement);
         }
 
-
-        [HttpPost("AcceptMovement/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptMovement(int movementId, int? etaMinutes)
         {
@@ -283,7 +274,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (etaMinutes.HasValue)
                 movement.ETA = DateTime.Now.AddMinutes(etaMinutes.Value);
             else
-                movement.ETA = null;   // no ETA given
+                movement.ETA = null;
 
             await _context.SaveChangesAsync();
 
@@ -314,10 +305,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = $"Movement accepted. Patient: {movement.Admission?.Patient?.FullName}.";
             return RedirectToAction(nameof(MyMovements));
         }
+
         // ==================================================================
         //  REJECT MOVEMENT REQUEST
         // ==================================================================
-        [HttpPost("RejectMovement/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectMovement(int movementId, string reason)
         {
@@ -352,7 +344,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             // --------------- NOTIFICATION TO WARD ADMIN ---------------
             try
             {
-                // Prefer the admin who created the request, otherwise the admission's original admin
                 int? targetAdminId = movement.RequestedByWardAdminId
                                      ?? movement.Admission?.CreatedByWardAdminId;
 
@@ -378,7 +369,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  REASSIGN MOVEMENT – GET (choose new porter)
         // ==================================================================
-        [HttpGet("ReassignMovement/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> ReassignMovement(int movementId)
         {
             int? porterId = GetCurrentPorterId();
@@ -403,11 +394,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(movement);
         }
 
-
         // ==================================================================
         //  REASSIGN MOVEMENT – POST
         // ==================================================================
-        [HttpPost("ReassignMovement/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReassignMovement(int movementId, int newPorterId)
         {
@@ -455,13 +445,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(MyMovements));
         }
 
-
-
         // ==================================================================
         //  COMPLETED MOVEMENTS LIST (with date filters)
         // ==================================================================
-
-        [HttpGet("CompletedMovements")]
+        [HttpGet]
         public async Task<IActionResult> CompletedMovements(DateTime? startDate, DateTime? endDate)
         {
             int? porterId = GetCurrentPorterId();
@@ -471,7 +458,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(m => m.Admission).ThenInclude(a => a.Patient)
                 .Where(m => m.PorterId == porterId &&
                             (m.MovementType == "CheckOut" || m.MovementType == "CheckIn") &&
-                            m.Timestamp.HasValue);   // completed movements only
+                            m.Timestamp.HasValue);
 
             if (startDate.HasValue)
                 query = query.Where(m => m.Timestamp!.Value.Date >= startDate.Value.Date);
@@ -489,12 +476,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(movements);
         }
 
-
-
         // ==================================================================
         //  SET CURRENT LOCATION / ZONE – GET
         // ==================================================================
-        [HttpGet("SetLocation")]
+        [HttpGet]
         public async Task<IActionResult> SetLocation()
         {
             int? porterId = GetCurrentPorterId();
@@ -503,7 +488,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var porter = await _context.Employees.FindAsync(porterId.Value);
             if (porter == null) return NotFound();
 
-            // Load the managed list of hospital locations (only active ones)
             var locations = await _context.HospitalLocations
                 .Where(l => l.IsActive == Status.Active)
                 .OrderBy(l => l.Name)
@@ -517,7 +501,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SET CURRENT LOCATION / ZONE – POST
         // ==================================================================
-        [HttpPost("SetLocation")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetLocation(string zone)
         {
@@ -540,9 +524,5 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = $"Your current zone has been updated to '{porter.CurrentZone}'.";
             return RedirectToAction(nameof(Dashboard));
         }
-
-
-
-
     }
 }

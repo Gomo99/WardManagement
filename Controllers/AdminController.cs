@@ -12,13 +12,12 @@ using WARDMANAGEMENTSYSTEM.Services;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "ADMINISTRATOR")]
-    [Route("[controller]")]
-
+    // [Route("[controller]")]   ← REMOVED
     public class AdminController : Controller
     {
         private readonly WardDbContext _context;
         private readonly IEmailService _emailService;
-        private readonly INotificationService _notifService;     // <-- new
+        private readonly INotificationService _notifService;
 
         public AdminController(WardDbContext context,
                                IEmailService emailService,
@@ -28,7 +27,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _emailService = emailService;
             _notifService = notifService;
         }
-
 
         private int? GetCurrentWardAdminId()
         {
@@ -41,18 +39,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return id;
         }
 
-
-
-
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
         public async Task<IActionResult> Dashboard()
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
 
             ViewBag.TotalEmployees = await _context.Employees.CountAsync();
             ViewBag.ActiveWards = await _context.Wards.CountAsync(w => w.IsActive == Status.Active);
@@ -65,30 +58,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  EMPLOYEES – CRUD + SOFT DELETE
         // ===============================================================
 
-        // LIST (optional filter by role or status via query string)
-        // ===============================================================
-        //  EMPLOYEES – CRUD + SOFT DELETE
-        // ===============================================================
-
         // LIST (defaults to Active employees)
-        [HttpGet("Employees")]
+        [HttpGet]
         public async Task<IActionResult> Employees(UserRole? role, string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
-
             var query = _context.Employees.AsQueryable();
-
             if (role.HasValue)
                 query = query.Where(e => e.Role == role.Value);
-
-            // Filter by status – default to Active
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(e => e.IsActive == parsedStatus);
-            }
-            // If status is "All" or any non‑parseable value, no filter is applied → shows all.
 
             var employees = await query
                 .OrderBy(e => e.LastName)
@@ -96,39 +77,36 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .ToListAsync();
 
             ViewBag.Roles = new SelectList(Enum.GetValues<UserRole>(), role);
-
-            // Build a SelectList with string keys so "All" can be passed
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Text = "Active", Value = "Active", Selected = (status == "Active") },
-        new SelectListItem { Text = "Inactive", Value = "Inactive", Selected = (status == "Inactive") },
-        new SelectListItem { Text = "All", Value = "All", Selected = (status == "All") }
-    };
+            {
+                new SelectListItem { Text = "Active", Value = "Active", Selected = (status == "Active") },
+                new SelectListItem { Text = "Inactive", Value = "Inactive", Selected = (status == "Inactive") },
+                new SelectListItem { Text = "All", Value = "All", Selected = (status == "All") }
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(employees);
         }
+
         // CREATE – GET
-        [HttpGet("CreateEmployee")]
+        [HttpGet]
         public IActionResult CreateEmployee()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
 
             ViewBag.Roles = new SelectList(Enum.GetValues<UserRole>());
             ViewBag.Genders = new SelectList(Enum.GetValues<GenderType>());
             return View();
         }
 
-        // CREATE – POST (with auto-generated password)
-        [HttpPost("CreateEmployee")]
+        // CREATE – POST
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateEmployee(Employee employee)
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
 
             ModelState.Remove("EmployeeID");
             ModelState.Remove("FullName");
@@ -155,7 +133,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(employee);
             }
 
-            // 1. Generate temporary password
             string tempPassword = GenerateRandomPassword(12);
             employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
             employee.IsActive = Status.Active;
@@ -163,10 +140,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             employee.FailedLoginAttempts = 0;
 
             _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();   // Employee now has an ID
-
-            // 2. Email the temporary password
-            // In AdminController.CreateEmployee POST method, replace the email sending section:
+            await _context.SaveChangesAsync();
 
             try
             {
@@ -178,7 +152,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     employee.Email,
                     tempPassword,
                     loginUrl);
-
                 TempData["SuccessMessage"] = $"Employee created. Temporary password emailed to {employee.Email}.";
             }
             catch (Exception ex)
@@ -186,10 +159,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 TempData["SuccessMessage"] = $"Employee created, but email delivery failed ({ex.Message}).";
             }
 
-            // 3. Send in-app notification to the new employee
             try
             {
-                // Get the admin who is currently logged in
                 var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 string adminName = "System";
                 if (!string.IsNullOrEmpty(adminIdClaim) && int.TryParse(adminIdClaim, out int adminId))
@@ -198,7 +169,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     if (admin != null)
                         adminName = $"{admin.FirstName} {admin.LastName}";
                 }
-
                 string notificationMsg = $"Your account was created by {adminName}. Please log in to change your password.";
                 await _notifService.NotifyUserAsync(employee.EmployeeID, "Employee",
                     notificationMsg,
@@ -211,9 +181,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return RedirectToAction(nameof(Employees));
         }
-        // EDIT – GET
-        [HttpGet("EditEmployee")]
 
+        // EDIT – GET
+        [HttpGet]
         public async Task<IActionResult> EditEmployee(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -227,14 +197,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(employee);
         }
 
-        // EDIT – POST (password is never edited)
-        [HttpPost("EditEmployee")]
+        // EDIT – POST
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditEmployee(int id, Employee posted)
         {
             if (id != posted.EmployeeID) return BadRequest();
 
-            // Keep password and security fields untouched
             ModelState.Remove("PasswordHash");
             ModelState.Remove("EmailVerificationTokenHash");
             ModelState.Remove("EmailVerificationTokenExpires");
@@ -272,7 +241,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 employee.HireDate = posted.HireDate;
 
                 await _context.SaveChangesAsync();
-
                 TempData["SuccessMessage"] = "Employee updated.";
                 return RedirectToAction(nameof(Employees));
             }
@@ -284,8 +252,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS, DELETE, RESTORE are unchanged (but listed below for completeness)
-        [HttpGet("DetailsEmployee/{int:id")]
+        // DETAILS
+        [HttpGet]
         public async Task<IActionResult> DetailsEmployee(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -296,7 +264,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(employee);
         }
 
-        [HttpPost("DeleteEmployee/{int:id}")]
+        // DELETE
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
@@ -311,7 +280,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Employees));
         }
 
-        [HttpPost("RestoreEmployee/{int:id}")]
+        // RESTORE
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreEmployee(int id)
         {
@@ -329,48 +299,38 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  WARDS – CRUD + SOFT DELETE
         // ===============================================================
-
-        // LIST all wards
-        [HttpGet("Wards")]
+        [HttpGet]
         public async Task<IActionResult> Wards(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var query = _context.Wards.AsQueryable();
-
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(w => w.IsActive == parsedStatus);
-            }
-            // If status is "All" or invalid, no filter → shows all wards.
 
             var wards = await query.OrderBy(w => w.Name).ToListAsync();
 
-            // Build a string‑based SelectList for the dropdown
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(wards);
         }
 
-        // CREATE – GET
-        [HttpGet("CreateWard")]
+        [HttpGet]
         public IActionResult CreateWard()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
             return View();
         }
 
-        // CREATE – POST
-        [HttpPost("CreateWard")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateWard(Ward ward)
         {
@@ -379,9 +339,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             ModelState.Remove("Id");
             ModelState.Remove("Beds");
-
-            if (!ModelState.IsValid)
-                return View(ward);
+            if (!ModelState.IsValid) return View(ward);
 
             ward.IsActive = Status.Active;
             _context.Wards.Add(ward);
@@ -391,8 +349,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Wards));
         }
 
-        // EDIT – GET
-        [HttpGet("EditWard/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditWard(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -403,16 +360,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(ward);
         }
 
-        // EDIT – POST
-        [HttpPost("EditWard")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditWard(int id, Ward ward)
         {
             if (id != ward.Id) return BadRequest();
-
             ModelState.Remove("Beds");
-            if (!ModelState.IsValid)
-                return View(ward);
+            if (!ModelState.IsValid) return View(ward);
 
             try
             {
@@ -434,8 +388,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS
-        [HttpGet("DetailsWard/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DetailsWard(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -446,8 +399,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(ward);
         }
 
-        // SOFT DELETE – POST
-        [HttpPost("DeleteWard /{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteWard(int id)
         {
@@ -464,12 +416,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Wards));
         }
 
-        // RESTORE – POST
-        [HttpPost("RestoreWard /{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreWard(int id)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
@@ -486,27 +436,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  BEDS – CRUD + SOFT DELETE
         // ===============================================================
-
-        // LIST all beds (optionally filter by ward using query string ?wardId=)
-        [HttpGet("Beds")]
+        [HttpGet]
         public async Task<IActionResult> Beds(int? wardId, string status = "Active")
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var query = _context.Beds.AsQueryable();
-
-            // Filter by ward
             if (wardId.HasValue)
                 query = query.Where(b => b.WardId == wardId.Value);
-
-            // Filter by status – default to Active
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(b => b.IsActive == parsedStatus);
-            }
-            // If status is "All" or any invalid value, no status filter is applied → shows all beds.
 
             var beds = await query
                 .Include(b => b.Ward)
@@ -514,25 +454,22 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .ThenBy(b => b.BedNumber)
                 .ToListAsync();
 
-            // Ward dropdown (only active wards)
             ViewBag.Wards = new SelectList(
                 _context.Wards.Where(w => w.IsActive == Status.Active),
                 "Id", "Name", wardId);
 
-            // Status dropdown
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(beds);
         }
 
-        // CREATE – GET
-        [HttpGet("CreateBed")]
+        [HttpGet]
         public IActionResult CreateBed()
         {
             int? managerId = GetCurrentWardAdminId();
@@ -542,18 +479,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View();
         }
 
-        // CREATE – POST
-        [HttpPost("CreateBed")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBed(Bed bed)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             ModelState.Remove("Id");
             ModelState.Remove("Ward");
-
             if (!ModelState.IsValid)
             {
                 ViewBag.Wards = new SelectList(_context.Wards.Where(w => w.IsActive == Status.Active), "Id", "Name", bed.WardId);
@@ -568,8 +502,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Beds));
         }
 
-        // EDIT – GET
-        [HttpGet("EditBed/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditBed(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -582,17 +515,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(bed);
         }
 
-        // EDIT – POST
-        [HttpPost("EditBed")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditBed(int id, Bed bed)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             if (id != bed.Id) return BadRequest();
-
             ModelState.Remove("Ward");
             if (!ModelState.IsValid)
             {
@@ -621,8 +551,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS
-        [HttpGet("DetailsBed/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DetailsBed(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -635,8 +564,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(bed);
         }
 
-        // SOFT DELETE – POST
-        [HttpPost("DeleteBed/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteBed(int id)
         {
@@ -648,13 +576,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             bed.IsActive = Status.Inactive;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Bed deactivated (soft deleted).";
             return RedirectToAction(nameof(Beds));
         }
 
-        // RESTORE – POST
-        [HttpPost("RestoreBed/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreBed(int id)
         {
@@ -666,7 +592,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             bed.IsActive = Status.Active;
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Bed reactivated.";
             return RedirectToAction(nameof(Beds));
         }
@@ -674,46 +599,38 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  CONSUMABLES – CRUD + SOFT DELETE
         // ===============================================================
-
-        // LIST all consumables
-        [HttpGet("Consumables")]
+        [HttpGet]
         public async Task<IActionResult> Consumables(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var query = _context.Consumables.AsQueryable();
-
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(c => c.IsActive == parsedStatus);
-            }
-            // If status is "All" or invalid, no filter → shows all consumables.
 
             var consumables = await query.OrderBy(c => c.Name).ToListAsync();
 
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(consumables);
         }
-        // CREATE – GET
-        [HttpGet("CreateConsumable")]
+
+        [HttpGet]
         public IActionResult CreateConsumable()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
             return View();
         }
 
-        // CREATE – POST
-        [HttpPost("CreateConsumable")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateConsumable(Consumable consumable)
         {
@@ -721,9 +638,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             ModelState.Remove("Id");
-
-            if (!ModelState.IsValid)
-                return View(consumable);
+            if (!ModelState.IsValid) return View(consumable);
 
             consumable.IsActive = Status.Active;
             _context.Consumables.Add(consumable);
@@ -733,8 +648,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Consumables));
         }
 
-        // EDIT – GET
-        [HttpGet("EditConsumable/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditConsumable(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -745,19 +659,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(consumable);
         }
 
-        // EDIT – POST
-        [HttpPost("EditConsumable/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditConsumable(int id, Consumable posted)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             if (id != posted.Id) return BadRequest();
-
-            if (!ModelState.IsValid)
-                return View(posted);
+            if (!ModelState.IsValid) return View(posted);
 
             try
             {
@@ -781,12 +691,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS
-        [HttpGet("DetailsConsumable/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> DetailsConsumable(int id)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
@@ -795,8 +702,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(consumable);
         }
 
-        // SOFT DELETE – POST
-        [HttpPost("DeleteConsumable/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConsumable(int id)
         {
@@ -813,8 +719,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Consumables));
         }
 
-        // RESTORE – POST
-        [HttpPost("RestoreConsumable/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreConsumable(int id)
         {
@@ -832,60 +737,78 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  MEDICATIONS – CRUD + SOFT DELETE
+        //  MEDICATIONS – CRUD + SOFT DELETE (with Allergy/Condition links)
         // ===============================================================
-
-        // LIST all medications
-        [HttpGet("Medications")]
+        [HttpGet]
         public async Task<IActionResult> Medications(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
-            var query = _context.Medications.AsQueryable();
+            var query = _context.Medications
+                .Include(m => m.AllergyMedications)
+                    .ThenInclude(am => am.Allergy)
+                .Include(m => m.ConditionMedications)
+                    .ThenInclude(cm => cm.Condition)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(m => m.IsActive == parsedStatus);
-            }
-            // If status is "All" or invalid, no filter → shows all medications.
 
             var medications = await query.OrderBy(m => m.Name).ToListAsync();
 
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(medications);
         }
 
-
-        // CREATE – GET
-        [HttpGet("CreateMedication")]
+        [HttpGet]
         public IActionResult CreateMedication()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
+            PopulateMedicationDropDowns();
+            ViewBag.SelectedAllergyIds = new List<int>();
+            ViewBag.SelectedConditionIds = new List<int>();
             return View();
         }
 
-
-        // CREATE – POST
-        [HttpPost("CreateMedication")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateMedication(Medication medication)
+        public async Task<IActionResult> CreateMedication(Medication medication, int[]? allergyIds, int[]? conditionIds)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
+            ModelState.Remove("AllergyMedications");
+            ModelState.Remove("ConditionMedications");
 
             if (!ModelState.IsValid)
+            {
+                PopulateMedicationDropDowns();
                 return View(medication);
+            }
 
             medication.IsActive = Status.Active;
+            medication.AllergyMedications = new List<AllergyMedication>();
+            medication.ConditionMedications = new List<ConditionMedication>();
+
+            if (allergyIds != null)
+                foreach (var allergyId in allergyIds)
+                    medication.AllergyMedications.Add(new AllergyMedication { AllergyId = allergyId });
+
+            if (conditionIds != null)
+                foreach (var conditionId in conditionIds)
+                    medication.ConditionMedications.Add(new ConditionMedication { ConditionId = conditionId });
+
             _context.Medications.Add(medication);
             await _context.SaveChangesAsync();
 
@@ -893,33 +816,70 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Medications));
         }
 
-        // EDIT – GET
-        [HttpGet("EditMedication/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditMedication(int id)
         {
-            var medication = await _context.Medications.FindAsync(id);
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var medication = await _context.Medications
+                .Include(m => m.AllergyMedications)
+                .Include(m => m.ConditionMedications)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
             if (medication == null) return NotFound();
+
+            PopulateMedicationDropDowns();
+            ViewBag.SelectedAllergyIds = medication.AllergyMedications
+                .Select(am => am.AllergyId).ToList();
+            ViewBag.SelectedConditionIds = medication.ConditionMedications
+                .Select(cm => cm.ConditionId).ToList();
+
             return View(medication);
         }
 
-        // EDIT – POST
-        [HttpPost("EditMedication/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditMedication(int id, Medication posted)
+        public async Task<IActionResult> EditMedication(int id, Medication posted, int[]? allergyIds, int[]? conditionIds)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
 
+            ModelState.Remove("AllergyMedications");
+            ModelState.Remove("ConditionMedications");
+
             if (!ModelState.IsValid)
+            {
+                PopulateMedicationDropDowns();
                 return View(posted);
+            }
 
             try
             {
-                var medication = await _context.Medications.FindAsync(id);
+                var medication = await _context.Medications
+                    .Include(m => m.AllergyMedications)
+                    .Include(m => m.ConditionMedications)
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
                 if (medication == null) return NotFound();
 
                 medication.Name = posted.Name;
                 medication.Description = posted.Description;
                 medication.DosageForm = posted.DosageForm;
+                medication.Schedule = posted.Schedule;
+
+                medication.AllergyMedications.Clear();
+                if (allergyIds != null)
+                    foreach (var allergyId in allergyIds)
+                        medication.AllergyMedications.Add(new AllergyMedication { AllergyId = allergyId });
+
+                medication.ConditionMedications.Clear();
+                if (conditionIds != null)
+                    foreach (var conditionId in conditionIds)
+                        medication.ConditionMedications.Add(new ConditionMedication { ConditionId = conditionId });
+
                 await _context.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Medication updated.";
@@ -933,20 +893,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
         }
 
-        // DETAILS
-        [HttpGet("DetailsMedication/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DetailsMedication(int id)
         {
-            var medication = await _context.Medications.FindAsync(id);
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var medication = await _context.Medications
+                .Include(m => m.AllergyMedications)
+                    .ThenInclude(am => am.Allergy)
+                .Include(m => m.ConditionMedications)
+                    .ThenInclude(cm => cm.Condition)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
             if (medication == null) return NotFound();
             return View(medication);
         }
 
-        // SOFT DELETE – POST
-        [HttpPost("DeleteMedication/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedication(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var medication = await _context.Medications.FindAsync(id);
             if (medication == null) return NotFound();
 
@@ -957,11 +927,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Medications));
         }
 
-        // RESTORE – POST
-        [HttpPost("RestoreMedication/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedication(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var medication = await _context.Medications.FindAsync(id);
             if (medication == null) return NotFound();
 
@@ -972,47 +944,57 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Medications));
         }
 
+        private void PopulateMedicationDropDowns()
+        {
+            var allergies = _context.Allergies
+                .Where(a => a.IsActive == Status.Active)
+                .OrderBy(a => a.Name)
+                .ToList();
+
+            var conditions = _context.Conditions
+                .Where(c => c.IsActive == Status.Active)
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            ViewBag.Allergies = new SelectList(allergies, "Id", "Name");
+            ViewBag.Conditions = new SelectList(conditions, "Id", "Name");
+        }
+
         // ===============================================================
         //  ALLERGIES – CRUD + SOFT DELETE
         // ===============================================================
-
-        [HttpGet("Allergies")]
+        [HttpGet]
         public async Task<IActionResult> Allergies(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var query = _context.Allergies.AsQueryable();
-
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(a => a.IsActive == parsedStatus);
-            }
-            // If status is "All" or invalid, no filter → shows all allergies.
 
             var allergies = await query.OrderBy(a => a.Name).ToListAsync();
 
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(allergies);
         }
 
-        [HttpGet("CreateAllergy")]
+        [HttpGet]
         public IActionResult CreateAllergy()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
             return View();
         }
 
-        [HttpPost("CreateAllergy")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateAllergy(Allergy allergy)
         {
@@ -1030,7 +1012,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
-        [HttpGet("EditAllergy/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditAllergy(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1041,7 +1023,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(allergy);
         }
 
-        [HttpPost("EditAllergy/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditAllergy(int id, Allergy posted)
         {
@@ -1062,7 +1044,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
-        [HttpGet("DetailsAllergy/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DetailsAllergy(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1073,7 +1055,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(allergy);
         }
 
-        [HttpPost("DeleteAllergy/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAllergy(int id)
         {
@@ -1090,7 +1072,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
-        [HttpPost("RestoreAllergy/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreAllergy(int id)
         {
@@ -1110,51 +1092,43 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  CONDITIONS – CRUD + SOFT DELETE
         // ===============================================================
-
-        [HttpGet("Conditions")]
+        [HttpGet]
         public async Task<IActionResult> Conditions(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var query = _context.Conditions.AsQueryable();
-
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
-            {
                 query = query.Where(c => c.IsActive == parsedStatus);
-            }
-            // If status is "All" or invalid, no filter → shows all conditions.
 
             var conditions = await query.OrderBy(c => c.Name).ToListAsync();
 
             var statusOptions = new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    };
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            };
             ViewBag.Statuses = new SelectList(statusOptions, "Value", "Text", status);
 
             return View(conditions);
         }
 
-        [HttpGet("CreateCondition")]
+        [HttpGet]
         public IActionResult CreateCondition()
         {
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
-           return View();
+            return View();
         }
 
-        [HttpPost("CreateCondition")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCondition(Condition condition)
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
-
 
             ModelState.Remove("Id");
             if (!ModelState.IsValid) return View(condition);
@@ -1167,7 +1141,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
-        [HttpGet("EditCondition/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditCondition(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1178,7 +1152,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(condition);
         }
 
-        [HttpPost("EditCondition/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCondition(int id, Condition posted)
         {
@@ -1199,9 +1173,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
-
-        [HttpGet("DetailsCondition/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> DetailsCondition(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1212,7 +1184,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(condition);
         }
 
-        [HttpPost("DeleteCondition/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCondition(int id)
         {
@@ -1229,7 +1201,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
-        [HttpPost("RestoreCondition/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreCondition(int id)
         {
@@ -1247,20 +1219,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ===============================================================
-        //  HOSPITAL / BUSINESS INFO – (Single Record Management)
+        //  HOSPITAL / BUSINESS INFO
         // ===============================================================
-
-        [HttpGet("HospitalInfo")]
+        [HttpGet]
         public async Task<IActionResult> HospitalInfo()
         {
-
             int? managerId = GetCurrentWardAdminId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var info = await _context.HospitalInfos.FirstOrDefaultAsync();
             if (info == null)
             {
-                // Create a default record if none exists
                 info = new HospitalInfo { IsActive = Status.Active };
                 _context.HospitalInfos.Add(info);
                 await _context.SaveChangesAsync();
@@ -1269,9 +1238,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(info);
         }
 
-
-        [HttpGet("EditHospitalInfo/{int:id}")]
-
+        [HttpGet]
         public async Task<IActionResult> EditHospitalInfo(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1282,7 +1249,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(info);
         }
 
-        [HttpPost("EditHospitalInfo/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditHospitalInfo(int id, HospitalInfo posted)
         {
@@ -1305,8 +1272,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(HospitalInfo));
         }
 
-        // Soft delete / restore for hospital info (if needed)
-        [HttpPost("DeleteHospitalInfo/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteHospitalInfo(int id)
         {
@@ -1323,7 +1289,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(HospitalInfo));
         }
 
-        [HttpPost("RestoreHospitalInfo/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreHospitalInfo(int id)
         {
@@ -1340,13 +1306,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(HospitalInfo));
         }
 
-
-
         // ===============================================================
         //  HOSPITAL LOCATIONS – CRUD + SOFT DELETE
         // ===============================================================
-
-        [HttpGet("Locations")]
+        [HttpGet]
         public async Task<IActionResult> Locations(string status = "Active")
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1359,26 +1322,22 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var locations = await query.OrderBy(l => l.Name).ToListAsync();
 
             ViewBag.Statuses = new SelectList(new List<SelectListItem>
-    {
-        new SelectListItem("Active", "Active", status == "Active"),
-        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
-        new SelectListItem("All", "All", status == "All")
-    }, "Value", "Text", status);
+            {
+                new SelectListItem("Active", "Active", status == "Active"),
+                new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+                new SelectListItem("All", "All", status == "All")
+            }, "Value", "Text", status);
 
             return View(locations);
         }
-        [HttpGet("CreateLocation")]
 
-        public IActionResult CreateLocation() 
-        { 
-            
-            
-            return View(); 
-        
-        
+        [HttpGet]
+        public IActionResult CreateLocation()
+        {
+            return View();
         }
 
-        [HttpPost("CreateLocation")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateLocation(HospitalLocation location)
         {
@@ -1394,7 +1353,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Locations));
         }
 
-        [HttpGet("EditLocation/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditLocation(int id)
         {
             int? managerId = GetCurrentWardAdminId();
@@ -1405,7 +1364,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(location);
         }
 
-        [HttpPost("EditLocation/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditLocation(int id, HospitalLocation posted)
         {
@@ -1422,7 +1381,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Locations));
         }
 
-        [HttpPost("DeleteLocation/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteLocation(int id)
         {
@@ -1437,7 +1396,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Locations));
         }
 
-        [HttpPost("RestoreLocation/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreLocation(int id)
         {
@@ -1451,7 +1410,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Location reactivated.";
             return RedirectToAction(nameof(Locations));
         }
-
 
         private static string GenerateRandomPassword(int length)
         {

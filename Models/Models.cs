@@ -39,6 +39,11 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public ICollection<PatientMovement> PatientMovements { get; set; } = new List<PatientMovement>();
 
 
+        // --- NEW: Social Worker assignment ---
+        public int? SocialWorkerId { get; set; }
+        [ForeignKey(nameof(SocialWorkerId))]
+        public Employee? SocialWorker { get; set; }
+
         public int? CreatedByWardAdminId { get; set; }
         [ForeignKey(nameof(CreatedByWardAdminId))]
         public Employee? CreatedByWardAdmin { get; set; }
@@ -636,6 +641,31 @@ namespace WARDMANAGEMENTSYSTEM.Models
     }
 
 
+    public class AllergyMedication
+    {
+        public int Id { get; set; }
+
+        public int MedicationId { get; set; }
+        public Medication Medication { get; set; } = null!;
+
+        public int AllergyId { get; set; }
+        public Allergy Allergy { get; set; } = null!;
+    }
+
+
+    public class ConditionMedication
+    {
+        public int Id { get; set; }
+
+        public int MedicationId { get; set; }
+        public Medication Medication { get; set; } = null!;
+
+        public int ConditionId { get; set; }
+        public Condition Condition { get; set; } = null!;
+    }
+
+
+
     public class Medication
     {
         public int Id { get; set; }
@@ -652,6 +682,8 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public int? Schedule { get; set; }   // 1-8, higher = more controlled
         public Status IsActive { get; set; } = Status.Active;
 
+        public ICollection<AllergyMedication> AllergyMedications { get; set; } = new List<AllergyMedication>();
+        public ICollection<ConditionMedication> ConditionMedications { get; set; } = new List<ConditionMedication>();
 
     }
 

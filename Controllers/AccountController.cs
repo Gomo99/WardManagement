@@ -15,7 +15,7 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Route("[controller]")]
+    // [Route("[controller]")]  ← REMOVED
     public class AccountController : Controller
     {
         private readonly WardDbContext _context;
@@ -37,7 +37,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _twoFactorService = twoFactorService;
             _recaptchaService = recaptchaService;
         }
-
 
         // ======================================================================
         //  HELPERS
@@ -96,9 +95,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     ExpiresUtc = isPersistent ? DateTimeOffset.UtcNow.AddDays(7) : null
                 });
         }
-
-
-       
 
         private IActionResult RedirectToDashboard(UserRole? role = null)
         {
@@ -206,7 +202,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return device;
         }
 
-
         private const int PasswordHistoryLimit = 5;
 
         private bool IsPasswordPreviouslyUsed(string newPassword, string? previousHashesJson)
@@ -218,7 +213,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (previousHashes == null)
                 return false;
 
-            // Compare new password against each previous hash
             foreach (var hash in previousHashes)
             {
                 if (BCrypt.Net.BCrypt.Verify(newPassword, hash))
@@ -233,42 +227,35 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 ? new List<string>()
                 : JsonSerializer.Deserialize<List<string>>(previousHashesJson) ?? new List<string>();
 
-            // Insert the current (old) hash at the beginning
             hashes.Insert(0, currentPasswordHash);
 
-            // Keep only the last N hashes
             if (hashes.Count > PasswordHistoryLimit)
                 hashes = hashes.Take(PasswordHistoryLimit).ToList();
 
             return JsonSerializer.Serialize(hashes);
         }
 
-
-
         // ======================================================================
         //  LOGIN (Employee & Patient)
         // ======================================================================
-        [HttpGet("Login")]
+        [HttpGet]
         public IActionResult Login(string? returnUrl = null)
         {
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToDashboard();
 
             ViewData["ReturnUrl"] = returnUrl;
-            ViewBag.ShowCaptcha = true;                       // always show
-            ViewBag.SiteKey = _recaptchaService.SiteKey;      // site key from config
+            ViewBag.ShowCaptcha = true;
+            ViewBag.SiteKey = _recaptchaService.SiteKey;
             return View();
         }
 
-
-
-        [HttpPost("Login")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             if (!ModelState.IsValid) return View(model);
 
-            // ---- Always validate CAPTCHA ----
             var token = Request.Form["g-recaptcha-response"];
             if (string.IsNullOrEmpty(token))
             {
@@ -385,13 +372,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(model);
         }
 
-
-
         // ======================================================================
-        //  TWO‑FACTOR CHALLENGE (for both Employee and Patient)
+        //  TWO‑FACTOR CHALLENGE
         // ======================================================================
         [Authorize]
-        [HttpGet("TwoFactorChallenge")]
+        [HttpGet]
         public IActionResult TwoFactorChallenge()
         {
             if (TempData["2fa_pending_id"] == null) return RedirectToAction("Login");
@@ -402,7 +387,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(model);
         }
 
-        [HttpPost("TwoFactorChallenge")]
+        [Authorize]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TwoFactorChallenge(TwoFactorChallengeViewModel model)
         {
@@ -418,10 +404,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (!int.TryParse(pendingId, out int userId))
                 return RedirectToAction("Login");
 
-            // Retrieve the correct entity
             string? secretKey = null;
             string? recoveryJson = null;
-            UserRole role = UserRole.PATIENT; // default
+            UserRole role = UserRole.PATIENT;
             if (pendingType == "Employee")
             {
                 var e = await _context.Employees.FindAsync(userId);
@@ -468,7 +453,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(model);
             }
 
-            // Trust device
             if (model.TrustDevice)
             {
                 string deviceId = GetOrCreateDeviceId();
@@ -479,7 +463,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Build claims and sign in
             ClaimsPrincipal principal;
             if (pendingType == "Employee")
             {
@@ -496,7 +479,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData.Remove("2fa_pending_id"); TempData.Remove("2fa_pending_type");
             TempData.Remove("2fa_remember_me"); TempData.Remove("2fa_return_url");
 
-            // Check MustChangePassword after login
             if (pendingType == "Employee")
             {
                 var e = await _context.Employees.FindAsync(userId);
@@ -512,10 +494,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ======================================================================
-        //  TWO‑FACTOR SETUP & MANAGEMENT (for current user, regardless of role)
+        //  TWO‑FACTOR SETUP & MANAGEMENT
         // ======================================================================
         [Authorize]
-        [HttpGet("SetupTwoFactor")]
+        [HttpGet]
         public async Task<IActionResult> SetupTwoFactor()
         {
             var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
@@ -556,7 +538,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpPost("SetupTwoFactor")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetupTwoFactor(TwoFactorSetupViewModel model)
         {
@@ -621,7 +603,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpGet("ShowRecoveryCodes")]
+        [HttpGet]
         public IActionResult ShowRecoveryCodes(string codes)
         {
             if (string.IsNullOrEmpty(codes)) return RedirectToAction("ManageTwoFactor");
@@ -629,7 +611,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpGet("ManageTwoFactor")]
+        [HttpGet]
         public async Task<IActionResult> ManageTwoFactor()
         {
             var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
@@ -654,7 +636,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpPost("ManageTwoFactor")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegenerateRecoveryCodes()
         {
@@ -684,7 +666,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpPost("DisableTwoFactor")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DisableTwoFactor(string password)
         {
@@ -714,10 +696,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ======================================================================
-        //  DEVICE MANAGEMENT (unchanged – works for both)
+        //  DEVICE MANAGEMENT
         // ======================================================================
         [Authorize]
-        [HttpGet("ManageDevices")]
+        [HttpGet]
         public async Task<IActionResult> ManageDevices()
         {
             var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
@@ -730,7 +712,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpPost("RevokeDevice/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RevokeDevice(int deviceId)
         {
@@ -743,12 +725,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ======================================================================
-        //  FORGOT / RESET PASSWORD (no change needed – 2FA is not involved)
+        //  FORGOT / RESET PASSWORD
         // ======================================================================
-        [HttpGet("ForgotPassword")]
+        [HttpGet]
         public IActionResult ForgotPassword() => View();
 
-        [HttpPost("ForgotPassword")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
@@ -760,16 +742,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (emp == null && pat == null)
             {
                 SetSuccess("If an account exists, a reset link has been sent.");
-                return RedirectToAction(nameof(ForgotPasswordConfirmation));
+                return RedirectToAction("ForgotPasswordConfirmation");
             }
 
-            // Declare token and expiry ONCE at this level
             string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             DateTime expiry = DateTime.Now.AddHours(1);
 
             if (emp != null)
             {
-                // Remove the duplicate declarations - just use the variables
                 emp.ResetToken = token;
                 emp.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
@@ -779,7 +759,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
             else if (pat != null)
             {
-                // Remove the duplicate declarations - just use the variables
                 pat.ResetToken = token;
                 pat.ResetTokenExpiry = expiry;
                 await _context.SaveChangesAsync();
@@ -789,22 +768,20 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             SetSuccess("If an account exists, a reset link has been sent.");
-            return RedirectToAction(nameof(ForgotPasswordConfirmation));
+            return RedirectToAction("ForgotPasswordConfirmation");
         }
 
-
-
-        [HttpGet("ForgotPasswordConfirmation")]
+        [HttpGet]
         public IActionResult ForgotPasswordConfirmation() => View();
 
-        [HttpGet("ResetPassword")]
+        [HttpGet]
         public IActionResult ResetPassword(string email, string token)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token)) return RedirectToAction("Login");
             return View(new ResetPasswordViewModel { Email = email, Token = token });
         }
 
-        [HttpPost("ResetPassword")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
         {
@@ -825,14 +802,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             if (emp != null)
             {
-                // Check reuse
                 if (IsPasswordPreviouslyUsed(model.Password, emp.PreviousPasswordHashes))
                 {
                     SetError("You cannot reuse a previous password.");
                     return View(model);
                 }
 
-                string oldHash = emp.PasswordHash; // store old hash in history
+                string oldHash = emp.PasswordHash;
                 emp.PasswordHash = HashPassword(model.Password);
                 emp.PreviousPasswordHashes = AddPasswordToHistory(oldHash, emp.PreviousPasswordHashes);
                 emp.ResetToken = null;
@@ -841,7 +817,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
             else if (pat != null)
             {
-                // Check reuse
                 if (IsPasswordPreviouslyUsed(model.Password, pat.PreviousPasswordHashes))
                 {
                     SetError("You cannot reuse a previous password.");
@@ -858,22 +833,21 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             await _context.SaveChangesAsync();
             SetSuccess("Password reset. Please login.");
-            return RedirectToAction(nameof(ResetPasswordConfirmation));
+            return RedirectToAction("ResetPasswordConfirmation");
         }
 
-
-        [HttpGet("ResetPasswordConfirmation")]
+        [HttpGet]
         public IActionResult ResetPasswordConfirmation() => View();
 
         // ======================================================================
-        //  CHANGE PASSWORD (updated for both roles)
+        //  CHANGE PASSWORD
         // ======================================================================
         [Authorize]
-        [HttpGet("ChangePassword")]
+        [HttpGet]
         public IActionResult ChangePassword() => View();
 
         [Authorize]
-        [HttpPost("ChangePassword")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
         {
@@ -899,14 +873,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 if (!VerifyPassword(model.CurrentPassword, p.PasswordHash))
                 { SetError("Current password incorrect."); return View(model); }
 
-                // Check reuse
                 if (IsPasswordPreviouslyUsed(model.NewPassword, p.PreviousPasswordHashes))
                 {
                     SetError("You cannot reuse a previous password.");
                     return View(model);
                 }
 
-                currentPasswordHash = p.PasswordHash; // old hash to store in history
+                currentPasswordHash = p.PasswordHash;
                 previousHashesJson = p.PreviousPasswordHashes;
 
                 p.PasswordHash = HashPassword(model.NewPassword);
@@ -920,7 +893,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 if (!VerifyPassword(model.CurrentPassword, e.PasswordHash))
                 { SetError("Current password incorrect."); return View(model); }
 
-                // Check reuse
                 if (IsPasswordPreviouslyUsed(model.NewPassword, e.PreviousPasswordHashes))
                 {
                     SetError("You cannot reuse a previous password.");
@@ -937,7 +909,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Re‑sign in to update claims
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()), new Claim(ClaimTypes.Role, role) };
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
@@ -947,11 +918,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             SetSuccess("Password changed.");
             return RedirectToDashboard();
         }
+
         // ======================================================================
-        //  EDIT PROFILE (unchanged)
+        //  EDIT PROFILE
         // ======================================================================
         [Authorize]
-        [HttpGet("EditProfile")]
+        [HttpGet]
         public async Task<IActionResult> EditProfile()
         {
             var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
@@ -961,7 +933,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         [Authorize]
-        [HttpPost("EditProfile")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditProfile(EditProfileViewModel model)
         {
@@ -978,14 +950,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // ======================================================================
-        //  DEACTIVATE ACCOUNT (works for both)
+        //  DEACTIVATE ACCOUNT
         // ======================================================================
         [Authorize]
-        [HttpGet("DeactivateAccount")]
+        [HttpGet]
         public IActionResult DeactivateAccount() => View();
 
         [Authorize]
-        [HttpPost("DeactivateAccount")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeactivateAccount(string password)
         {
@@ -1016,7 +988,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ======================================================================
         //  LOGOUT
         // ======================================================================
-        [HttpPost("Logout")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
@@ -1026,12 +998,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Login");
         }
 
-
         // ======================================================================
-        //  CHANGE EMAIL – GET
+        //  CHANGE EMAIL
         // ======================================================================
         [Authorize]
-        [HttpGet("ChangeEmail")]
+        [HttpGet]
         public async Task<IActionResult> ChangeEmail()
         {
             var userId = GetCurrentUserId(); if (userId == null) return RedirectToAction("Login");
@@ -1062,11 +1033,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             });
         }
 
-        // ======================================================================
-        //  CHANGE EMAIL – POST
-        // ======================================================================
         [Authorize]
-        [HttpPost("ChangeEmail")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangeEmail(ChangeEmailViewModel model)
         {
@@ -1075,7 +1043,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             if (!ModelState.IsValid) return View(model);
 
-            // Check if new email is already used by another account
             bool emailExists = false;
             if (role == UserRole.PATIENT.ToString())
             {
@@ -1094,7 +1061,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(model);
             }
 
-            // Generate token
             string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             DateTime expiry = DateTime.Now.AddHours(24);
 
@@ -1121,20 +1087,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Send confirmation link to the new email
             var confirmationLink = Url.Action("ConfirmEmailChange", "Account",
                 new { email = model.NewEmail, token }, Request.Scheme)!;
-
             await _emailService.SendEmailChangeConfirmationAsync(model.NewEmail, userName!, confirmationLink);
 
             SetSuccess("A confirmation link has been sent to your new email address. Please check your inbox.");
             return RedirectToAction("ChangeEmail");
         }
 
-        // ======================================================================
-        //  CONFIRM EMAIL CHANGE – GET (called from the link)
-        // ======================================================================
-        [HttpGet("ConfirmEmailChange")]
+        [HttpGet]
         public async Task<IActionResult> ConfirmEmailChange(string email, string token)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
@@ -1143,7 +1104,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction("Login");
             }
 
-            // Look for patient first, then employee
             var patient = await _context.Patients.FirstOrDefaultAsync(p =>
                 p.PendingEmail == email && p.EmailChangeToken == token && p.EmailChangeTokenExpiry > DateTime.Now);
             if (patient != null)
@@ -1173,9 +1133,5 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             SetError("Invalid or expired confirmation link.");
             return RedirectToAction("Login");
         }
-
-
-
-
     }
 }

@@ -15,6 +15,9 @@ namespace WARDMANAGEMENTSYSTEM.Data
         public DbSet<Ward> Wards { get; set; }
         public DbSet<HospitalLocation> HospitalLocations { get; set; }
         public DbSet<Bed> Beds { get; set; }
+
+        public DbSet<AllergyMedication> AllergyMedications { get; set; }
+        public DbSet<ConditionMedication> ConditionMedications { get; set; }
         public DbSet<ConsumableOrderBatch> ConsumableOrderBatches { get; set; }
         public DbSet<PatientNeed> PatientNeeds { get; set; }
         public DbSet<Referral> Referrals { get; set; }
@@ -339,6 +342,27 @@ namespace WARDMANAGEMENTSYSTEM.Data
                     IsActive = Status.Active
                 }
             );
+
+
+            modelBuilder.Entity<AllergyMedication>()
+       .HasOne(am => am.Medication)
+       .WithMany(m => m.AllergyMedications)
+       .HasForeignKey(am => am.MedicationId);
+
+            modelBuilder.Entity<AllergyMedication>()
+                .HasOne(am => am.Allergy)
+                .WithMany()
+                .HasForeignKey(am => am.AllergyId);
+
+            modelBuilder.Entity<ConditionMedication>()
+                .HasOne(cm => cm.Medication)
+                .WithMany(m => m.ConditionMedications)
+                .HasForeignKey(cm => cm.MedicationId);
+
+            modelBuilder.Entity<ConditionMedication>()
+                .HasOne(cm => cm.Condition)
+                .WithMany()
+                .HasForeignKey(cm => cm.ConditionId);
         }
     }
 }

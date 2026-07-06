@@ -13,18 +13,16 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "SOCIALWORKER")]
-    [Route("[controller]")]
-
+    // [Route("[controller]")] ← REMOVED
     public class SocialWorkerController : Controller
     {
         private readonly WardDbContext _context;
-
-        private readonly INotificationService _notifService;   // <-- add
+        private readonly INotificationService _notifService;
 
         public SocialWorkerController(WardDbContext context, INotificationService notifService)
         {
             _context = context;
-            _notifService = notifService;   // may be used later for reminders
+            _notifService = notifService;
         }
 
         // ------------------------------------------------------------------
@@ -53,18 +51,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .CountAsync(a => a.IsActive == Status.Active);
             ViewBag.MyPlans = await _context.DischargePlans
                 .CountAsync(dp => dp.SocialWorkerId == swId && dp.IsActive == Status.Active);
-            return View();
-
             ViewBag.UpcomingFollowUps = await _context.FollowUps
-    .CountAsync(f => f.SocialWorkerId == swId && f.IsActive && f.Status == FollowUpStatus.Pending
-                     && f.ScheduledDate > DateTime.Now);
+                .CountAsync(f => f.SocialWorkerId == swId && f.IsActive && f.Status == FollowUpStatus.Pending
+                                 && f.ScheduledDate > DateTime.Now);
+            return View();
         }
 
         // ==================================================================
         //  LIST ALL ACTIVE ADMISSIONS (patients to plan for)
         // ==================================================================
-
-        [HttpGet("Index")]
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -83,8 +79,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW PLANS FOR A SPECIFIC ADMISSION
         // ==================================================================
-
-        [HttpGet("PlansByAdmission/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> PlansByAdmission(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -110,7 +105,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CREATE DISCHARGE PLAN – GET
         // ==================================================================
-        [HttpGet("Create/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Create(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -135,7 +130,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CREATE DISCHARGE PLAN – POST
         // ==================================================================
-        [HttpPost("Create")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(DischargePlan plan)
         {
@@ -171,7 +166,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT DISCHARGE PLAN – GET
         // ==================================================================
-        [HttpGet("Edit/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -189,7 +184,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT DISCHARGE PLAN – POST
         // ==================================================================
-        [HttpPost("Edit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, DischargePlan posted)
         {
@@ -215,7 +210,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (existing == null || existing.IsActive != Status.Active) return NotFound();
 
             existing.PlanDetails = posted.PlanDetails;
-            // keep original social worker and admission
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Discharge plan updated.";
@@ -225,8 +219,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DETAILS
         // ==================================================================
-
-        [HttpGet("Details/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -244,7 +237,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SOFT DELETE
         // ==================================================================
-        [HttpPost("Delete/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
@@ -264,7 +257,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RESTORE
         // ==================================================================
-        [HttpPost("Restore/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Restore(int id)
         {
@@ -281,14 +274,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PlansByAdmission), new { admissionId = plan.AdmissionId });
         }
 
-
-
-
         // ==================================================================
         //  PSYCHOSOCIAL ASSESSMENT – VIEW FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("AssessmentView/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AssessmentView(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -305,7 +294,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var assessment = await _context.PsychosocialAssessments
                 .FirstOrDefaultAsync(a => a.AdmissionId == admissionId && a.IsActive);
 
-            // If none exists, redirect to create
             if (assessment == null)
                 return RedirectToAction(nameof(AssessmentCreate), new { admissionId });
 
@@ -315,7 +303,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PSYCHOSOCIAL ASSESSMENT – CREATE (GET)
         // ==================================================================
-        [HttpGet("AssessmentCreate/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AssessmentCreate(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -326,7 +314,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
             if (admission == null) return NotFound();
 
-            // Check if an active assessment already exists
             var existing = await _context.PsychosocialAssessments
                 .AnyAsync(a => a.AdmissionId == admissionId && a.IsActive);
             if (existing)
@@ -342,7 +329,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PSYCHOSOCIAL ASSESSMENT – CREATE (POST)
         // ==================================================================
-        [HttpPost("AssessmentCreate")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AssessmentCreate(PsychosocialAssessment assessment)
         {
@@ -363,7 +350,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(assessment);
             }
 
-            // Ensure the admission is active
             var validAdmission = await _context.Admissions
                 .AnyAsync(a => a.Id == assessment.AdmissionId && a.IsActive == Status.Active);
             if (!validAdmission)
@@ -372,7 +358,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(assessment);
             }
 
-            // Ensure no duplicate active assessment
             var duplicate = await _context.PsychosocialAssessments
                 .AnyAsync(a => a.AdmissionId == assessment.AdmissionId && a.IsActive);
             if (duplicate)
@@ -395,7 +380,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PSYCHOSOCIAL ASSESSMENT – EDIT (GET)
         // ==================================================================
-        [HttpGet("AssessmentEdit/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AssessmentEdit(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -414,7 +399,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PSYCHOSOCIAL ASSESSMENT – EDIT (POST)
         // ==================================================================
-        [HttpPost("AssessmentEdit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AssessmentEdit(int id, PsychosocialAssessment posted)
         {
@@ -453,14 +438,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(AssessmentView), new { admissionId = existing.AdmissionId });
         }
 
-
-
-
         // ==================================================================
         //  RISK SCREENINGS – LIST FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("RiskScreenings/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RiskScreenings(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -486,7 +467,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – CREATE (GET)
         // ==================================================================
-        [HttpGet("RiskScreeningCreate/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RiskScreeningCreate(int admissionId, ScreeningType type)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -511,7 +492,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – CREATE (POST)
         // ==================================================================
-        [HttpPost("RiskScreeningCreate")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RiskScreeningCreate(RiskScreening screening)
         {
@@ -533,7 +514,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(screening);
             }
 
-            // Validate admission
             var validAdmission = await _context.Admissions
                 .AnyAsync(a => a.Id == screening.AdmissionId && a.IsActive == Status.Active);
             if (!validAdmission)
@@ -557,8 +537,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – VIEW DETAILS
         // ==================================================================
-
-        [HttpGet("RiskScreeningDetails/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RiskScreeningDetails(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -576,7 +555,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – EDIT (GET)
         // ==================================================================
-        [HttpGet("RiskScreeningEdit/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> RiskScreeningEdit(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -594,7 +573,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – EDIT (POST)
         // ==================================================================
-        [HttpPost("RiskScreeningEdit/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RiskScreeningEdit(int id, RiskScreening posted)
         {
@@ -622,7 +601,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             existing.Score = posted.Score;
             existing.RiskLevel = CalculateRiskLevel(posted.Score);
             existing.RecommendedActions = posted.RecommendedActions;
-            // Type is not editable
 
             await _context.SaveChangesAsync();
 
@@ -633,7 +611,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RISK SCREENING – SOFT DELETE
         // ==================================================================
-        [HttpPost("RiskScreeningDelete/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RiskScreeningDelete(int id)
         {
@@ -650,13 +628,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(RiskScreenings), new { admissionId = screening.AdmissionId });
         }
 
-
-
-
         // ==================================================================
         //  PATIENT NEEDS CHECKLIST – VIEW & MANAGE
         // ==================================================================
-        [HttpGet("NeedsChecklist/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> NeedsChecklist(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -675,17 +650,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .OrderBy(n => n.NeedName)
                 .ToListAsync();
 
-            // If no needs exist yet, create the default standard list
             if (needs.Count == 0)
             {
                 var defaultNeeds = new List<string>
-        {
-            "Transport",
-            "Home Care",
-            "Equipment",
-            "Meals",
-            "Counselling"
-        };
+                {
+                    "Transport",
+                    "Home Care",
+                    "Equipment",
+                    "Meals",
+                    "Counselling"
+                };
 
                 foreach (var needName in defaultNeeds)
                 {
@@ -711,7 +685,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  TOGGLE NEED COMPLETION
         // ==================================================================
-        [HttpPost("ToggleNeed/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleNeed(int needId, int admissionId)
         {
@@ -735,7 +709,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD CUSTOM NEED
         // ==================================================================
-        [HttpPost("AddNeed/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddNeed(int admissionId, string needName)
         {
@@ -766,7 +740,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE A NEED
         // ==================================================================
-        [HttpPost("DeleteNeed/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteNeed(int needId, int admissionId)
         {
@@ -784,11 +758,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(NeedsChecklist), new { admissionId });
         }
 
-
         // ==================================================================
         //  DISCHARGE PLAN – ADVANCE STATUS
         // ==================================================================
-        [HttpPost("AdvancePlanStatus/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AdvancePlanStatus(int id)
         {
@@ -798,7 +771,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var plan = await _context.DischargePlans.FindAsync(id);
             if (plan == null || plan.IsActive != Status.Active) return NotFound();
 
-            // Move to next status
             switch (plan.DischargeStatus)
             {
                 case DischargePlanStatus.Pending:
@@ -813,7 +785,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 case DischargePlanStatus.Approved:
                     plan.DischargeStatus = DischargePlanStatus.Implemented;
                     break;
-                    // Already Implemented – no further advance
             }
 
             await _context.SaveChangesAsync();
@@ -824,7 +795,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISCHARGE PLAN – REVERT STATUS (optional)
         // ==================================================================
-        [HttpPost("RevertPlanStatus/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RevertPlanStatus(int id)
         {
@@ -834,7 +805,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             var plan = await _context.DischargePlans.FindAsync(id);
             if (plan == null || plan.IsActive != Status.Active) return NotFound();
 
-            // Move to previous status
             switch (plan.DischargeStatus)
             {
                 case DischargePlanStatus.InProgress:
@@ -856,12 +826,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PlansByAdmission), new { admissionId = plan.AdmissionId });
         }
 
-
         // ==================================================================
         //  DISCHARGE PLAN TASKS – LIST
         // ==================================================================
-
-        [HttpGet("PlanTasks/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> PlanTasks(int planId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -887,7 +855,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD TASK TO PLAN – GET
         // ==================================================================
-        [HttpGet("AddTask/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AddTask(int planId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -910,7 +878,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD TASK TO PLAN – POST
         // ==================================================================
-        [HttpPost("AddTask/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddTask(DischargePlanTask task)
         {
@@ -947,7 +915,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  TOGGLE TASK COMPLETION
         // ==================================================================
-        [HttpPost("ToggleTaskCompletion/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleTaskCompletion(int taskId, int planId)
         {
@@ -979,7 +947,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT TASK – GET
         // ==================================================================
-        [HttpGet("EditTask/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditTask(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -997,7 +965,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT TASK – POST
         // ==================================================================
-        [HttpPost("EditTask/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditTask(int id, DischargePlanTask posted)
         {
@@ -1034,7 +1002,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE TASK
         // ==================================================================
-        [HttpPost("DeleteTask/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTask(int taskId, int planId)
         {
@@ -1052,12 +1020,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(PlanTasks), new { planId });
         }
 
-
         // ==================================================================
         //  REFERRALS – LIST FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("Referrals/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Referrals(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1083,7 +1049,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD REFERRAL – GET
         // ==================================================================
-        [HttpGet("AddReferral/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AddReferral(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1108,7 +1074,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD REFERRAL – POST
         // ==================================================================
-        [HttpPost("AddReferral/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddReferral(Referral referral)
         {
@@ -1142,7 +1108,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT REFERRAL – GET
         // ==================================================================
-        [HttpGet("EditReferral/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditReferral(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1160,7 +1126,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT REFERRAL – POST
         // ==================================================================
-        [HttpPost("EditReferral/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditReferral(int id, Referral posted)
         {
@@ -1203,7 +1169,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE REFERRAL
         // ==================================================================
-        [HttpPost("DeleteReferral/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteReferral(int id, int admissionId)
         {
@@ -1224,8 +1190,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  FOLLOW‑UPS – LIST FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("FollowUps/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> FollowUps(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1251,7 +1216,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULE FOLLOW‑UP – GET
         // ==================================================================
-        [HttpGet("ScheduleFollowUp/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> ScheduleFollowUp(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1259,11 +1224,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Inactive); // discharged
+                .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Inactive);
             if (admission == null)
             {
                 TempData["ErrorMessage"] = "You can only schedule a follow‑up for a discharged admission.";
-                return RedirectToAction("MyAdmissions", "Patient"); // or back to Index
+                return RedirectToAction("MyAdmissions", "Patient");
             }
 
             ViewBag.PatientName = admission.Patient.FullName;
@@ -1281,7 +1246,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULE FOLLOW‑UP – POST
         // ==================================================================
-        [HttpPost("ScheduleFollowUp/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ScheduleFollowUp(FollowUp followUp)
         {
@@ -1303,7 +1268,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(followUp);
             }
 
-            // Validate that the admission is discharged
             var validAdmission = await _context.Admissions
                 .AnyAsync(a => a.Id == followUp.AdmissionId && a.IsActive == Status.Inactive);
             if (!validAdmission)
@@ -1325,7 +1289,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT FOLLOW‑UP – GET
         // ==================================================================
-        [HttpGet("EditFollowUp/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditFollowUp(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1343,7 +1307,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT FOLLOW‑UP – POST
         // ==================================================================
-        [HttpPost("EditFollowUp/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFollowUp(int id, FollowUp posted)
         {
@@ -1371,7 +1335,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             existing.ScheduledDate = posted.ScheduledDate;
             existing.Type = posted.Type;
             existing.Notes = posted.Notes;
-            existing.Status = posted.Status;   // allow manual status change
+            existing.Status = posted.Status;
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Follow‑up updated.";
@@ -1381,7 +1345,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  TOGGLE FOLLOW‑UP COMPLETION
         // ==================================================================
-        [HttpPost("ToggleFollowUpCompletion/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleFollowUpCompletion(int id, int admissionId)
         {
@@ -1406,7 +1370,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE FOLLOW‑UP
         // ==================================================================
-        [HttpPost("DeleteFollowUp/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFollowUp(int id, int admissionId)
         {
@@ -1424,13 +1388,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(FollowUps), new { admissionId });
         }
 
-
-
         // ==================================================================
         //  FAMILY CONTACT LOGS – LIST FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("FamilyContacts/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> FamilyContacts(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1456,7 +1417,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD FAMILY CONTACT – GET
         // ==================================================================
-        [HttpGet("AddFamilyContact/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AddFamilyContact(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1481,7 +1442,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  ADD FAMILY CONTACT – POST
         // ==================================================================
-        [HttpPost("AddFamilyContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFamilyContact(FamilyContactLog log)
         {
@@ -1516,7 +1477,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT FAMILY CONTACT – GET
         // ==================================================================
-        [HttpGet("EditFamilyContact/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditFamilyContact(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1534,7 +1495,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT FAMILY CONTACT – POST
         // ==================================================================
-        [HttpPost("EditFamilyContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFamilyContact(int id, FamilyContactLog posted)
         {
@@ -1573,7 +1534,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DELETE FAMILY CONTACT
         // ==================================================================
-        [HttpPost("DeleteFamilyContact/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteFamilyContact(int id, int admissionId)
         {
@@ -1591,12 +1552,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(FamilyContacts), new { admissionId });
         }
 
-
         // ==================================================================
         //  FAMILY MEETINGS – LIST FOR ADMISSION
         // ==================================================================
-
-        [HttpGet("Meetings/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Meetings(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1622,7 +1581,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULE FAMILY MEETING – GET
         // ==================================================================
-        [HttpGet("ScheduleMeeting/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> ScheduleMeeting(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1639,8 +1598,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ViewBag.DoctorName = admission.Doctor?.FullName ?? "No doctor assigned";
             ViewBag.NurseName = admission.Nurse?.FullName ?? "No nurse assigned";
 
-            // All active employees except the social worker? We'll let the social worker add any employee manually later.
-            // For the initial form, we can optionally provide a multi-select list of all employees.
             ViewBag.AllEmployees = new MultiSelectList(
                 await _context.Employees
                     .Where(e => e.IsActive == Status.Active && e.EmployeeID != swId)
@@ -1659,7 +1616,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULE FAMILY MEETING – POST
         // ==================================================================
-        [HttpPost("ScheduleMeeting/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ScheduleMeeting(FamilyMeeting meeting, int[]? extraEmployeeIds)
         {
@@ -1690,7 +1647,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(meeting);
             }
 
-            // Validate admission
             var admissionDb = await _context.Admissions
                 .Include(a => a.Doctor)
                 .Include(a => a.Nurse)
@@ -1704,7 +1660,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             meeting.SocialWorkerId = swId.Value;
             meeting.IsActive = true;
 
-            // Auto-invite assigned doctor and nurse
             var attendees = new List<FamilyMeetingAttendee>();
             if (admissionDb.DoctorId > 0)
             {
@@ -1715,12 +1670,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 attendees.Add(new FamilyMeetingAttendee { EmployeeId = admissionDb.NurseId.Value });
             }
 
-            // Add any extra staff selected
             if (extraEmployeeIds != null)
             {
                 foreach (var empId in extraEmployeeIds.Distinct())
                 {
-                    // Avoid adding duplicates (doctor/nurse already added)
                     if (!attendees.Any(a => a.EmployeeId == empId))
                     {
                         attendees.Add(new FamilyMeetingAttendee { EmployeeId = empId });
@@ -1732,7 +1685,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context.FamilyMeetings.Add(meeting);
             await _context.SaveChangesAsync();
 
-            // Notifications to all invitees (optional)
             try
             {
                 string patientName = admissionDb.Patient?.FullName ?? "a patient";
@@ -1753,8 +1705,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  MEETING DETAILS
         // ==================================================================
-
-        [HttpGet("MeetingDetails/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> MeetingDetails(int id)
         {
             int? swId = GetCurrentSocialWorkerId();
@@ -1772,7 +1723,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CANCEL MEETING
         // ==================================================================
-        [HttpPost("CancelMeeting/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelMeeting(int id, int admissionId)
         {
@@ -1784,7 +1735,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (meeting == null) return NotFound();
 
             meeting.Status = MeetingStatus.Cancelled;
-            // we keep IsActive true to show cancelled meetings
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Meeting cancelled.";
@@ -1794,13 +1744,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SOCIAL WORK REPORT (PDF)
         // ==================================================================
-        [HttpGet("SocialWorkReport/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> SocialWorkReport(int admissionId)
         {
             int? swId = GetCurrentSocialWorkerId();
             if (swId == null) return RedirectToAction("Login", "Account");
 
-            // Load admission with essential info
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
@@ -1818,18 +1767,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 WardName = admission.Bed?.Ward?.Name
             };
 
-            // Psychosocial assessment
             vm.Assessment = await _context.PsychosocialAssessments
                 .FirstOrDefaultAsync(a => a.AdmissionId == admissionId && a.IsActive);
 
-            // Discharge plans (active)
             vm.DischargePlans = await _context.DischargePlans
                 .Include(dp => dp.SocialWorker)
                 .Where(dp => dp.AdmissionId == admissionId && dp.IsActive == Status.Active)
                 .OrderBy(dp => dp.CreatedAt)
                 .ToListAsync();
 
-            // Tasks across all active plans
             var planIds = vm.DischargePlans.Select(p => p.Id).ToList();
             if (planIds.Any())
             {
@@ -1839,52 +1785,44 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                     .ToListAsync();
             }
 
-            // Risk screenings
             vm.RiskScreenings = await _context.RiskScreenings
                 .Include(r => r.SocialWorker)
                 .Where(r => r.AdmissionId == admissionId && r.IsActive)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
-            // Referrals
             vm.Referrals = await _context.Referrals
                 .Include(r => r.SocialWorker)
                 .Where(r => r.AdmissionId == admissionId && r.IsActive)
                 .OrderByDescending(r => r.DateReferral)
                 .ToListAsync();
 
-            // Needs checklist
             vm.NeedsChecklist = await _context.PatientNeeds
                 .Where(n => n.AdmissionId == admissionId)
                 .OrderBy(n => n.NeedName)
                 .ToListAsync();
 
-            // Follow‑ups
             vm.FollowUps = await _context.FollowUps
                 .Include(f => f.SocialWorker)
                 .Where(f => f.AdmissionId == admissionId && f.IsActive)
                 .OrderByDescending(f => f.ScheduledDate)
                 .ToListAsync();
 
-            // Family contacts
             vm.FamilyContacts = await _context.FamilyContactLogs
                 .Where(c => c.AdmissionId == admissionId && c.IsActive)
                 .OrderByDescending(c => c.ContactDate)
                 .ToListAsync();
 
-            // Meetings
             vm.Meetings = await _context.FamilyMeetings
                 .Include(m => m.Attendees).ThenInclude(a => a.Employee)
                 .Where(m => m.AdmissionId == admissionId && m.IsActive)
                 .OrderByDescending(m => m.ScheduledDate)
                 .ToListAsync();
 
-            // Render HTML view to PDF
             var html = await this.RenderViewAsync("SocialWorkReportPdf", vm, true);
             var pdf = HtmlToPdfConverter.Convert(html);
             return File(pdf, "application/pdf", $"SocialWorkReport_{admissionId}.pdf");
         }
-
 
         private static string CalculateRiskLevel(int score)
         {
@@ -1892,8 +1830,5 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             if (score >= 40) return "Medium";
             return "Low";
         }
-
-
-
     }
 }

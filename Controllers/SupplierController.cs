@@ -9,13 +9,12 @@ using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    [Authorize (Roles = "SUPPLIER")]
-    [Route("[controller]")]
-
+    [Authorize(Roles = "SUPPLIER")]
+    // [Route("[controller]")]   <-- removed
     public class SupplierController : Controller
     {
         private readonly WardDbContext _context;
-        private readonly INotificationService _notifService;   // <-- add
+        private readonly INotificationService _notifService;
 
         public SupplierController(WardDbContext context, INotificationService notifService)
         {
@@ -34,7 +33,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return id;
         }
 
-
         // ------------------------------------------------------------------
         //  DASHBOARD
         // ------------------------------------------------------------------
@@ -47,23 +45,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .CountAsync(o => o.SupplierId == supplierId && o.IsActive == Status.Active && o.OrderStatus == OrderStatus.Ordered);
             ViewBag.FulfilledOrders = await _context.ConsumableOrders
                 .CountAsync(o => o.SupplierId == supplierId && o.IsActive == Status.Active && o.OrderStatus == OrderStatus.Fulfilled);
-            return View();
-
             ViewBag.UrgentOrders = await _context.ConsumableOrders
-    .CountAsync(o => o.SupplierId == supplierId
-                     && o.IsActive == Status.Active
-                     && o.OrderStatus == OrderStatus.Ordered
-                     && o.IsUrgent);
-
-
+                .CountAsync(o => o.SupplierId == supplierId && o.IsActive == Status.Active && o.OrderStatus == OrderStatus.Ordered && o.IsUrgent);
+            return View();
         }
-
 
         // ==================================================================
         //  LIST ORDERS PENDING FULFILLMENT
         // ==================================================================
-
-        [HttpGet("Index")]
+        [HttpGet]
         public async Task<IActionResult> Index(string status = "Ordered")
         {
             int? supplierId = GetCurrentSupplierId();
@@ -74,13 +64,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Where(o => o.SupplierId == supplierId && o.IsActive == Status.Active);
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<OrderStatus>(status, out var parsedStatus))
-            {
                 query = query.Where(o => o.OrderStatus == parsedStatus);
-            }
             else
-            {
                 query = query.Where(o => o.OrderStatus == OrderStatus.Ordered);
-            }
 
             var orders = await query
                 .OrderByDescending(o => o.RequestDate)
@@ -90,15 +76,33 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(orders);
         }
 
+        // ==================================================================
+        //  CONFIRM FULFILLMENT – GET (enter estimated delivery date)
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> ConfirmFulfillmentForm(int orderId)
+        {
+            int? supplierId = GetCurrentSupplierId();
+            if (supplierId == null) return RedirectToAction("Login", "Account");
+
+            var order = await _context.ConsumableOrders
+                .Include(o => o.Consumable)
+                .FirstOrDefaultAsync(o => o.Id == orderId &&
+                                         o.IsActive == Status.Active &&
+                                         o.OrderStatus == OrderStatus.Ordered);
+            if (order == null) return NotFound();
+
+            return View(order);
+        }
 
         // ==================================================================
         //  CONFIRM FULFILLMENT – POST
         // ==================================================================
-        [HttpPost("ConfirmFulfillment/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmFulfillment(int orderId, DateTime? estimatedDeliveryDate,
-     string? shippingReference, string? courierName, string? trackingLink,
-     string? batchNumbers)   // comma‑separated list of batch numbers
+            string? shippingReference, string? courierName, string? trackingLink,
+            string? batchNumbers)
         {
             var order = await _context.ConsumableOrders
                 .FirstOrDefaultAsync(o => o.Id == orderId &&
@@ -112,7 +116,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             order.CourierName = courierName;
             order.TrackingLink = trackingLink;
 
-            // Save batch numbers
             if (!string.IsNullOrWhiteSpace(batchNumbers))
             {
                 var batches = batchNumbers.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -136,53 +139,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Index");
         }
 
-
-        // ==================================================================
-        //  CONFIRM FULFILLMENT – GET (enter estimated delivery date)
-        // ==================================================================
-        [HttpGet("ConfirmFulfillment/{int:id}")]
-        public async Task<IActionResult> ConfirmFulfillmentForm(int orderId)
-        {
-            int? supplierId = GetCurrentSupplierId();
-            if (supplierId == null) return RedirectToAction("Login", "Account");
-
-
-            var order = await _context.ConsumableOrders
-                .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId &&
-                                     o.IsActive == Status.Active &&
-                                     o.OrderStatus == OrderStatus.Ordered);
-            if (order == null) return NotFound();
-
-            return View(order);
-        }
-
-
         // ==================================================================
         //  ORDER DETAILS
         // ==================================================================
-
-        [HttpGet("Details/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             int? supplierId = GetCurrentSupplierId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
 
-            // In the controller's Details action, include batches:
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .Include(o => o.ConsumableOrderBatches)   // add this include
+                .Include(o => o.ConsumableOrderBatches)
                 .FirstOrDefaultAsync(o => o.Id == id && o.IsActive == Status.Active);
             if (order == null) return NotFound();
             return View(order);
         }
 
-
-
         // ==================================================================
         //  PARTIAL FULFILLMENT – GET
         // ==================================================================
-        [HttpGet("PartialFulfillment/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> PartialFulfillment(int orderId)
         {
             int? supplierId = GetCurrentSupplierId();
@@ -195,7 +172,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                                          (o.OrderStatus == OrderStatus.Ordered || o.OrderStatus == OrderStatus.PartiallyFulfilled));
             if (order == null) return NotFound();
 
-            // Calculate the remaining quantity that can still be fulfilled
             int remaining = order.QuantityRequested - (order.QuantityFulfilled ?? 0);
             ViewBag.Remaining = remaining;
             ViewBag.AlreadyFulfilled = order.QuantityFulfilled ?? 0;
@@ -205,13 +181,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PARTIAL FULFILLMENT – POST
         // ==================================================================
-        [HttpPost("PartialFulfillment/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PartialFulfillment(int orderId, int quantityShipped, string? batchNumbers)
         {
             int? supplierId = GetCurrentSupplierId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
@@ -235,17 +210,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction(nameof(PartialFulfillment), new { orderId });
             }
 
-            // Update the order
             order.QuantityFulfilled = alreadyFulfilled + quantityShipped;
 
             if (order.QuantityFulfilled.Value >= order.QuantityRequested)
-            {
                 order.OrderStatus = OrderStatus.Fulfilled;
-            }
             else
-            {
                 order.OrderStatus = OrderStatus.PartiallyFulfilled;
-            }
 
             await _context.SaveChangesAsync();
 
@@ -255,41 +225,37 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                                   .Select(b => b.Trim())
                                   .Where(b => !string.IsNullOrEmpty(b))
                                   .Distinct();
-        foreach (var batch in batches)
-        {
-            _context.ConsumableOrderBatches.Add(new ConsumableOrderBatch
-            {
-                ConsumableOrderId = orderId,
-                BatchNumber = batch,
-                Quantity = quantityShipped   // optional, associate quantity with batch
-            });
+                foreach (var batch in batches)
+                {
+                    _context.ConsumableOrderBatches.Add(new ConsumableOrderBatch
+                    {
+                        ConsumableOrderId = orderId,
+                        BatchNumber = batch,
+                        Quantity = quantityShipped
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["SuccessMessage"] = $"Shipped {quantityShipped} unit(s). " +
+                (order.OrderStatus == OrderStatus.Fulfilled ? "Order fully fulfilled." : "Order partially fulfilled.");
+            return RedirectToAction("Index");
         }
-        await _context.SaveChangesAsync();
-    }
 
-    TempData["SuccessMessage"] = $"Shipped {quantityShipped} unit(s). " +
-        (order.OrderStatus == OrderStatus.Fulfilled ? "Order fully fulfilled." : "Order partially fulfilled.");
-    return RedirectToAction("Index");
-}
-
-
-
-// ==================================================================
-        //  REJECT ORDER – GET (form with reason)
         // ==================================================================
-        [HttpGet("RejectOrder/{int:id}")]
+        //  REJECT ORDER – GET
+        // ==================================================================
+        [HttpGet]
         public async Task<IActionResult> RejectOrder(int orderId)
         {
-
             int? supplierId = GetCurrentSupplierId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
                 .FirstOrDefaultAsync(o => o.Id == orderId &&
                                          o.IsActive == Status.Active &&
-                                         o.OrderStatus == OrderStatus.Ordered);  // only new orders can be rejected
+                                         o.OrderStatus == OrderStatus.Ordered);
             if (order == null) return NotFound();
 
             return View(order);
@@ -298,14 +264,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  REJECT ORDER – POST
         // ==================================================================
-        [HttpPost("RejectOrder/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectOrder(int orderId, string reason)
         {
-
             int? supplierId = GetCurrentSupplierId();
             if (supplierId == null) return RedirectToAction("Login", "Account");
-
 
             if (string.IsNullOrWhiteSpace(reason))
             {
@@ -320,13 +284,11 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                                          o.OrderStatus == OrderStatus.Ordered);
             if (order == null) return NotFound();
 
-            // Mark as rejected
             order.OrderStatus = OrderStatus.Rejected;
             order.RejectedAt = DateTime.Now;
             order.RejectionReason = reason;
             await _context.SaveChangesAsync();
 
-            // Notify the Consumables Manager who created the order
             if (order.CreatedByEmployeeId.HasValue)
             {
                 try
@@ -346,13 +308,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction("Index");
         }
 
-
-
-
         // ==================================================================
         //  ORDER HISTORY ARCHIVE
         // ==================================================================
-        [HttpGet("OrderHistory")]
+        [HttpGet]
         public async Task<IActionResult> OrderHistory(DateTime? startDate, DateTime? endDate, string? searchTerm)
         {
             int? supplierId = GetCurrentSupplierId();
@@ -383,7 +342,5 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return View(orders);
         }
-
-
     }
 }

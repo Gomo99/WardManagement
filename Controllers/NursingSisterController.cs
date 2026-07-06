@@ -10,8 +10,6 @@ using WARDMANAGEMENTSYSTEM.Models;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "NURSINGSISTER")]
-    [Route("[controller]")]
-
     public class NursingSisterController : Controller
     {
         private readonly WardDbContext _context;
@@ -20,7 +18,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         {
             _context = context;
         }
-
 
         private int? GetCurrentNursingSisterId()
         {
@@ -32,7 +29,6 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return null;
             return id;
         }
-
 
         // ---------------------------------------------------------------
         //  DASHBOARD
@@ -50,8 +46,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  VIEW ADMITTED PATIENTS
         // ===============================================================
-
-        [HttpGet("Patients")]
+        [HttpGet]
         public async Task<IActionResult> Patients()
         {
             int? nurseId = GetCurrentNursingSisterId();
@@ -69,8 +64,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  MEDICATION ADMINISTRATION LIST FOR A SPECIFIC ADMISSION
         // ===============================================================
-
-        [HttpGet("MedicationAdministrationsByAdmission/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> MedicationAdministrationsByAdmission(int admissionId)
         {
             int? nurseId = GetCurrentNursingSisterId();
@@ -95,7 +89,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  ADMINISTER MEDICATION – GET
         // ===============================================================
-        [HttpGet("AdministerMedication/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> AdministerMedication(int admissionId)
         {
             int? nurseId = GetCurrentNursingSisterId();
@@ -127,7 +121,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  ADMINISTER MEDICATION – POST
         // ===============================================================
-        [HttpPost("AdministerMedication/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AdministerMedication(MedicationAdministration administration)
         {
@@ -187,7 +181,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  EDIT MEDICATION ADMINISTRATION – GET
         // ===============================================================
-        [HttpGet("EditMedicationAdministration/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> EditMedicationAdministration(int id)
         {
             int? nurseId = GetCurrentNursingSisterId();
@@ -210,7 +204,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  EDIT MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost("EditMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMedicationAdministration(int id, MedicationAdministration posted)
         {
@@ -263,8 +257,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  MEDICATION ADMINISTRATION DETAILS
         // ===============================================================
-
-        [HttpGet("DetailsMedicationAdministration/{int:id}")]
+        [HttpGet]
         public async Task<IActionResult> DetailsMedicationAdministration(int id)
         {
             int? nurseId = GetCurrentNursingSisterId();
@@ -281,11 +274,10 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  SOFT DELETE MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost("DeleteMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedicationAdministration(int id)
         {
-
             int? nurseId = GetCurrentNursingSisterId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
 
@@ -302,13 +294,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  RESTORE MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost("RestoreMedicationAdministration/{int:id}")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedicationAdministration(int id)
         {
             int? nurseId = GetCurrentNursingSisterId();
             if (nurseId == null) return RedirectToAction("Login", "Account");
-
 
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();

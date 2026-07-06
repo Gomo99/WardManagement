@@ -41,6 +41,14 @@
                     </select>
                 </div>
 
+
+                <div class="form-group">
+                    <label class="form-label" for="socialworkerId">Assigned Social Worker <span class="required">*</span></label>
+                    <select name="socialworkerId" asp-items="ViewBag.SocialWorkers" class="form-control" required>
+                        <option value="">Select Social Worker</option>
+                    </select>
+                </div>
+
                 <!-- Bed -->
                 <div class="form-group">
                     <label class="form-label" for="bedId">Assigned Bed <span class="required">*</span></label>
