@@ -3,20 +3,26 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Services;
-using WARDMANAGEMENTSYSTEM.Hubs;   
+using WARDMANAGEMENTSYSTEM.Hubs;
+using DinkToPdf.Contracts;
+using DinkToPdf;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
 builder.Services.AddDbContext<WardDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add this after builder.Services.AddHttpClient(); if you already have it, else just add the line.
+builder.Services.AddHttpClient<ReCaptchaService>();
 
+builder.Services.Configure<RecaptchaOptions>(
+    builder.Configuration.GetSection("Recaptcha"));
 // Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddScoped<IPdfReportService, PdfReportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-
+builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 // Authentication
 builder.Services.AddAuthentication(options =>
 {

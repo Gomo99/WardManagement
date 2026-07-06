@@ -12,6 +12,7 @@ using WARDMANAGEMENTSYSTEM.Services;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "ADMINISTRATOR")]
+    [Route("[controller]")]
 
     public class AdminController : Controller
     {
@@ -28,11 +29,31 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _notifService = notifService;
         }
 
+
+        private int? GetCurrentWardAdminId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
+                return null;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (role != UserRole.WARDADMIN.ToString())
+                return null;
+            return id;
+        }
+
+
+
+
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
         public async Task<IActionResult> Dashboard()
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ViewBag.TotalEmployees = await _context.Employees.CountAsync();
             ViewBag.ActiveWards = await _context.Wards.CountAsync(w => w.IsActive == Status.Active);
             ViewBag.TotalBeds = await _context.Beds.CountAsync();
@@ -50,8 +71,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST (defaults to Active employees)
+        [HttpGet("Employees")]
         public async Task<IActionResult> Employees(UserRole? role, string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             var query = _context.Employees.AsQueryable();
 
             if (role.HasValue)
@@ -83,18 +109,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(employees);
         }
         // CREATE – GET
+        [HttpGet("CreateEmployee")]
         public IActionResult CreateEmployee()
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ViewBag.Roles = new SelectList(Enum.GetValues<UserRole>());
             ViewBag.Genders = new SelectList(Enum.GetValues<GenderType>());
             return View();
         }
 
         // CREATE – POST (with auto-generated password)
-        [HttpPost]
+        [HttpPost("CreateEmployee")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateEmployee(Employee employee)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ModelState.Remove("EmployeeID");
             ModelState.Remove("FullName");
             ModelState.Remove("IsActive");
@@ -177,8 +212,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Employees));
         }
         // EDIT – GET
+        [HttpGet("EditEmployee")]
+
         public async Task<IActionResult> EditEmployee(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
 
@@ -188,7 +228,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – POST (password is never edited)
-        [HttpPost]
+        [HttpPost("EditEmployee")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditEmployee(int id, Employee posted)
         {
@@ -245,17 +285,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS, DELETE, RESTORE are unchanged (but listed below for completeness)
+        [HttpGet("DetailsEmployee/{int:id")]
         public async Task<IActionResult> DetailsEmployee(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
             return View(employee);
         }
 
-        [HttpPost]
+        [HttpPost("DeleteEmployee/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
             employee.IsActive = Status.Inactive;
@@ -264,10 +311,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Employees));
         }
 
-        [HttpPost]
+        [HttpPost("RestoreEmployee/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreEmployee(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
             employee.IsActive = Status.Active;
@@ -281,8 +331,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all wards
+        [HttpGet("Wards")]
         public async Task<IActionResult> Wards(string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Wards.AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
@@ -306,16 +360,23 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – GET
+        [HttpGet("CreateWard")]
         public IActionResult CreateWard()
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             return View();
         }
 
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("CreateWard")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateWard(Ward ward)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("Beds");
 
@@ -331,15 +392,19 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
+        [HttpGet("EditWard/{int:id}")]
         public async Task<IActionResult> EditWard(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var ward = await _context.Wards.FindAsync(id);
             if (ward == null) return NotFound();
             return View(ward);
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditWard")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditWard(int id, Ward ward)
         {
@@ -370,18 +435,25 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("DetailsWard/{int:id}")]
         public async Task<IActionResult> DetailsWard(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var ward = await _context.Wards.FindAsync(id);
             if (ward == null) return NotFound();
             return View(ward);
         }
 
         // SOFT DELETE – POST
-        [HttpPost]
+        [HttpPost("DeleteWard /{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteWard(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var ward = await _context.Wards.FindAsync(id);
             if (ward == null) return NotFound();
 
@@ -393,10 +465,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE – POST
-        [HttpPost]
+        [HttpPost("RestoreWard /{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreWard(int id)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var ward = await _context.Wards.FindAsync(id);
             if (ward == null) return NotFound();
 
@@ -412,8 +488,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all beds (optionally filter by ward using query string ?wardId=)
+        [HttpGet("Beds")]
         public async Task<IActionResult> Beds(int? wardId, string status = "Active")
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Beds.AsQueryable();
 
             // Filter by ward
@@ -451,17 +532,25 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – GET
+        [HttpGet("CreateBed")]
         public IActionResult CreateBed()
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ViewBag.Wards = new SelectList(_context.Wards.Where(w => w.IsActive == Status.Active), "Id", "Name");
             return View();
         }
 
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("CreateBed")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBed(Bed bed)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("Ward");
 
@@ -480,8 +569,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
+        [HttpGet("EditBed/{int:id}")]
         public async Task<IActionResult> EditBed(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var bed = await _context.Beds.FindAsync(id);
             if (bed == null) return NotFound();
 
@@ -490,10 +583,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditBed")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditBed(int id, Bed bed)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != bed.Id) return BadRequest();
 
             ModelState.Remove("Ward");
@@ -525,8 +622,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("DetailsBed/{int:id}")]
         public async Task<IActionResult> DetailsBed(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var bed = await _context.Beds
                 .Include(b => b.Ward)
                 .FirstOrDefaultAsync(b => b.Id == id);
@@ -535,10 +636,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SOFT DELETE – POST
-        [HttpPost]
+        [HttpPost("DeleteBed/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteBed(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var bed = await _context.Beds.FindAsync(id);
             if (bed == null) return NotFound();
 
@@ -550,10 +654,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE – POST
-        [HttpPost]
+        [HttpPost("RestoreBed/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreBed(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var bed = await _context.Beds.FindAsync(id);
             if (bed == null) return NotFound();
 
@@ -569,8 +676,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all consumables
+        [HttpGet("Consumables")]
         public async Task<IActionResult> Consumables(string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Consumables.AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
@@ -592,16 +703,23 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(consumables);
         }
         // CREATE – GET
+        [HttpGet("CreateConsumable")]
         public IActionResult CreateConsumable()
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             return View();
         }
 
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("CreateConsumable")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateConsumable(Consumable consumable)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
 
             if (!ModelState.IsValid)
@@ -616,18 +734,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
+        [HttpGet("EditConsumable/{int:id}")]
         public async Task<IActionResult> EditConsumable(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var consumable = await _context.Consumables.FindAsync(id);
             if (consumable == null) return NotFound();
             return View(consumable);
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditConsumable/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditConsumable(int id, Consumable posted)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
 
             if (!ModelState.IsValid)
@@ -656,18 +782,27 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("DetailsConsumable/{int:id}")]
+
         public async Task<IActionResult> DetailsConsumable(int id)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var consumable = await _context.Consumables.FindAsync(id);
             if (consumable == null) return NotFound();
             return View(consumable);
         }
 
         // SOFT DELETE – POST
-        [HttpPost]
+        [HttpPost("DeleteConsumable/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConsumable(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var consumable = await _context.Consumables.FindAsync(id);
             if (consumable == null) return NotFound();
 
@@ -679,10 +814,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE – POST
-        [HttpPost]
+        [HttpPost("RestoreConsumable/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreConsumable(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var consumable = await _context.Consumables.FindAsync(id);
             if (consumable == null) return NotFound();
 
@@ -698,8 +836,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
 
         // LIST all medications
+        [HttpGet("Medications")]
         public async Task<IActionResult> Medications(string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Medications.AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
@@ -720,14 +862,21 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return View(medications);
         }
+
+
         // CREATE – GET
+        [HttpGet("CreateMedication")]
         public IActionResult CreateMedication()
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             return View();
         }
 
+
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("CreateMedication")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateMedication(Medication medication)
         {
@@ -745,6 +894,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
+        [HttpGet("EditMedication/{int:id}")]
         public async Task<IActionResult> EditMedication(int id)
         {
             var medication = await _context.Medications.FindAsync(id);
@@ -753,7 +903,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditMedication/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMedication(int id, Medication posted)
         {
@@ -784,6 +934,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("DetailsMedication/{int:id}")]
         public async Task<IActionResult> DetailsMedication(int id)
         {
             var medication = await _context.Medications.FindAsync(id);
@@ -792,7 +943,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SOFT DELETE – POST
-        [HttpPost]
+        [HttpPost("DeleteMedication/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedication(int id)
         {
@@ -807,7 +958,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE – POST
-        [HttpPost]
+        [HttpPost("RestoreMedication/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedication(int id)
         {
@@ -825,8 +976,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  ALLERGIES – CRUD + SOFT DELETE
         // ===============================================================
 
+        [HttpGet("Allergies")]
         public async Task<IActionResult> Allergies(string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Allergies.AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
@@ -847,12 +1002,23 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return View(allergies);
         }
-        public IActionResult CreateAllergy() => View();
 
-        [HttpPost]
+        [HttpGet("CreateAllergy")]
+        public IActionResult CreateAllergy()
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            return View();
+        }
+
+        [HttpPost("CreateAllergy")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateAllergy(Allergy allergy)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             if (!ModelState.IsValid) return View(allergy);
 
@@ -864,17 +1030,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
+        [HttpGet("EditAllergy/{int:id}")]
         public async Task<IActionResult> EditAllergy(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var allergy = await _context.Allergies.FindAsync(id);
             if (allergy == null) return NotFound();
             return View(allergy);
         }
 
-        [HttpPost]
+        [HttpPost("EditAllergy/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditAllergy(int id, Allergy posted)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             if (!ModelState.IsValid) return View(posted);
 
@@ -889,17 +1062,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
+        [HttpGet("DetailsAllergy/{int:id}")]
         public async Task<IActionResult> DetailsAllergy(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var allergy = await _context.Allergies.FindAsync(id);
             if (allergy == null) return NotFound();
             return View(allergy);
         }
 
-        [HttpPost]
+        [HttpPost("DeleteAllergy/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAllergy(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var allergy = await _context.Allergies.FindAsync(id);
             if (allergy == null) return NotFound();
 
@@ -910,10 +1090,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Allergies));
         }
 
-        [HttpPost]
+        [HttpPost("RestoreAllergy/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreAllergy(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var allergy = await _context.Allergies.FindAsync(id);
             if (allergy == null) return NotFound();
 
@@ -928,8 +1111,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  CONDITIONS – CRUD + SOFT DELETE
         // ===============================================================
 
+        [HttpGet("Conditions")]
         public async Task<IActionResult> Conditions(string status = "Active")
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var query = _context.Conditions.AsQueryable();
 
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsedStatus))
@@ -950,12 +1137,25 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             return View(conditions);
         }
-        public IActionResult CreateCondition() => View();
 
-        [HttpPost]
+        [HttpGet("CreateCondition")]
+        public IActionResult CreateCondition()
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+           return View();
+        }
+
+        [HttpPost("CreateCondition")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCondition(Condition condition)
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+
             ModelState.Remove("Id");
             if (!ModelState.IsValid) return View(condition);
 
@@ -967,17 +1167,24 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
+        [HttpGet("EditCondition/{int:id}")]
         public async Task<IActionResult> EditCondition(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var condition = await _context.Conditions.FindAsync(id);
             if (condition == null) return NotFound();
             return View(condition);
         }
 
-        [HttpPost]
+        [HttpPost("EditCondition/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditCondition(int id, Condition posted)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             if (!ModelState.IsValid) return View(posted);
 
@@ -992,17 +1199,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
+
+        [HttpGet("DetailsCondition/{int:id}")]
+
         public async Task<IActionResult> DetailsCondition(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var condition = await _context.Conditions.FindAsync(id);
             if (condition == null) return NotFound();
             return View(condition);
         }
 
-        [HttpPost]
+        [HttpPost("DeleteCondition/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCondition(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var condition = await _context.Conditions.FindAsync(id);
             if (condition == null) return NotFound();
 
@@ -1013,10 +1229,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(Conditions));
         }
 
-        [HttpPost]
+        [HttpPost("RestoreCondition/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreCondition(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var condition = await _context.Conditions.FindAsync(id);
             if (condition == null) return NotFound();
 
@@ -1030,8 +1249,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  HOSPITAL / BUSINESS INFO – (Single Record Management)
         // ===============================================================
+
+        [HttpGet("HospitalInfo")]
         public async Task<IActionResult> HospitalInfo()
         {
+
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var info = await _context.HospitalInfos.FirstOrDefaultAsync();
             if (info == null)
             {
@@ -1044,17 +1269,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(info);
         }
 
+
+        [HttpGet("EditHospitalInfo/{int:id}")]
+
         public async Task<IActionResult> EditHospitalInfo(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var info = await _context.HospitalInfos.FindAsync(id);
             if (info == null) return NotFound();
             return View(info);
         }
 
-        [HttpPost]
+        [HttpPost("EditHospitalInfo/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditHospitalInfo(int id, HospitalInfo posted)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             if (!ModelState.IsValid) return View(posted);
 
@@ -1072,10 +1306,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // Soft delete / restore for hospital info (if needed)
-        [HttpPost]
+        [HttpPost("DeleteHospitalInfo/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteHospitalInfo(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var info = await _context.HospitalInfos.FindAsync(id);
             if (info == null) return NotFound();
 
@@ -1086,10 +1323,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return RedirectToAction(nameof(HospitalInfo));
         }
 
-        [HttpPost]
+        [HttpPost("RestoreHospitalInfo/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreHospitalInfo(int id)
         {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
             var info = await _context.HospitalInfos.FindAsync(id);
             if (info == null) return NotFound();
 
@@ -1101,6 +1341,116 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
 
+
+        // ===============================================================
+        //  HOSPITAL LOCATIONS – CRUD + SOFT DELETE
+        // ===============================================================
+
+        [HttpGet("Locations")]
+        public async Task<IActionResult> Locations(string status = "Active")
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var query = _context.HospitalLocations.AsQueryable();
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Status>(status, out var parsed))
+                query = query.Where(l => l.IsActive == parsed);
+
+            var locations = await query.OrderBy(l => l.Name).ToListAsync();
+
+            ViewBag.Statuses = new SelectList(new List<SelectListItem>
+    {
+        new SelectListItem("Active", "Active", status == "Active"),
+        new SelectListItem("Inactive", "Inactive", status == "Inactive"),
+        new SelectListItem("All", "All", status == "All")
+    }, "Value", "Text", status);
+
+            return View(locations);
+        }
+        [HttpGet("CreateLocation")]
+
+        public IActionResult CreateLocation() 
+        { 
+            
+            
+            return View(); 
+        
+        
+        }
+
+        [HttpPost("CreateLocation")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateLocation(HospitalLocation location)
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            ModelState.Remove("Id");
+            if (!ModelState.IsValid) return View(location);
+            location.IsActive = Status.Active;
+            _context.HospitalLocations.Add(location);
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Location created.";
+            return RedirectToAction(nameof(Locations));
+        }
+
+        [HttpGet("EditLocation/{int:id}")]
+        public async Task<IActionResult> EditLocation(int id)
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var location = await _context.HospitalLocations.FindAsync(id);
+            if (location == null) return NotFound();
+            return View(location);
+        }
+
+        [HttpPost("EditLocation/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditLocation(int id, HospitalLocation posted)
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            if (id != posted.Id) return BadRequest();
+            if (!ModelState.IsValid) return View(posted);
+            var location = await _context.HospitalLocations.FindAsync(id);
+            if (location == null) return NotFound();
+            location.Name = posted.Name;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Location updated.";
+            return RedirectToAction(nameof(Locations));
+        }
+
+        [HttpPost("DeleteLocation/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteLocation(int id)
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var location = await _context.HospitalLocations.FindAsync(id);
+            if (location == null) return NotFound();
+            location.IsActive = Status.Inactive;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Location deactivated.";
+            return RedirectToAction(nameof(Locations));
+        }
+
+        [HttpPost("RestoreLocation/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreLocation(int id)
+        {
+            int? managerId = GetCurrentWardAdminId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var location = await _context.HospitalLocations.FindAsync(id);
+            if (location == null) return NotFound();
+            location.IsActive = Status.Active;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Location reactivated.";
+            return RedirectToAction(nameof(Locations));
+        }
 
 
         private static string GenerateRandomPassword(int length)

@@ -51,6 +51,7 @@
                             <td style="text-align:right;">
                                 <a asp-action="Details" asp-route-id="@plan.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
                                 <a asp-action="Edit" asp-route-id="@plan.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                <a asp-action="PlanTasks" asp-route-planId="@plan.Id">Tasks</a>
                                 @if (plan.IsActive == Status.Active)
                                 {
                                     <form asp-action="Delete" asp-route-id="@plan.Id" method="post" style="display:inline;">
@@ -66,6 +67,25 @@
                                     <form asp-action="Restore" asp-route-id="@plan.Id" method="post" style="display:inline;">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"><i class="fa-solid fa-rotate-left"></i></button>
+                                    </form>
+                                }
+                            </td>
+
+                            <td>
+                                @if (plan.DischargeStatus != DischargePlanStatus.Implemented)
+                                {
+                                    <form asp-action="AdvancePlanStatus" method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@plan.Id" />
+                                        <button type="submit" class="btn btn-sm btn-primary">Advance</button>
+                                    </form>
+                                }
+                                @if (plan.DischargeStatus != DischargePlanStatus.Pending)
+                                {
+                                    <form asp-action="RevertPlanStatus" method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@plan.Id" />
+                                        <button type="submit" class="btn btn-sm btn-secondary">Revert</button>
                                     </form>
                                 }
                             </td>

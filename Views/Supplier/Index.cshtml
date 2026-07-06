@@ -78,6 +78,18 @@
                                             <i class="fa-solid fa-check"></i> Fulfill
                                         </button>
                                     </form>
+
+                                    @if (order.OrderStatus == OrderStatus.Ordered || order.OrderStatus == OrderStatus.PartiallyFulfilled)
+                                    {
+                                        <a asp-action="PartialFulfillment" asp-route-orderId="@order.Id" class="btn btn-sm btn-warning">
+                                            @(order.OrderStatus == OrderStatus.PartiallyFulfilled ? "Continue Fulfillment" : "Fulfill")
+                                        </a>
+                                    }
+
+                                    @if (order.OrderStatus == OrderStatus.Ordered)
+                                    {
+                                        <a asp-action="RejectOrder" asp-route-orderId="@order.Id" class="btn btn-sm btn-danger">Reject</a>
+                                    }
                                 }
                             </td>
                         </tr>

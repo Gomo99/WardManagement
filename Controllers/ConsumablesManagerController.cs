@@ -10,7 +10,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "CONSUMABLESMANAGER")]
-
+    [Route("[controller]")]
     public class ConsumablesManagerController : Controller
     {
         private readonly WardDbContext _context;
@@ -52,6 +52,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // LIST
+        [HttpGet("Consumables")]
         public async Task<IActionResult> Consumables(string status = "Active")
         {
             int? managerId = GetCurrentManagerId();
@@ -79,13 +80,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – GET
+        [HttpGet("CreateConsumable")]
         public IActionResult CreateConsumable()
         {
             return View();
         }
 
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("CreateConsumable")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateConsumable(Consumable consumable)
         {
@@ -106,6 +108,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
+        [HttpGet("EditConsumable")]
         public async Task<IActionResult> EditConsumable(int id)
         {
             var consumable = await _context.Consumables.FindAsync(id);
@@ -114,7 +117,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditConsumable")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditConsumable(int id, Consumable posted)
         {
@@ -135,6 +138,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("DetailsConsumable/{id:int}")]
         public async Task<IActionResult> DetailsConsumable(int id)
         {
             var consumable = await _context.Consumables.FindAsync(id);
@@ -143,7 +147,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SOFT DELETE
-        [HttpPost]
+        [HttpPost("DeleteConsumable/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConsumable(int id)
         {
@@ -177,6 +181,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // LIST ORDERS
+        [HttpGet("Orders")]
+
         public async Task<IActionResult> Orders()
         {
             int? managerId = GetCurrentManagerId();
@@ -191,6 +197,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – GET
+        [HttpGet("RequestConsumable")]
         public IActionResult RequestConsumable()
         {
             ViewBag.Consumables = new SelectList(
@@ -200,7 +207,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – POST
-        [HttpPost]
+        [HttpPost("RequestConsumable")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestConsumable(ConsumableOrder order)
         {
@@ -218,6 +225,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             }
 
             order.OrderStatus = OrderStatus.Ordered;
+            order.IsUrgent = order.IsUrgent; // retain the value from the form
             order.RequestDate = DateTime.Now;
             order.IsActive = Status.Active;
             order.CreatedByEmployeeId = managerId;   // ownership
@@ -229,6 +237,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("OrderDetails/{id:int}")]
         public async Task<IActionResult> OrderDetails(int id)
         {
             int? managerId = GetCurrentManagerId();
@@ -242,7 +251,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – GET
-        [HttpGet]
+        [HttpGet("EditOrder")]
         public async Task<IActionResult> EditOrder(int id)
         {
             int? managerId = GetCurrentManagerId();
@@ -266,7 +275,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT – POST
-        [HttpPost]
+        [HttpPost("EditOrder")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditOrder(int id, ConsumableOrder posted)
         {
@@ -303,7 +312,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SOFT DELETE
-        [HttpPost]
+        [HttpPost("DeleteOrder/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteOrder(int id)
         {
@@ -321,7 +330,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE
-        [HttpPost]
+        [HttpPost("RestoreOrder")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreOrder(int id)
         {
@@ -347,7 +356,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // GET – show order and allow entering received quantity
-        [HttpGet]
+        [HttpGet("ReceiveConsumable")]
         public async Task<IActionResult> ReceiveConsumable(int orderId)
         {
             int? managerId = GetCurrentManagerId();
@@ -362,7 +371,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(order);
         }
 
-        [HttpPost]
+        [HttpPost("ReceiveConsumable")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived)
         {
@@ -397,6 +406,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // LIST stock takes
+        [HttpGet("StockTakes")]
         public async Task<IActionResult> StockTakes()
         {
             int? managerId = GetCurrentManagerId();
@@ -411,7 +421,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE STOCK TAKE – GET
-        [HttpGet]
+        [HttpGet("TakeStock")]
         public IActionResult TakeStock()
         {
             int? managerId = GetCurrentManagerId();
@@ -420,7 +430,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE STOCK TAKE – POST (header)
-        [HttpPost]
+        [HttpPost("TakeStock")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartStockTake(StockTake stockTake)
         {
@@ -440,7 +450,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT STOCK TAKE HEADER – GET
-        [HttpGet]
+        [HttpGet("EditStockTake")]
         public async Task<IActionResult> EditStockTake(int id)
         {
             int? managerId = GetCurrentManagerId();
@@ -454,7 +464,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // EDIT STOCK TAKE HEADER – POST
-        [HttpPost]
+        [HttpPost("EditStockTake")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditStockTake(int id, StockTake posted)
         {
@@ -480,7 +490,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // COUNT STOCK – GET (shows all active consumables with current quantities)
-        [HttpGet]
+        [HttpGet("CountStock")]
         public async Task<IActionResult> CountStock(int stockTakeId)
         {
             int? managerId = GetCurrentManagerId();
@@ -503,7 +513,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SAVE STOCK COUNT – POST
-        [HttpPost]
+        [HttpPost("SaveStockCount")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveStockCount(int stockTakeId, Dictionary<int, int> actualQuantities)
         {
@@ -541,6 +551,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // DETAILS
+        [HttpGet("StockTakeDetails/ {id:int}")]
         public async Task<IActionResult> StockTakeDetails(int id)
         {
             int? managerId = GetCurrentManagerId();
@@ -554,7 +565,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // SOFT DELETE
-        [HttpPost]
+        [HttpPost("DeleteStockTake/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteStockTake(int id)
         {
@@ -572,7 +583,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // RESTORE
-        [HttpPost]
+        [HttpPost("RestoreStockTake/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreStockTake(int id)
         {
@@ -588,13 +599,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Stock take restored.";
             return RedirectToAction(nameof(StockTakes));
         }
-    
+
 
 
 
         // ==================================================================
         //  LIST RECEIVED ORDERS (optional – you can reuse Orders with a filter)
         // ==================================================================
+
+        [HttpGet("ReceivedOrders")]
         public async Task<IActionResult> ReceivedOrders()
         {
 
@@ -612,7 +625,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  SOFT DELETE RECEIVED ORDER – POST
         //  (deactivates the order and reverses its stock addition)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("DeleteReceivedOrder/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteReceivedOrder(int id)
         {
@@ -636,7 +649,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  RESTORE RECEIVED ORDER – POST
         //  (reactivates the order and re‑adds the stock)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RestoreReceivedOrder/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreReceivedOrder(int id)
         {

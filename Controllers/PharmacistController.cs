@@ -10,6 +10,7 @@ using WARDMANAGEMENTSYSTEM.Services;   // for INotificationService
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "PHARMACIST")]
+    [Route("[controller]")]
 
     public class PharmacistController : Controller
     {
@@ -58,6 +59,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW PRESCRIPTIONS FORWARDED TO PHARMACY (ready to dispense)
         // ==================================================================
+
+        [HttpGet("Index")]
         public async Task<IActionResult> Index()
         {
             int? pharmacistId = GetCurrentPharmacistId();
@@ -77,7 +80,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISPENSE MEDICATION – GET (verification step)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("Dispense/{int:id}")]
         public async Task<IActionResult> Dispense(int id)
         {
             int? pharmacistId = GetCurrentPharmacistId();
@@ -97,7 +100,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISPENSE MEDICATION – POST (confirm dispensing)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("Dispense/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Dispense(int id, string? batchNumber, int quantityDispensed = 0)
         {
@@ -151,6 +154,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW DETAILS OF A PRESCRIPTION (optional)
         // ==================================================================
+
+        [HttpGet("Details/{int:id}")]
         public async Task<IActionResult> Details(int id)
         {
             int? pharmacistId = GetCurrentPharmacistId();

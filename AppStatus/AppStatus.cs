@@ -20,11 +20,51 @@
     {
         New,
         ForwardedToPharmacy,
+        Dispensed,
         Delivered,
-        Dispensed
+        Rejected   // <-- add this
+    }
+
+    public enum FollowUpType
+    {
+        PhoneCall,
+        HomeVisit
+    }
+
+    public enum FollowUpStatus
+    {
+        Pending,
+        Completed,
+        Cancelled
     }
 
 
+    public enum MeetingStatus
+    {
+        Scheduled,
+        Completed,
+        Cancelled
+    }
+
+    public enum DischargePlanStatus
+    {
+        Pending,
+        InProgress,
+        ReadyForReview,
+        Approved,
+        Implemented
+    }
+
+    public enum ReferralOutcome
+    {
+        Pending,
+        Accepted,
+        Declined,
+        Completed
+    }
+
+
+    public enum FollowUpRequestStatus { Pending, Scheduled, Cancelled }
 
 
     public enum GenderType 
@@ -34,6 +74,14 @@
     
     
     }
+
+    public enum ScreeningType
+    {
+        Frailty,
+        FallsRisk,
+        CarerStressIndex
+    }
+
 
     public enum Status
     {
@@ -48,7 +96,9 @@
         PartiallyComplete,
         Complete,
         Fulfilled,
-        Cancelled
+        Cancelled,
+        PartiallyFulfilled,
+        Rejected,
     }
 
    

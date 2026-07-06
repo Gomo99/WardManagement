@@ -32,6 +32,13 @@
                     <input asp-for="QuantityRequested" class="form-control" type="number" min="1" value="1" />
                     <span asp-validation-for="QuantityRequested" class="field-validation-error"></span>
                 </div>
+
+                <div class="form-check">
+                    <input asp-for="IsUrgent" class="form-check-input" />
+                    <label asp-for="IsUrgent" class="form-check-label">Mark as urgent</label>
+                </div>
+
+
                 <div style="display:flex; gap:12px; margin-top:4px;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Place Order</button>
                     <a asp-action="Orders" class="btn btn-outline">Cancel</a>

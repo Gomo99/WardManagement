@@ -44,6 +44,8 @@
                         <th style="text-align:right;">Actions</th>
                     </tr>
                 </thead>
+
+
                 <tbody>
                     @foreach (var script in Model)
                     {
@@ -73,6 +75,12 @@
                                     <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
                                             onclick="return confirm('Deactivate this prescription?')">
                                         <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                </form>
+                                <form asp-action="ToggleStat" asp-route-id="@script.Id" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(script.IsStat ? "btn-danger" : "btn-outline-secondary")">
+                                        @(script.IsStat ? "STAT" : "Set STAT")
                                     </button>
                                 </form>
                             </td>

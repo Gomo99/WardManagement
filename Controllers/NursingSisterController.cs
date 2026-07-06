@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
@@ -9,6 +10,7 @@ using WARDMANAGEMENTSYSTEM.Models;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "NURSINGSISTER")]
+    [Route("[controller]")]
 
     public class NursingSisterController : Controller
     {
@@ -19,11 +21,26 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context = context;
         }
 
+
+        private int? GetCurrentNursingSisterId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int id))
+                return null;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (role != UserRole.NURSINGSISTER.ToString())
+                return null;
+            return id;
+        }
+
+
         // ---------------------------------------------------------------
         //  DASHBOARD
         // ---------------------------------------------------------------
         public async Task<IActionResult> Dashboard()
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
 
             ViewBag.ActivePatients = await _context.Admissions.CountAsync(a => a.IsActive == Status.Active);
             ViewBag.AdministeredToday = await _context.MedicationAdministrations.CountAsync(ma => ma.DateAdministered.Date == DateTime.Today && ma.IsActive == Status.Active);
@@ -33,8 +50,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  VIEW ADMITTED PATIENTS
         // ===============================================================
+
+        [HttpGet("Patients")]
         public async Task<IActionResult> Patients()
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admissions = await _context.Admissions
                 .Include(a => a.Patient)
                 .Include(a => a.Bed).ThenInclude(b => b.Ward)
@@ -47,8 +69,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  MEDICATION ADMINISTRATION LIST FOR A SPECIFIC ADMISSION
         // ===============================================================
+
+        [HttpGet("MedicationAdministrationsByAdmission/{int:id}")]
         public async Task<IActionResult> MedicationAdministrationsByAdmission(int admissionId)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
@@ -68,9 +95,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  ADMINISTER MEDICATION – GET
         // ===============================================================
-        [HttpGet]
+        [HttpGet("AdministerMedication/{int:id}")]
         public async Task<IActionResult> AdministerMedication(int admissionId)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var admission = await _context.Admissions
                 .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.Id == admissionId && a.IsActive == Status.Active);
@@ -97,10 +127,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  ADMINISTER MEDICATION – POST
         // ===============================================================
-        [HttpPost]
+        [HttpPost("AdministerMedication/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AdministerMedication(MedicationAdministration administration)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             ModelState.Remove("Id");
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -154,9 +187,12 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  EDIT MEDICATION ADMINISTRATION – GET
         // ===============================================================
-        [HttpGet]
+        [HttpGet("EditMedicationAdministration/{int:id}")]
         public async Task<IActionResult> EditMedicationAdministration(int id)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var administration = await _context.MedicationAdministrations
                 .Include(ma => ma.Admission).ThenInclude(a => a.Patient)
                 .Include(ma => ma.Medication)
@@ -174,10 +210,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  EDIT MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost]
+        [HttpPost("EditMedicationAdministration/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMedicationAdministration(int id, MedicationAdministration posted)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             if (id != posted.Id) return BadRequest();
             ModelState.Remove("IsActive");
             ModelState.Remove("Admission");
@@ -224,8 +263,13 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  MEDICATION ADMINISTRATION DETAILS
         // ===============================================================
+
+        [HttpGet("DetailsMedicationAdministration/{int:id}")]
         public async Task<IActionResult> DetailsMedicationAdministration(int id)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var administration = await _context.MedicationAdministrations
                 .Include(ma => ma.Admission).ThenInclude(a => a.Patient)
                 .Include(ma => ma.Medication)
@@ -237,10 +281,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  SOFT DELETE MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost]
+        [HttpPost("DeleteMedicationAdministration/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMedicationAdministration(int id)
         {
+
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();
 
@@ -254,10 +302,14 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ===============================================================
         //  RESTORE MEDICATION ADMINISTRATION – POST
         // ===============================================================
-        [HttpPost]
+        [HttpPost("RestoreMedicationAdministration/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreMedicationAdministration(int id)
         {
+            int? nurseId = GetCurrentNursingSisterId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+
             var administration = await _context.MedicationAdministrations.FindAsync(id);
             if (administration == null) return NotFound();
 

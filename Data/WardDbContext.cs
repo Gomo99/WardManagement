@@ -13,7 +13,20 @@ namespace WARDMANAGEMENTSYSTEM.Data
         public DbSet<UserDevice> UserDevices { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Ward> Wards { get; set; }
+        public DbSet<HospitalLocation> HospitalLocations { get; set; }
         public DbSet<Bed> Beds { get; set; }
+        public DbSet<ConsumableOrderBatch> ConsumableOrderBatches { get; set; }
+        public DbSet<PatientNeed> PatientNeeds { get; set; }
+        public DbSet<Referral> Referrals { get; set; }
+        public DbSet<FamilyContactLog> FamilyContactLogs { get; set; }
+        public DbSet<FamilyMeeting> FamilyMeetings { get; set; }
+        public DbSet<FamilyMeetingAttendee> FamilyMeetingAttendees { get; set; }
+        public DbSet<FollowUp> FollowUps { get; set; }
+        public DbSet<DischargePlanTask> DischargePlanTasks { get; set; }
+        public DbSet<RiskScreening> RiskScreenings { get; set; }
+        public DbSet<PsychosocialAssessment> PsychosocialAssessments { get; set; }
+        public DbSet<EmergencyContact> EmergencyContacts { get; set; }
+        public DbSet<FollowUpRequest> FollowUpRequests { get; set; }
         public DbSet<Consumable> Consumables { get; set; }
         public DbSet<Allergy> Allergies { get; set; }
         public DbSet<DischargePlan> DischargePlans { get; set; }

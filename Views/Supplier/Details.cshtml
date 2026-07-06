@@ -49,6 +49,18 @@
                     <div style="font-size:.72rem; color:var(--gray-400); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;">Notes</div>
                     <div style="font-weight:500; color:var(--navy);">@(Model.Notes ?? "—")</div>
                 </div>
+
+
+                @if (Model.ConsumableOrderBatches.Any())
+                {
+                    <h5>Batches Shipped</h5>
+                    <ul>
+                        @foreach (var b in Model.ConsumableOrderBatches)
+                        {
+                            <li>@b.BatchNumber @(b.Quantity.HasValue ? $"({b.Quantity} units)" : "")</li>
+                        }
+                    </ul>
+                }
             </div>
         </div>
     </div>

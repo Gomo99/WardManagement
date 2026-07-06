@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
@@ -6,6 +7,8 @@ using WARDMANAGEMENTSYSTEM.Data;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
+    [Authorize]
+    [Route("[controller]")]
     public class NotificationController : Controller
     {
         private readonly WardDbContext _context;

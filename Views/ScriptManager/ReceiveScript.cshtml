@@ -34,6 +34,16 @@
                 <input type="hidden" name="id" value="@Model.Id" />
                 <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Confirm Receipt & Mark Delivered</button>
             </form>
+
+
+            <form asp-action="RejectScript" method="post" style="display:inline; margin-left:10px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="input-group">
+                    <input type="text" name="rejectionReason" class="form-control" placeholder="Reason for rejection" required />
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

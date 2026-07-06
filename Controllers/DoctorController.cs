@@ -12,6 +12,7 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "DOCTOR")]
+    [Route("[controller]")]
 
     public class DoctorController : Controller
     {
@@ -23,6 +24,9 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             _context = context;
             _notifService = notifService;
         }
+
+
+
 
         // ------------------------------------------------------------------
         //  HELPER – get current Doctor's EmployeeID from login
@@ -51,6 +55,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  MY PATIENTS – list of admissions assigned to this doctor
         // ==================================================================
+
+        [HttpGet("MyPatients")]
         public async Task<IActionResult> MyPatients()
         {
             var doctorId = GetCurrentDoctorId();
@@ -69,6 +75,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PATIENT FOLDER – comprehensive overview
         // ==================================================================
+
+        [HttpGet("PatientFolder/{int:id}")]
         public async Task<IActionResult> PatientFolder(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -113,7 +121,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RECORD DOCTOR VISIT (GET)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("RecordVisit/{int:id}")]
         public async Task<IActionResult> RecordVisit(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -140,7 +148,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RECORD DOCTOR VISIT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RecordVisit")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordVisit(DoctorVisit visit)
         {
@@ -186,7 +194,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT DOCTOR VISIT (GET)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("EditVisit/{int:id}")]
         public async Task<IActionResult> EditVisit(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -205,7 +213,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT DOCTOR VISIT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("EditVisit/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditVisit(int id, DoctorVisit posted)
         {
@@ -244,6 +252,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DOCTOR VISIT DETAILS
         // ==================================================================
+        [HttpPost("VisitDetails/{int:id}")]
         public async Task<IActionResult> VisitDetails(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -263,6 +272,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [HttpPost("DeleteVisit/{int:id}")]
         public async Task<IActionResult> DeleteVisit(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -282,7 +292,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RESTORE VISIT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RestoreVisit/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreVisit(int id)
         {
@@ -303,6 +313,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  TREATMENTS (doctor can perform treatments during visits)
         // ==================================================================
+        [HttpPost("TreatmentsByAdmission/{int:id}")]
         public async Task<IActionResult> TreatmentsByAdmission(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -325,7 +336,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RECORD TREATMENT (GET)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("RecordTreatment/{int:id}")]
         public async Task<IActionResult> RecordTreatment(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -344,7 +355,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RECORD TREATMENT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RecordTreatment")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecordTreatment(Treatment treatment)
         {
@@ -381,7 +392,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT TREATMENT (GET)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("EditTreatment/{int:id}")]
         public async Task<IActionResult> EditTreatment(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -399,7 +410,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT TREATMENT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("EditTreatment/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditTreatment(int id, Treatment posted)
         {
@@ -433,6 +444,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  TREATMENT DETAILS
         // ==================================================================
+        [HttpPost("TreatmentDetails/{int:id}")]
         public async Task<IActionResult> TreatmentDetails(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -448,7 +460,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SOFT DELETE TREATMENT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("DeleteTreatment/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteTreatment(int id)
         {
@@ -470,7 +482,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RESTORE TREATMENT (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RestoreTreatment/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreTreatment(int id)
         {
@@ -494,7 +506,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULE A VISIT (future date, no instructions initially)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("ScheduleVisit/{int:id}")]
         public async Task<IActionResult> ScheduleVisit(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -518,7 +530,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             });
         }
 
-        [HttpPost]
+        [HttpPost("ScheduleVisit")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ScheduleVisit(DoctorVisit visit)
         {
@@ -585,6 +597,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SCHEDULED VISITS (list upcoming visits for the current doctor)
         // ==================================================================
+
+        [HttpGet("MyScheduledVisits")]
         public async Task<IActionResult> MyScheduledVisits()
         {
             var doctorId = GetCurrentDoctorId();
@@ -605,7 +619,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  WRITE / EDIT INSTRUCTIONS for a scheduled visit (GET)
         // ==================================================================
-        [HttpGet]
+        [HttpGet("WriteInstructions/{int:id}")]
         public async Task<IActionResult> WriteInstructions(int visitId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -627,7 +641,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  WRITE / EDIT INSTRUCTIONS for a scheduled visit (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("WriteInstructions/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> WriteInstructions(int visitId, string instructions)
         {
@@ -681,6 +695,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW ALL INSTRUCTIONS FOR AN ADMISSION
         // ==================================================================
+
+        [HttpPost("PatientInstructions/{int:id}")]
         public async Task<IActionResult> PatientInstructions(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -715,6 +731,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PRESCRIPTIONS – LIST FOR AN ADMISSION
         // ==================================================================
+
+        [HttpGet("PrescriptionsByAdmission/{int:id}")]
         public async Task<IActionResult> PrescriptionsByAdmission(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -739,7 +757,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PRESCRIBE MEDICATION – GET
         // ==================================================================
-        [HttpGet]
+        [HttpGet("PrescribeMedication/{int:id}")]
         public async Task<IActionResult> PrescribeMedication(int admissionId)
         {
             var doctorId = GetCurrentDoctorId();
@@ -778,7 +796,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         //  PRESCRIBE MEDICATION – POST
         // ==================================================================
 
-        [HttpPost]
+        [HttpPost("PrescribeMedication")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PrescribeMedication(Prescription prescription)
         {
@@ -860,7 +878,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT PRESCRIPTION – GET
         // ==================================================================
-        [HttpGet]
+        [HttpGet("EditPrescription/{int:id}")]
         public async Task<IActionResult> EditPrescription(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -885,7 +903,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT PRESCRIPTION – POST
         // ==================================================================
-        [HttpPost]
+        [HttpPost("EditPrescription/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPrescription(int id, Prescription posted)
         {
@@ -931,6 +949,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  PRESCRIPTION DETAILS
         // ==================================================================
+        [HttpGet("PrescriptionDetails/{int:id}")]
+
         public async Task<IActionResult> PrescriptionDetails(int id)
         {
             var doctorId = GetCurrentDoctorId();
@@ -947,7 +967,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SOFT DELETE PRESCRIPTION (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("DeletePrescription/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeletePrescription(int id)
         {
@@ -968,7 +988,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RESTORE PRESCRIPTION (POST)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RestorePrescription/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestorePrescription(int id)
         {
@@ -990,7 +1010,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DISCHARGE PATIENT (doctor initiates discharge)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("DischargePatient/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DischargePatient(int admissionId, string? dischargeInstructions)
         {

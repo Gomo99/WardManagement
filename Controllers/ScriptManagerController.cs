@@ -6,19 +6,26 @@ using System.Security.Claims;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 using WARDMANAGEMENTSYSTEM.Data;
 using WARDMANAGEMENTSYSTEM.Models;
+using WARDMANAGEMENTSYSTEM.Services;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
     [Authorize(Roles = "SCRIPTMANAGER")]
+    [Route("[controller]")]
 
     public class ScriptManagerController : Controller
     {
         private readonly WardDbContext _context;
+        private readonly INotificationService _notifService;
 
-        public ScriptManagerController(WardDbContext context)
+        public ScriptManagerController(WardDbContext context, INotificationService notifService)
         {
             _context = context;
+            _notifService = notifService;
         }
+
+
+
         private int? GetCurrentScriptManagerId()
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -44,11 +51,17 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             ViewBag.DeliveredCount = await _context.Prescriptions.CountAsync(p =>
                 p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.Delivered);
             return View();
+
+            ViewBag.DispensedCount = await _context.Prescriptions.CountAsync(p =>
+    p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.Dispensed);
+
         }
 
         // ==================================================================
         //  VIEW NEW SCRIPTS
         // ==================================================================
+
+        [HttpGet("NewScripts")]
         public async Task<IActionResult> NewScripts()
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -57,14 +70,16 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 .Include(p => p.Admission).ThenInclude(a => a.Patient)
                 .Include(p => p.Medication)
                 .Where(p => p.ScriptManagerId == managerId && p.IsActive == Status.Active && p.ScriptStatus == ScriptStatus.New)
-                .OrderBy(p => p.PrescribedDate)
-                .ToListAsync();
+               .OrderByDescending(p => p.IsStat)         // STAT first
+    .ThenBy(p => p.PrescribedDate)            // then oldest
+    .ToListAsync();
             return View(newPrescriptions);
         }
 
         // ==================================================================
         //  FILTERED VIEWS (optional)
         // ==================================================================
+        [HttpGet("ForwardedScripts")]
         public async Task<IActionResult> ForwardedScripts()
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -79,6 +94,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(list);
         }
 
+        [HttpGet("DeliveredScripts")]
         public async Task<IActionResult> DeliveredScripts()
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -96,7 +112,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CREATE PRESCRIPTION – GET
         // ==================================================================
-        [HttpGet]
+        [HttpGet("Create")]
         public IActionResult Create()
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -130,7 +146,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  CREATE PRESCRIPTION – POST
         // ==================================================================
-        [HttpPost]
+        [HttpPost("Create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Prescription prescription)
         {
@@ -141,6 +157,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             if (!ModelState.IsValid)
             {
+                // repopulate dropdowns (unchanged)
                 ViewBag.Admissions = new SelectList(
                     _context.Admissions
                         .Include(a => a.Patient)
@@ -154,12 +171,18 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return View(prescription);
             }
 
-            // Verify that the selected admission is active
             var admission = await _context.Admissions.FindAsync(prescription.AdmissionId);
             if (admission == null || admission.IsActive != Status.Active)
             {
                 ModelState.AddModelError("AdmissionId", "Invalid admission.");
                 return View(prescription);
+            }
+
+            // ---------- DUPLICATE CHECK ----------
+            if (await HasActiveDuplicate(prescription.AdmissionId, prescription.MedicationId))
+            {
+                // Set a warning message but still allow creation
+                TempData["WarningMessage"] = "This patient already has an active prescription for the same medication.";
             }
 
             prescription.IsActive = Status.Active;
@@ -174,7 +197,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT PRESCRIPTION – GET
         // ==================================================================
-        [HttpGet]
+        [HttpGet("Edit/{int:id}")]
         public async Task<IActionResult> Edit(int id)
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -210,7 +233,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  EDIT PRESCRIPTION – POST
         // ==================================================================
-        [HttpPost]
+        [HttpPost("Edit/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Prescription posted)
         {
@@ -226,7 +249,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             if (!ModelState.IsValid)
             {
-                // Repopulate dropdowns with selected values
+                // repopulate dropdowns (unchanged)
                 ViewBag.Admissions = new SelectList(
                     _context.Admissions
                         .Include(a => a.Patient)
@@ -250,6 +273,15 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction(nameof(AllScripts));
             }
 
+            // ---------- DUPLICATE CHECK (only if medication changed) ----------
+            if (posted.MedicationId != prescription.MedicationId)
+            {
+                if (await HasActiveDuplicate(prescription.AdmissionId, posted.MedicationId, excludePrescriptionId: id))
+                {
+                    TempData["WarningMessage"] = "This patient already has an active prescription for the newly selected medication.";
+                }
+            }
+
             prescription.AdmissionId = posted.AdmissionId;
             prescription.MedicationId = posted.MedicationId;
             prescription.Dosage = posted.Dosage;
@@ -263,30 +295,66 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Prescription updated.";
             return RedirectToAction(nameof(AllScripts));
         }
-
-        // ==================================================================
         //  FORWARD TO PHARMACY
         // ==================================================================
-        [HttpPost]
+        // ==================================================================
+        //  FORWARD TO PHARMACY (with allergy check)
+        // ==================================================================
+        [HttpPost("ForwardToPharmacy/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForwardToPharmacy(int id)
         {
-
             int? managerId = GetCurrentScriptManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
-            var prescription = await _context.Prescriptions.FindAsync(id);
-            if (prescription == null || prescription.IsActive != Status.Active)
-                return NotFound();
+            // Load prescription with patient allergies
+            var prescription = await _context.Prescriptions
+                .Include(p => p.Admission)
+                    .ThenInclude(a => a.AdmissionAllergies)
+                        .ThenInclude(aa => aa.Allergy)
+                .Include(p => p.Medication)
+                .FirstOrDefaultAsync(p => p.Id == id
+                                         && p.ScriptManagerId == managerId
+                                         && p.IsActive == Status.Active
+                                         && p.ScriptStatus == ScriptStatus.New);
 
-            if (prescription.ScriptStatus != ScriptStatus.New)
+            if (prescription == null)
             {
-                TempData["ErrorMessage"] = "This prescription has already been processed.";
+                TempData["ErrorMessage"] = "This prescription cannot be forwarded (may already be processed).";
                 return RedirectToAction(nameof(NewScripts));
             }
 
+            // ---------- ALLERGY CHECK ----------
+            var medicationName = prescription.Medication?.Name?.Trim();
+            if (!string.IsNullOrEmpty(medicationName))
+            {
+                var patientAllergies = prescription.Admission?.AdmissionAllergies
+                    ?.Select(aa => aa.Allergy?.Name?.Trim())
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .ToList() ?? new List<string?>();
+
+                // Simple case‑insensitive match between medication name and allergy names
+                if (patientAllergies.Any(a => string.Equals(a, medicationName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    TempData["ErrorMessage"] = $"Cannot forward: the patient is allergic to '{medicationName}'.";
+                    return RedirectToAction(nameof(NewScripts));
+                }
+            }
+
+            // Forward
             prescription.ScriptStatus = ScriptStatus.ForwardedToPharmacy;
             await _context.SaveChangesAsync();
+
+            // STAT notification
+            if (prescription.IsStat)
+            {
+                var patientName = prescription.Admission?.Patient?.FullName ?? "a patient";
+                var medName = medicationName ?? "medication";
+                await _notifService.NotifyRoleAsync(
+                    UserRole.PHARMACIST.ToString(),
+                    $"STAT prescription for {patientName}: {medName}.",
+                    Url.Action("Index", "Pharmacist"));
+            }
 
             TempData["SuccessMessage"] = "Prescription forwarded to pharmacy.";
             return RedirectToAction(nameof(NewScripts));
@@ -294,7 +362,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
         // ==================================================================
         //  RECEIVE & VERIFY SCRIPT – GET
-        [HttpGet]
+        [HttpGet("ReceiveScript/{int:id}")]
         public async Task<IActionResult> ReceiveScript(int id)
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -316,7 +384,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             return View(prescription);
         }
 
-        [HttpPost]
+        [HttpPost("ReceiveScriptConfirmed/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReceiveScriptConfirmed(int id)
         {
@@ -342,6 +410,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  VIEW ALL SCRIPTS
         // ==================================================================
+
+        [HttpGet("AllScripts")]
         public async Task<IActionResult> AllScripts()
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -360,6 +430,8 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  DETAILS
         // ==================================================================
+
+        [HttpGet("Details/{int:id}")]
         public async Task<IActionResult> Details(int id)
         {
             int? managerId = GetCurrentScriptManagerId();
@@ -376,7 +448,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  SOFT DELETE (cancel)
         // ==================================================================
-        [HttpPost]
+        [HttpPost("DeleteScript/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteScript(int id)
         {
@@ -398,7 +470,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
         //  RESTORE
         // ==================================================================
-        [HttpPost]
+        [HttpPost("RestoreScript/{int:id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreScript(int id)
         {
@@ -412,6 +484,225 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             TempData["SuccessMessage"] = "Prescription reactivated.";
             return RedirectToAction(nameof(AllScripts));
+        }
+
+
+        // ==================================================================
+        //  BULK FORWARD SCRIPTS TO PHARMACY
+        // ==================================================================
+        [HttpPost("BulkForwardToPharmacy/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkForwardToPharmacy(List<int> selectedIds)
+        {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            if (selectedIds == null || selectedIds.Count == 0)
+            {
+                TempData["ErrorMessage"] = "No prescriptions selected.";
+                return RedirectToAction(nameof(NewScripts));
+            }
+
+            // Load only prescriptions that belong to this manager, are Active, and have status New
+            var scripts = await _context.Prescriptions
+                .Where(p => selectedIds.Contains(p.Id)
+                            && p.ScriptManagerId == managerId
+                            && p.IsActive == Status.Active
+                            && p.ScriptStatus == ScriptStatus.New)
+                .ToListAsync();
+
+            if (scripts.Count == 0)
+            {
+                TempData["ErrorMessage"] = "None of the selected prescriptions can be forwarded (they may already be processed or not assigned to you).";
+                return RedirectToAction(nameof(NewScripts));
+            }
+
+            foreach (var script in scripts)
+            {
+                script.ScriptStatus = ScriptStatus.ForwardedToPharmacy;
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"{scripts.Count} prescription(s) forwarded to pharmacy.";
+            return RedirectToAction(nameof(NewScripts));
+        }
+
+
+        // ==================================================================
+        //  TOGGLE URGENT (STAT) FLAG
+        // ==================================================================
+        [HttpPost("ToggleStat/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleStat(int id)
+        {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var script = await _context.Prescriptions
+                .FirstOrDefaultAsync(p => p.Id == id
+                                          && p.ScriptManagerId == managerId
+                                          && p.IsActive == Status.Active
+                                          && p.ScriptStatus == ScriptStatus.New);
+            if (script == null) return NotFound();
+
+            // Toggle
+            script.IsStat = !script.IsStat;
+            await _context.SaveChangesAsync();
+
+            // If marked STAT, notify all pharmacists
+            if (script.IsStat)
+            {
+                var medName = (await _context.Medications.FindAsync(script.MedicationId))?.Name ?? "medication";
+                var patientName = (await _context.Admissions
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == script.AdmissionId))
+                    ?.Patient?.FullName ?? "a patient";
+
+                await _notifService.NotifyRoleAsync(
+                    UserRole.PHARMACIST.ToString(),
+                    $"STAT prescription for {patientName}: {medName}. Please prepare immediately.",
+                    Url.Action("Index", "Pharmacist"));
+            }
+
+            TempData["SuccessMessage"] = script.IsStat
+                ? "Prescription marked as STAT."
+                : "Prescription marked as routine.";
+            return RedirectToAction(nameof(NewScripts));
+        }
+
+
+
+        // ==================================================================
+        //  REJECT DISPENSED MEDICATION
+        // ==================================================================
+        [HttpPost("RejectScript/{int:id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectScript(int id, string rejectionReason)
+        {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+            {
+                TempData["ErrorMessage"] = "Please provide a reason for rejection.";
+                return RedirectToAction(nameof(ReceiveScript), new { id });
+            }
+
+            var prescription = await _context.Prescriptions
+                .FirstOrDefaultAsync(p => p.Id == id
+                                          && p.IsActive == Status.Active
+                                          && p.ScriptStatus == ScriptStatus.Dispensed);
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription not found or not in a state that can be rejected.";
+                return RedirectToAction(nameof(AllScripts));
+            }
+
+            prescription.ScriptStatus = ScriptStatus.Rejected;
+            prescription.Notes = (prescription.Notes ?? "") +
+                                 $" | Rejected by Script Manager on {DateTime.Now:g}. Reason: {rejectionReason}";
+            await _context.SaveChangesAsync();
+
+            // --------------- NOTIFICATION TO PHARMACIST ---------------
+            try
+            {
+                if (prescription.PharmacistId.HasValue)
+                {
+                    string managerName = (await _context.Employees.FindAsync(managerId))?.FullName ?? "Script Manager";
+                    string medName = (await _context.Medications.FindAsync(prescription.MedicationId))?.Name ?? "medication";
+                    string msg = $"{managerName} rejected the dispensed medication '{medName}'. Reason: {rejectionReason}";
+
+                    await _notifService.NotifyUserAsync(
+                        prescription.PharmacistId.Value,
+                        "Employee",
+                        msg,
+                        Url.Action("Details", "Pharmacist", new { id = prescription.Id }));
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Notification error: " + ex.Message); }
+
+            TempData["SuccessMessage"] = "Medication rejected. The pharmacist has been notified.";
+            return RedirectToAction(nameof(AllScripts));
+        }
+
+        // ==================================================================
+        //  PRINT PRESCRIPTION LABEL
+        // ==================================================================
+
+        [HttpGet("PrintLabel/{int:id}")]
+        public async Task<IActionResult> PrintLabel(int id)
+        {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var prescription = await _context.Prescriptions
+                .Include(p => p.Admission).ThenInclude(a => a.Patient)
+                .Include(p => p.Medication)
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive == Status.Active);
+
+            if (prescription == null) return NotFound();
+
+            return View(prescription);
+        }
+
+
+
+
+
+
+        // ==================================================================
+        //  SCRIPTS READY FOR COLLECTION (DISPENSED)
+        // ==================================================================
+
+        [HttpGet("ReadyForCollection")]
+        public async Task<IActionResult> ReadyForCollection()
+        {
+            int? managerId = GetCurrentScriptManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var list = await _context.Prescriptions
+                .Include(p => p.Admission).ThenInclude(a => a.Patient)
+                .Include(p => p.Medication)
+                .Where(p => p.ScriptManagerId == managerId
+                            && p.IsActive == Status.Active
+                            && p.ScriptStatus == ScriptStatus.Dispensed)
+                .OrderByDescending(p => p.PrescribedDate)
+                .ToListAsync();
+
+            return View(list);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        private async Task<bool> HasActiveDuplicate(int admissionId, int medicationId, int? excludePrescriptionId = null)
+        {
+            // Active statuses that mean the drug is still in use
+            var activeStatuses = new[] {
+        ScriptStatus.New,
+        ScriptStatus.ForwardedToPharmacy,
+        ScriptStatus.Dispensed
+    };
+
+            var query = _context.Prescriptions
+                .Where(p => p.AdmissionId == admissionId
+                            && p.MedicationId == medicationId
+                            && p.IsActive == Status.Active
+                            && activeStatuses.Contains(p.ScriptStatus));
+
+            if (excludePrescriptionId.HasValue)
+                query = query.Where(p => p.Id != excludePrescriptionId.Value);
+
+            return await query.AnyAsync();
         }
     }
 }

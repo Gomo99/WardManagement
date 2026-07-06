@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Sign In";
     ViewData["GuestLayout"] = true;
+  
 }
 
 <div class="guest-card">
@@ -64,6 +65,11 @@
                 <a asp-action="ForgotPassword" style="font-size:.82rem; color:var(--teal); text-decoration:none; font-weight:500;">
                     Forgot password?
                 </a>
+            </div>
+
+            <div class="mb-3">
+                <div class="g-recaptcha" data-sitekey="@ViewBag.SiteKey"></div>
+                <span class="text-danger" id="captcha-error" style="display:none">Please complete the CAPTCHA.</span>
             </div>
 
             <button type="submit" class="btn btn-primary btn-full btn-lg">

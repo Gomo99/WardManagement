@@ -71,6 +71,8 @@
                                     <span class="badge badge-warning"><span class="badge-dot"></span> Inactive</span>
                                 }
                             </td>
+
+
                             <td style="text-align:right;">
                                 <a asp-action="EditPatient" asp-route-id="@pat.Id" class="btn btn-outline btn-sm">
                                     <i class="fa-solid fa-pen"></i> Edit
@@ -92,6 +94,10 @@
                                         </button>
                                     </form>
                                 }
+
+                                <a asp-action="PatientLoginCard" asp-route-patientId="@pat.Id" class="btn btn-sm btn-outline-info" target="_blank">
+                                    <i class="fa-solid fa-id-card"></i> Login Card
+                                </a>
                                 else
                                 {
                                     <form asp-action="RestorePatient" asp-route-id="@pat.Id" method="post" style="display:inline;">

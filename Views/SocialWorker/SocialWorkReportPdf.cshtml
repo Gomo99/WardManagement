@@ -1,0 +1,144 @@
+﻿@using WARDMANAGEMENTSYSTEM.ViewModel
+@model SocialWorkReportViewModel
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Social Work Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 10pt;
+            margin: 20px;
+        }
+
+        h2 {
+            font-size: 14pt;
+            border-bottom: 1px solid #000;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+        }
+
+        td, th {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h2>Social Work Report for @Model.PatientName</h2>
+    <p><strong>DOB:</strong> @Model.DateOfBirth | <strong>Admission:</strong> @Model.AdmissionDate | <strong>Discharge:</strong> @Model.DischargeDate</p>
+    <p><strong>Doctor:</strong> @Model.DoctorName | <strong>Ward:</strong> @Model.WardName</p>
+
+    @if (Model.Assessment != null)
+    {
+        <h3>Psychosocial Assessment</h3>
+        <p><strong>Social History:</strong> @Model.Assessment.SocialHistory</p>
+        <p><strong>Support Network:</strong> @Model.Assessment.SupportNetwork</p>
+        <p><strong>Financial Concerns:</strong> @Model.Assessment.FinancialConcerns</p>
+        <p><strong>Substance Use:</strong> @Model.Assessment.SubstanceUse</p>
+        <p><strong>Mental Health Status:</strong> @Model.Assessment.MentalHealthStatus</p>
+        <p><strong>Notes:</strong> @Model.Assessment.AdditionalNotes</p>
+    }
+
+    <h3>Discharge Plans</h3>
+    @foreach (var plan in Model.DischargePlans)
+    {
+        <p><strong>Status:</strong> @plan.DischargeStatus | <strong>Details:</strong> @plan.PlanDetails</p>
+        var tasks = Model.AllPlanTasks.Where(t => t.DischargePlanId == plan.Id).ToList();
+        if (tasks.Any())
+        {
+            <ul>
+                @foreach (var task in tasks)
+                {
+                    <li>@task.TaskName - Due: @task.DueDate?.ToString("dd MMM yyyy") - @(task.IsCompleted ? "Done" : "Pending")</li>
+                }
+            </ul>
+        }
+    }
+
+    <h3>Risk Screenings</h3>
+    <table>
+        <tr><th>Type</th><th>Score</th><th>Risk Level</th><th>Recommended Actions</th></tr>
+        @foreach (var r in Model.RiskScreenings)
+        {
+            <tr>
+                <td>@r.Type</td>
+                <td>@r.Score</td>
+                <td>@r.RiskLevel</td>
+                <td>@r.RecommendedActions</td>
+            </tr>
+        }
+    </table>
+
+    <h3>Referrals</h3>
+    <table>
+        <tr><th>Organisation</th><th>Contact</th><th>Outcome</th><th>Notes</th></tr>
+        @foreach (var r in Model.Referrals)
+        {
+            <tr>
+                <td>@r.OrganisationName</td>
+                <td>@r.ContactPerson</td>
+                <td>@r.Outcome</td>
+                <td>@r.OutcomeNotes</td>
+            </tr>
+        }
+    </table>
+
+    <h3>Needs Checklist</h3>
+    <ul>
+        @foreach (var n in Model.NeedsChecklist)
+        {
+            <li>@n.NeedName - @(n.IsCompleted ? "Done" : "Pending")</li>
+        }
+    </ul>
+
+    <h3>Follow‑ups</h3>
+    <table>
+        <tr><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr>
+        @foreach (var f in Model.FollowUps)
+        {
+            <tr>
+                <td>@f.Type</td>
+                <td>@f.ScheduledDate.ToString("dd MMM yyyy")</td>
+                <td>@f.Status</td>
+                <td>@f.Notes</td>
+            </tr>
+        }
+    </table>
+
+    <h3>Family Contacts</h3>
+    <table>
+        <tr><th>Name</th><th>Relationship</th><th>Date</th><th>Notes</th><th>Decisions</th></tr>
+        @foreach (var c in Model.FamilyContacts)
+        {
+            <tr>
+                <td>@c.ContactName</td>
+                <td>@c.Relationship</td>
+                <td>@c.ContactDate.ToString("dd MMM yyyy")</td>
+                <td>@c.Notes</td>
+                <td>@c.DecisionsMade</td>
+            </tr>
+        }
+    </table>
+
+    <h3>Family Meetings</h3>
+    <table>
+        <tr><th>Date</th><th>Location</th><th>Attendees</th><th>Status</th></tr>
+        @foreach (var m in Model.Meetings)
+        {
+            <tr>
+                <td>@m.ScheduledDate.ToString("dd MMM yyyy HH:mm")</td>
+                <td>@m.Location</td>
+                <td>@string.Join(", ", m.Attendees.Select(a => a.Employee?.FullName))</td>
+                <td>@m.Status</td>
+            </tr>
+        }
+    </table>
+</body>
+</html>
