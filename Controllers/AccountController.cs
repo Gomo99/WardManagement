@@ -15,7 +15,6 @@ using WARDMANAGEMENTSYSTEM.ViewModel;
 
 namespace WARDMANAGEMENTSYSTEM.Controllers
 {
-    // [Route("[controller]")]  ← REMOVED
     public class AccountController : Controller
     {
         private readonly WardDbContext _context;
