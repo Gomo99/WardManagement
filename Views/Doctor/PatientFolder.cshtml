@@ -24,6 +24,66 @@
     <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> @TempData["SuccessMessage"]</div>
 }
 
+
+<div class="card" style="margin-bottom:16px; border-left: 4px solid #17a2b8;">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-notes-medical"></i> Medical History Summary</span>
+    </div>
+    <div class="card-body">
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:12px;">
+            <div>
+                <strong>Age:</strong>
+                <span class="badge bg-light text-dark">@(ViewBag.PatientAge ?? "N/A")</span>
+            </div>
+            <div>
+                <strong>Diabetic:</strong>
+                @if (ViewBag.IsDiabetic == true)
+                {
+                    <span class="badge bg-danger">Yes</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">No</span>
+                }
+            </div>
+            <div>
+                <strong>Hypertension:</strong>
+                @if (ViewBag.HasHypertension == true)
+                {
+                    <span class="badge bg-danger">Yes</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">No</span>
+                }
+            </div>
+            <div>
+                <strong>Asthma:</strong>
+                @if (ViewBag.HasAsthma == true)
+                {
+                    <span class="badge bg-danger">Yes</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">No</span>
+                }
+            </div>
+            <div>
+                <strong>Previous Admissions:</strong>
+                <span class="badge bg-info">@ViewBag.PreviousAdmissions</span>
+            </div>
+            <div>
+                <strong>Current Allergies:</strong>
+                <span class="badge bg-warning text-dark">@ViewBag.CurrentAllergies</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
 <!-- Sections: Allergies, Conditions, Chronic Meds -->
 <div style="margin-bottom:20px;">
     <div class="card" style="margin-bottom:16px;">
@@ -66,30 +126,57 @@
             else
             {
                 <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Date</th><th>BP</th><th>Temp (°C)</th><th>Sugar</th><th>HR</th><th>RR</th><th>SpO₂</th></tr></thead>
-                        <tbody>
-                            @foreach (var v in ViewBag.Vitals)
-                            {
-                                <tr>
-                                    <td>@v.DateRecorded.ToString("g")</td>
-                                    <td>@v.BloodPressure</td>
-                                    <td>@v.TemperatureCelsius</td>
-                                    <td>@v.BloodSugarMmolL</td>
-                                    <td>@v.HeartRateBpm</td>
-                                    <td>@v.RespiratoryRate</td>
-                                    <td>@v.OxygenSaturation</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                   <table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Doctor</th>
+            <th>Duration</th>
+            <th>Instructions</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var visit in ViewBag.DoctorVisits)
+        {
+            <tr>
+                <td>@visit.VisitDate.ToString("dd MMM HH:mm")</td>
+                <td>Dr. @visit.Doctor?.FullName</td>
+                <td>@(visit.DurationMinutes.HasValue ? $"{visit.DurationMinutes} min" : "—")</td>
+                <td>@(string.IsNullOrWhiteSpace(visit.Instructions) ? "—" : visit.Instructions)</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(visit.InstructionsStatus))
+                    {
+                        <span class="badge @(visit.InstructionsStatus == "Completed" ? "bg-success" : "bg-warning text-dark")">
+                            @visit.InstructionsStatus
+                        </span>
+                        @if (visit.AcknowledgedByNurse != null)
+                        {
+                            <small class="d-block text-muted">by @visit.AcknowledgedByNurse.FullName<br />@visit.AcknowledgedAt?.ToString("dd MMM HH:mm")</small>
+                        }
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Pending</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
                 </div>
             }
         </div>
     </div>
-
-    <!-- Treatments, Medications, Visits etc. similar compact tables -->
-    <!-- For brevity I'll include placeholders; you can expand as needed -->
+    @foreach (var visit in ViewBag.DoctorVisits)
+    {
+        <tr>
+            <td>@visit.VisitDate.ToString("dd MMM HH:mm")</td>
+            <td>Dr. @visit.Doctor?.FullName</td>
+            <td>@(visit.DurationMinutes.HasValue ? $"{visit.DurationMinutes} min" : "—")</td>
+            <td>...</td>
+        </tr>
+    }
 </div>
 
 <!-- Discharge form (if active) -->

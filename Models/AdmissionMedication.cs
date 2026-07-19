@@ -14,5 +14,6 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public int MedicationId { get; set; }
         [ForeignKey(nameof(MedicationId))]
         public Medication Medication { get; set; } = null!;
+        
     }
 }

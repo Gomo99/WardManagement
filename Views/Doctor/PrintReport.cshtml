@@ -1,0 +1,317 @@
+﻿@model Admission
+@using WARDMANAGEMENTSYSTEM.AppStatus
+@{
+    Layout = null; // clean print layout
+    ViewData["Title"] = "Medical Report";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Medical Report – @Model.Patient.FullName</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 40px;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #1a5276;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+            .report-header h1 {
+                margin-bottom: 5px;
+            }
+
+            .report-header p {
+                margin: 2px 0;
+                color: #666;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        th {
+            background-color: #f4f6f8;
+            text-align: left;
+            padding: 8px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            background-color: #d4e6f1;
+            padding: 8px;
+            font-weight: bold;
+            margin-top: 25px;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .badge-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #f39c12;
+            color: #333;
+        }
+
+        .badge-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .no-print {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .print-btn {
+            background: #2980b9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="report-header">
+        <h1>Ward Management System</h1>
+        <h2>Medical Report</h2>
+        <p>Generated on @DateTime.Now.ToString("dd MMMM yyyy HH:mm")</p>
+    </div>
+
+    <!-- Patient & Admission Details -->
+    <h2>Patient Information</h2>
+    <table>
+        <tr><td style="width:200px;"><strong>Name</strong></td><td>@Model.Patient.FullName</td></tr>
+        <tr><td><strong>Date of Birth</strong></td><td>@(Model.Patient.DateOfBirth != DateTime.MinValue ? Model.Patient.DateOfBirth.ToString("dd MMM yyyy") : "N/A")</td></tr>
+        <tr><td><strong>Admission #</strong></td><td>@Model.Id</td></tr>
+        <tr><td><strong>Admitted</strong></td><td>@Model.AdmissionDate.ToString("dd MMM yyyy")</td></tr>
+        <tr><td><strong>Ward / Bed</strong></td><td>@Model.Bed?.BedNumberWithWard</td></tr>
+        <tr><td><strong>Attending Doctor</strong></td><td>Dr. @Model.Doctor?.FullName</td></tr>
+        @if (Model.DischargeDate.HasValue)
+        {
+            <tr><td><strong>Discharged</strong></td><td>@Model.DischargeDate.Value.ToString("dd MMM yyyy HH:mm")</td></tr>
+        }
+    </table>
+
+    <!-- Diagnoses / Chronic Conditions -->
+    <h2>Diagnoses & Chronic Conditions</h2>
+    @if (Model.AdmissionConditions.Any())
+    {
+        <ul>
+            @foreach (var ac in Model.AdmissionConditions)
+            {
+                <li>@ac.Condition?.Name</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>None recorded.</p>
+    }
+
+    <!-- Allergies -->
+    <h2>Allergies</h2>
+    @if (Model.AdmissionAllergies.Any())
+    {
+        <ul>
+            @foreach (var aa in Model.AdmissionAllergies)
+            {
+                <li>@aa.Allergy.Name</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>None known.</p>
+    }
+
+    <!-- Vitals -->
+    <h2>Vital Signs</h2>
+    @if (ViewBag.Vitals != null && ((List<Vitals>)ViewBag.Vitals).Any())
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>BP</th>
+                    <th>Temp (°C)</th>
+                    <th>HR</th>
+                    <th>RR</th>
+                    <th>SpO₂</th>
+                    <th>Sugar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in ViewBag.Vitals)
+                {
+                    <tr>
+                        <td>@v.DateRecorded.ToString("dd MMM HH:mm")</td>
+                        <td>@v.BloodPressure</td>
+                        <td>@v.TemperatureCelsius</td>
+                        <td>@v.HeartRateBpm</td>
+                        <td>@v.RespiratoryRate</td>
+                        <td>@v.OxygenSaturation</td>
+                        <td>@v.BloodSugarMmolL</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No vitals recorded.</p>
+    }
+
+    <!-- Treatments -->
+    <h2>Treatments</h2>
+    @if (ViewBag.Treatments != null && ((List<Treatment>)ViewBag.Treatments).Any())
+    {
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Type</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in ViewBag.Treatments)
+                {
+                    <tr>
+                        <td>@t.TreatmentDate.ToString("dd MMM HH:mm")</td>
+                        <td>@t.TreatmentType</td>
+                        <td>@t.Notes</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No treatments recorded.</p>
+    }
+
+    <!-- Prescriptions -->
+    <h2>Prescriptions</h2>
+    @if (ViewBag.Prescriptions != null && ((List<Prescription>)ViewBag.Prescriptions).Any())
+    {
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in ViewBag.Prescriptions)
+                {
+                    <tr>
+                        <td>@p.PrescribedDate.ToString("dd MMM HH:mm")</td>
+                        <td>@p.Medication?.Name</td>
+                        <td>@p.Dosage</td>
+                        <td>@p.Frequency</td>
+                        <td>@p.Duration</td>
+                        <td>@p.ScriptStatus</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No prescriptions.</p>
+    }
+
+    <!-- Doctor Visits & Instructions -->
+    <h2>Doctor Visits & Instructions</h2>
+    @if (ViewBag.DoctorVisits != null && ((List<DoctorVisit>)ViewBag.DoctorVisits).Any())
+    {
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Doctor</th><th>Notes</th><th>Instructions</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var dv in ViewBag.DoctorVisits)
+                {
+                    <tr>
+                        <td>@dv.VisitDate.ToString("dd MMM HH:mm")</td>
+                        <td>Dr. @dv.Doctor?.FullName</td>
+                        <td>@dv.Notes</td>
+                        <td>@(string.IsNullOrWhiteSpace(dv.Instructions) ? "—" : dv.Instructions)</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(dv.InstructionStatus))
+                            {
+                                <span class="badge @(dv.InstructionStatus == "Completed" ? "badge-success" : "badge-warning")">@dv.InstructionStatus</span>
+                                if (dv.AcknowledgedBy != null)
+                                {
+                                    <br />
+                    
+                                    <small>by @dv.AcknowledgedBy.FullName, @dv.AcknowledgedAt?.ToString("dd MMM HH:mm")</small>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">Pending</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No visits recorded.</p>
+    }
+
+    <!-- Discharge Summary -->
+    <h2>Discharge Summary</h2>
+    @if (Model.DischargeDate.HasValue)
+    {
+        <table>
+            <tr><td style="width:200px;"><strong>Discharge Date</strong></td><td>@Model.DischargeDate.Value.ToString("dd MMMM yyyy HH:mm")</td></tr>
+            <tr><td><strong>Discharge Instructions</strong></td><td>@(ViewBag.DischargeInstructions ?? "None recorded.")</td></tr>
+        </table>
+    }
+    else
+    {
+        <p>Patient is still admitted.</p>
+    }
+
+    <div class="no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
+        &nbsp;
+        <a asp-action="PatientFolder" asp-route-admissionId="@Model.Id" class="print-btn" style="background:#7f8c8d;">Back to Folder</a>
+    </div>
+
+</body>
+</html>

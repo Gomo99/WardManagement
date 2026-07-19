@@ -1,20 +1,102 @@
-﻿@model WARDMANAGEMENTSYSTEM.Models.DoctorVisit
-@using WARDMANAGEMENTSYSTEM.AppStatus
+﻿@model DoctorVisit
 @{
     ViewData["Title"] = "Visit Details";
-    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Visit Details</span>";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Visit Details</span>";
 }
+
 <div class="page-header">
-    <div class="page-header-title"><h1>Visit Details</h1><p>@Model.Admission?.Patient.FullName</p></div>
-    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <div class="page-header-title">
+        <h1>Doctor Visit Details</h1>
+        <p>@Model.Admission?.Patient?.FullName – @Model.VisitDate.ToString("dd MMM yyyy HH:mm")</p>
+    </div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-folder-open"></i> Back to Folder
+    </a>
 </div>
-<div class="card" style="max-width:500px;">
-    <div class="card-body">
-        <table style="width:100%; font-size:.89rem;">
-            <tr><td style="font-weight:500;">Date:</td><td>@Model.VisitDate.ToString("g")</td></tr>
-            <tr><td style="font-weight:500;">Doctor:</td><td>@Model.Doctor?.FullName</td></tr>
-            <tr><td style="font-weight:500;">Instructions:</td><td>@(string.IsNullOrEmpty(Model.Instructions) ? "—" : Model.Instructions)</td></tr>
-            <tr><td style="font-weight:500;">Notes:</td><td>@Model.Notes</td></tr>
-        </table>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-clock"></i> Visit Timer</span>
+            </div>
+            <div class="card-body">
+                @if (Model.StartVisitTime == null && Model.EndVisitTime == null)
+                {
+                    <p class="text-muted">Timer not started yet.</p>
+                }
+                else
+                {
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Started:</strong> @Model.StartVisitTime?.ToString("HH:mm:ss")<br />
+                            <strong>Ended:</strong> @Model.EndVisitTime?.ToString("HH:mm:ss") ?? "—"
+                        </div>
+                        @if (Model.DurationMinutes.HasValue)
+                        {
+                            <div class="text-center">
+                                <div class="fs-3 fw-bold">@Model.DurationMinutes</div>
+                                <small class="text-muted">minutes</small>
+                            </div>
+                        }
+                        else if (Model.StartVisitTime.HasValue && Model.EndVisitTime == null)
+                        {
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="text-muted mt-1">visit in progress...</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="mt-3">
+                    @if (Model.StartVisitTime == null)
+                    {
+                        <form asp-action="StartVisit" asp-route-visitId="@Model.Id" method="post" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-play"></i> Start Visit
+                            </button>
+                        </form>
+                    }
+                    else if (Model.EndVisitTime == null)
+                    {
+                        <form asp-action="EndVisit" asp-route-visitId="@Model.Id" method="post" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fa-solid fa-stop"></i> End Visit
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success fs-6">Completed</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Visit content as before -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-file-lines"></i> Visit Record</span>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Doctor</dt>
+                    <dd class="col-sm-9">Dr. @Model.Doctor?.FullName</dd>
+
+                    <dt class="col-sm-3">Notes</dt>
+                    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Notes) ? "—" : Model.Notes)</dd>
+
+                    <dt class="col-sm-3">Instructions</dt>
+                    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Instructions) ? "—" : Model.Instructions)</dd>
+                </dl>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <!-- no extra scripts needed -->
+}

@@ -1,0 +1,109 @@
+﻿@using WARDMANAGEMENTSYSTEM.ViewModel
+@model List<ClinicalTimelineEntry>
+@{
+    ViewData["Title"] = "Clinical Timeline";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Timeline for {ViewBag.PatientName}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-timeline"></i> Clinical Timeline</h1>
+        <p>@ViewBag.PatientName – All events in chronological order</p>
+    </div>
+    <div>
+        <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-folder-open"></i> Back to Folder
+        </a>
+        <a asp-action="Dashboard" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No events recorded for this patient yet.</div>
+}
+else
+{
+    <div class="timeline">
+        @foreach (var entry in Model)
+        {
+            string badgeColor = entry.EventType switch
+            {
+                "Vitals" => "#17a2b8",
+                "Medication" => "#6f42c1",
+                "Doctor Visit" => "#007bff",
+                "Treatment" => "#e83e8c",
+                "Movement" => "#fd7e14",
+                "Prescription" => "#28a745",
+                _ => "#6c757d"
+            };
+
+            <div class="timeline-item">
+                <div class="timeline-icon" style="background-color: @badgeColor;">
+                    <i class="fa-solid @entry.Icon"></i>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="badge" style="background-color: @badgeColor;">@entry.EventType</span>
+                        <small class="text-muted ms-2">@entry.Timestamp.ToString("ddd, dd MMM yyyy HH:mm")</small>
+                    </div>
+                    <p class="mt-1 mb-0">@entry.Description</p>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Styles {
+    <style>
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+            .timeline::before {
+                content: '';
+                position: absolute;
+                left: 20px;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: #dee2e6;
+            }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-icon {
+            position: absolute;
+            left: -40px;
+            top: 4px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+
+        .timeline-content {
+            background: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .timeline-header {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+}

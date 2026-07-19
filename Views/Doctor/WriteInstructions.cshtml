@@ -1,33 +1,83 @@
-﻿@{
+﻿@model DoctorVisit
+@{
     ViewData["Title"] = "Write Instructions";
-    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Instructions</span>";
-    int visitId = ViewBag.VisitId ?? 0;
-    string existing = ViewBag.ExistingInstructions ?? "";
-    string patientName = ViewBag.PatientName ?? "";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Write Instructions for {ViewBag.PatientName}</span>";
 }
+
 <div class="page-header">
-    <div class="page-header-title"><h1>Write Instructions</h1><p>@patientName</p></div>
-    <a asp-action="MyScheduledVisits" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-pen-to-square"></i> Write Instructions</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Folder
+    </a>
 </div>
-<div style="max-width:560px;">
-    <div class="card">
-        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clipboard-list"></i> Instructions for Nurses</span></div>
-        <div class="card-body">
-            <form asp-action="WriteInstructions" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="visitId" value="@visitId" />
-                <div class="form-group">
-                    <textarea name="instructions" class="form-control" rows="5" placeholder="Enter detailed instructions...">@existing</textarea>
-                    @if (ViewContext.ModelState[""]?.Errors.Count > 0)
-                    {
-                        <span class="field-validation-error">@ViewContext.ModelState[""].Errors[0].ErrorMessage</span>
-                    }
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <span class="card-title"><i class="fa-solid fa-lightbulb"></i> Quick Templates</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="insertTemplate('Stable','instructionsText')">Stable</button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="insertTemplate('Improving','instructionsText')">Improving</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="insertTemplate('Critical','instructionsText')">Critical</button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="insertTemplate('Continue Medication','instructionsText')">Continue Medication</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="insertTemplate('Increase Fluids','instructionsText')">Increase Fluids</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTemplate('Monitor BP','instructionsText')">Monitor BP</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTemplate('Monitor Temperature','instructionsText')">Monitor Temperature</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTemplate('Repeat Blood Tests','instructionsText')">Repeat Blood Tests</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTemplate('Review Tomorrow','instructionsText')">Review Tomorrow</button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="insertTemplate('Discharge when stable','instructionsText')">Discharge when stable</button>
                 </div>
-                <div style="display:flex; gap:12px;">
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Instructions</button>
-                    <a asp-action="MyScheduledVisits" class="btn btn-outline">Cancel</a>
-                </div>
-            </form>
+                <p class="text-muted small mb-0">
+                    <i class="fa-solid fa-circle-info"></i> Click a template to insert it at the cursor position.
+                </p>
+            </div>
         </div>
+
+        <form asp-action="WriteInstructions" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="visitId" value="@ViewBag.VisitId" />
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-clipboard-list"></i> Instructions</span>
+                </div>
+                <div class="card-body">
+                    <textarea id="instructionsText" name="instructions" rows="10" class="form-control"
+                              placeholder="Type or use templates above...">@ViewBag.ExistingInstructions</textarea>
+
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-save"></i> Save Instructions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function insertTemplate(text, targetId) {
+            const textarea = document.getElementById(targetId);
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + text + after;
+
+            // Move cursor after inserted text
+            const newPos = start + text.length;
+            textarea.focus();
+            textarea.setSelectionRange(newPos, newPos);
+        }
+    </script>
+}

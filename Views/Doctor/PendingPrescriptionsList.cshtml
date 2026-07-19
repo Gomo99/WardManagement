@@ -1,0 +1,51 @@
+﻿@model List<WARDMANAGEMENTSYSTEM.Models.Prescription>
+
+@{
+    ViewData["Title"] = ViewBag.Title ?? "Pending Prescriptions";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>{ViewBag.Title}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>@ViewBag.Title</h1>
+        <p>@ViewBag.Subtitle</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No pending prescriptions.</div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Medication</th>
+                <th>Dosage</th>
+                <th>Prescribed</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var script in Model)
+            {
+                <tr>
+                    <td>@script.Admission?.Patient?.FullName</td>
+                    <td>@script.Medication?.Name</td>
+                    <td>@script.Dosage</td>
+                    <td>@script.PrescribedDate.ToString("dd MMM yyyy HH:mm")</td>
+                    <td><span class="badge bg-warning">@script.ScriptStatus</span></td>
+                    <td>
+                        <a asp-action="PrescriptionDetails" asp-route-id="@script.Id" class="btn btn-outline-info btn-sm">
+                            <i class="fa-solid fa-info-circle"></i> Details
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

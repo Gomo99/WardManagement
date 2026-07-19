@@ -1,48 +1,93 @@
-﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+﻿@model Prescription
 @{
     ViewData["Title"] = "Prescribe Medication";
-    ViewData["Breadcrumb"] = "<a href='/Doctor/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Prescribe</span>";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Prescribe Medication for {ViewBag.PatientName}</span>";
 }
+
 <div class="page-header">
-    <div class="page-header-title"><h1>Prescribe Medication</h1><p>@ViewBag.PatientName</p></div>
-    <a asp-action="PrescriptionsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-prescription"></i> Prescribe Medication</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Folder
+    </a>
 </div>
-<div style="max-width:560px;">
+
+<form asp-action="PrescribeMedication" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="AdmissionId" />
+
     <div class="card">
-        <div class="card-header"><span class="card-title"><i class="fa-solid fa-prescription"></i> Prescription Details</span></div>
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-pills"></i> New Prescription</span></div>
         <div class="card-body">
-            <form asp-action="PrescribeMedication" method="post">
-                @Html.AntiForgeryToken()
-                <input asp-for="AdmissionId" type="hidden" />
-                <div class="form-group">
-                    <label class="form-label" asp-for="MedicationId">Medication</label>
-                    <select asp-for="MedicationId" asp-items="ViewBag.Medications" class="form-control"></select>
-                    <span asp-validation-for="MedicationId" class="field-validation-error"></span>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="MedicationId" class="form-label">Medication</label>
+                    <select asp-for="MedicationId" class="form-select" asp-items="ViewBag.Medications">
+                        <option value="">-- Select Medication --</option>
+                    </select>
+                    <span asp-validation-for="MedicationId" class="text-danger"></span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" asp-for="Dosage">Dosage</label>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Dosage" class="form-label">Dosage</label>
                     <input asp-for="Dosage" class="form-control" placeholder="e.g. 500mg" />
+                    <span asp-validation-for="Dosage" class="text-danger"></span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" asp-for="Frequency">Frequency</label>
-                    <input asp-for="Frequency" class="form-control" placeholder="e.g. Twice daily" />
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Frequency" class="form-label">Frequency</label>
+                    <input asp-for="Frequency" class="form-control" placeholder="e.g. 3x daily" />
+                    <span asp-validation-for="Frequency" class="text-danger"></span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" asp-for="Duration">Duration</label>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Duration" class="form-label">Duration</label>
                     <input asp-for="Duration" class="form-control" placeholder="e.g. 7 days" />
+                    <span asp-validation-for="Duration" class="text-danger"></span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" asp-for="Notes">Notes</label>
-                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ScriptManagerId" class="form-label">Assign to Script Manager</label>
+                    <select asp-for="ScriptManagerId" class="form-select" asp-items="ViewBag.ScriptManagers">
+                        <option value="">-- Optional --</option>
+                    </select>
                 </div>
-                <div style="display:flex; gap:12px;">
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Prescribe</button>
-                    <a asp-action="PrescriptionsByAdmission" asp-route-admissionId="@Model.AdmissionId" class="btn btn-outline">Cancel</a>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="PrescribedDate" class="form-label">Date</label>
+                    <input asp-for="PrescribedDate" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="PrescribedDate" class="text-danger"></span>
                 </div>
-            </form>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+
+            @* Duplicate override checkbox (visible when error exists) *@
+            @if (ViewContext.ModelState["MedicationId"]?.Errors.Any(e => e.ErrorMessage.Contains("Duplicate")) == true)
+            {
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Duplicate prescription detected!
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="overrideDuplicate" value="true" id="overrideDuplicate" />
+                        <label class="form-check-label" for="overrideDuplicate">
+                            I understand, prescribe anyway
+                        </label>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" name="overrideDuplicate" value="false" />
+            }
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Prescribe</button>
+            </div>
         </div>
     </div>
-</div>
+</form>
+
 @section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <partial name="_ValidationScriptsPartial" />
 }

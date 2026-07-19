@@ -1,0 +1,51 @@
+﻿@model List<DoctorVisit>
+@{
+    ViewData["Title"] = ViewBag.Title ?? "Missed Visits";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>{ViewBag.Title}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-clock-exclamation"></i> Missed Visits</h1>
+        <p>@ViewBag.Subtitle</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> No missed visits. Well done!
+    </div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Scheduled</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var visit in Model)
+            {
+                <tr>
+                    <td>@visit.Admission?.Patient?.FullName</td>
+                    <td>@visit.VisitDate.ToString("ddd, dd MMM yyyy HH:mm")</td>
+                    <td><span class="badge bg-danger">Missed</span></td>
+                    <td>
+                        <a asp-action="PatientFolder" asp-route-admissionId="@visit.AdmissionId" class="btn btn-outline-secondary btn-sm">
+                            <i class="fa-solid fa-folder-open"></i> Folder
+                        </a>
+                        <a asp-action="RecordVisit" asp-route-admissionId="@visit.AdmissionId" class="btn btn-outline-primary btn-sm ms-1">
+                            <i class="fa-solid fa-stethoscope"></i> Record Now
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

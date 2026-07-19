@@ -15,7 +15,7 @@ namespace WARDMANAGEMENTSYSTEM.Data
         public DbSet<Ward> Wards { get; set; }
         public DbSet<HospitalLocation> HospitalLocations { get; set; }
         public DbSet<Bed> Beds { get; set; }
-
+        public DbSet<FollowUpAppointment> FollowUpAppointments { get; set; }
         public DbSet<AllergyMedication> AllergyMedications { get; set; }
         public DbSet<ConditionMedication> ConditionMedications { get; set; }
         public DbSet<ConsumableOrderBatch> ConsumableOrderBatches { get; set; }

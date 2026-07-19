@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "Doctor Task List";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Task List</span>";
+    var tasks = ViewBag.Tasks as List<(string Description, string Link, string Icon, string Priority)>;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-list-check"></i> Today's Task List</h1>
+        <p>All actionable items that need your attention</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+
+@if (tasks == null || !tasks.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> All caught up! No pending tasks for today.
+    </div>
+}
+else
+{
+    <div class="task-list">
+        @foreach (var task in tasks.OrderBy(t => t.Priority == "Critical" ? 0 : t.Priority == "High" ? 1 : 2))
+        {
+            string badgeClass = task.Priority switch
+            {
+                "Critical" => "bg-danger",
+                "High" => "bg-warning text-dark",
+                _ => "bg-secondary"
+            };
+
+            <div class="task-item" onclick="window.location='@task.Link'">
+                <div class="task-check">
+                    <i class="fa-regular fa-square"></i>
+                </div>
+                <div class="task-content">
+                    <div class="task-description">
+                        <i class="fa-solid @task.Icon me-2"></i> @task.Description
+                    </div>
+                    <span class="badge @badgeClass">@task.Priority</span>
+                </div>
+                <div class="task-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Styles {
+    <style>
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+            .task-item:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transform: translateY(-1px);
+            }
+
+        .task-check {
+            font-size: 1.4rem;
+            color: #adb5bd;
+            margin-right: 14px;
+        }
+
+        .task-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-description {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .task-arrow {
+            margin-left: 12px;
+            color: #ced4da;
+        }
+    </style>
+}

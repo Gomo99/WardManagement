@@ -1,0 +1,90 @@
+﻿@using WARDMANAGEMENTSYSTEM.ViewModel
+@model List<VitalAlertViewModel>
+@{
+    ViewData["Title"] = "Abnormal Vital Alerts";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Vital Alerts for {ViewBag.PatientName}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-triangle-exclamation"></i> Vital Sign Alerts</h1>
+        <p>@ViewBag.PatientName – @ViewBag.TimeAgo</p>
+    </div>
+    <div>
+        <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-folder-open"></i> Patient Folder
+        </a>
+        <a asp-action="Dashboard" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> No abnormal vital signs detected. All readings are within normal range.
+    </div>
+}
+else
+{
+    <div class="alert-list">
+        @foreach (var alert in Model)
+        {
+            string borderColor = alert.Severity switch
+            {
+                "Critical" => "#e74c3c",
+                "High" => "#e67e22",
+                "Low" => "#3498db",
+                "Warning" => "#f39c12",
+                _ => "#95a5a6"
+            };
+            string bgColor = alert.Severity == "Critical" ? "#fdecea" :
+            alert.Severity == "High" ? "#fef6e7" :
+            alert.Severity == "Low" ? "#eaf2f8" :
+            alert.Severity == "Warning" ? "#fef9e7" : "#f8f9fa";
+
+            <div class="alert-card" style="border-left: 4px solid @borderColor; background-color: @bgColor;">
+                <div class="d-flex align-items-start">
+                    <div class="alert-icon me-3" style="color: @borderColor;">
+                        <i class="fa-solid @alert.Icon fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1">@alert.Parameter</h5>
+                        <p class="mb-1" style="font-size: 1.1rem; font-weight: 600;">
+                            @alert.Value
+                            <span class="badge ms-2" style="background-color: @borderColor; color: #fff;">@alert.Severity</span>
+                        </p>
+                        <small class="text-muted">@alert.Message</small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary">
+            <i class="fa-solid fa-folder-open"></i> View Full Patient Folder
+        </a>
+        <a href="@Url.Action("RecordVisit", "Doctor", new { admissionId = ViewBag.AdmissionId })" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-stethoscope"></i> Record Visit
+        </a>
+    </div>
+}
+
+
+@section Styles {
+    <style>
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .alert-card {
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+}

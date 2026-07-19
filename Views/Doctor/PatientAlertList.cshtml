@@ -1,0 +1,47 @@
+﻿@model List<WARDMANAGEMENTSYSTEM.Models.Admission>
+
+@{
+    ViewData["Title"] = ViewBag.Title ?? "Patient Alert List";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>{ViewBag.Title}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1>@ViewBag.Title</h1>
+        <p>@ViewBag.Subtitle</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No patients match this criteria.</div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Bed / Ward</th>
+                <th>Admitted</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var adm in Model)
+            {
+                <tr>
+                    <td>@adm.Patient?.FullName</td>
+                    <td>@adm.Bed?.BedNumber (@adm.Bed?.Ward?.Name)</td>
+                    <td>@adm.AdmissionDate.ToString("dd MMM yyyy")</td>
+                    <td>
+                        <a asp-action="PatientFolder" asp-route-admissionId="@adm.Id" class="btn btn-outline-primary btn-sm">
+                            <i class="fa-solid fa-folder-open"></i> Folder
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

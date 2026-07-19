@@ -838,5 +838,54 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Doctor visit reactivated.";
             return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
         }
+
+
+        // ==================================================================
+        //  ACKNOWLEDGE INSTRUCTIONS – Mark as Seen
+        // ==================================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcknowledgeSeen(int visitId)
+        {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+            var visit = await _context.DoctorVisits.FindAsync(visitId);
+            if (visit == null) return NotFound();
+
+            // Only update if no status or currently "New"
+            if (string.IsNullOrEmpty(visit.InstructionStatus) || visit.InstructionStatus == "New")
+            {
+                visit.InstructionStatus = "Seen";
+                visit.AcknowledgedByEmployeeId = nurseId.Value;
+                visit.AcknowledgedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Instructions marked as seen.";
+            }
+
+            return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
+        }
+
+        // ==================================================================
+        //  ACKNOWLEDGE INSTRUCTIONS – Mark as Completed
+        // ==================================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CompleteInstruction(int visitId)
+        {
+            int? nurseId = GetCurrentNurseId();
+            if (nurseId == null) return RedirectToAction("Login", "Account");
+
+            var visit = await _context.DoctorVisits.FindAsync(visitId);
+            if (visit == null) return NotFound();
+
+            visit.InstructionStatus = "Completed";
+            visit.AcknowledgedByEmployeeId = nurseId.Value;
+            visit.AcknowledgedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Instructions completed.";
+            return RedirectToAction(nameof(DoctorVisitsByAdmission), new { admissionId = visit.AdmissionId });
+        }
     }
 }

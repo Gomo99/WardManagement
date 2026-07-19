@@ -4,8 +4,8 @@
 }
 <div class="page-header">
     <div class="page-header-title">
-        <h1>Doctor Dashboard</h1>
-        <p>Your patients and upcoming visits</p>
+        <h1>Clinical Decision Dashboard</h1>
+        <p>Overview of your patients and important alerts</p>
     </div>
     <div>
         <span style="font-size:.8rem; color:var(--gray-400);">
@@ -14,24 +14,72 @@
     </div>
 </div>
 
+<!-- Top row: critical / abnormal alerts -->
+<div class="stat-grid" style="margin-bottom:20px;">
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("UrgentPatients")'">
+        <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.UrgentReviewCount</div>
+            <div class="stat-label">Need Urgent Review</div>
+        </div>
+    </div>
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("AbnormalVitalsPatients")'">
+        <div class="stat-icon orange"><i class="fa-solid fa-heart-pulse"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.AbnormalVitalsCount</div>
+            <div class="stat-label">Abnormal Vitals</div>
+        </div>
+    </div>
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("DischargedToday")'">
+        <div class="stat-icon green"><i class="fa-solid fa-house-medical-circle-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.DischargedTodayCount</div>
+            <div class="stat-label">Discharged Today</div>
+        </div>
+    </div>
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("PendingPrescriptions")'">
+        <div class="stat-icon purple"><i class="fa-solid fa-prescription-bottle-medical"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.PendingPrescriptionsCount</div>
+            <div class="stat-label">Scripts Pending</div>
+        </div>
+    </div>
+</div>
+
+<!-- Second row: other metrics -->
 <div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("TodayVisits")'">
+        <div class="stat-icon blue"><i class="fa-solid fa-calendar-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayVisitsCount</div>
+            <div class="stat-label">Today's Visits</div>
+        </div>
+    </div>
+    <div class="stat-card clickable" onclick="location.href='@Url.Action("PatientsWithAllergies")'">
+        <div class="stat-icon yellow"><i class="fa-solid fa-allergies"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.AllergyPatientsCount</div>
+            <div class="stat-label">With Allergies</div>
+        </div>
+    </div>
     <div class="stat-card">
-        <div class="stat-icon teal"><i class="fa-solid fa-bed-pulse"></i></div>
+        <div class="stat-icon teal"><i class="fa-solid fa-chart-line"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.RecoveryRate%</div>
+            <div class="stat-label">Recovery Rate (Week)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-bed-pulse"></i></div>
         <div>
             <div class="stat-value">@ViewBag.ActivePatients</div>
             <div class="stat-label">Active Admissions</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon gold"><i class="fa-solid fa-calendar"></i></div>
-        <div>
-            <div class="stat-value">@ViewBag.UpcomingVisits</div>
-            <div class="stat-label">Scheduled Visits</div>
-        </div>
-    </div>
 </div>
 
-<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
+<!-- Quick links to main areas -->
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:20px;">
     <div class="card">
         <div class="card-header"><span class="card-title"><i class="fa-solid fa-users"></i> My Patients</span></div>
         <div class="card-body">
@@ -40,10 +88,123 @@
         </div>
     </div>
     <div class="card">
-        <div class="card-header"><span class="card-title"><i class="fa-solid fa-calendar-check"></i> Scheduled Visits</span></div>
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-calendar-days"></i> All Scheduled Visits</span></div>
         <div class="card-body">
-            <p style="font-size:.82rem; color:var(--gray-400);">See your upcoming ward visits.</p>
+            <p style="font-size:.82rem; color:var(--gray-400);">See your full upcoming ward visits.</p>
             <a asp-action="MyScheduledVisits" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> Schedule</a>
         </div>
     </div>
 </div>
+
+<div class="card">
+    <div class="card-header"><span class="card-title"><i class="fa-solid fa-clock-exclamation"></i> Missed Visits</span></div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400);">Scheduled visits that were not started on time.</p>
+        <a asp-action="MissedVisits" class="btn btn-outline-danger btn-sm">
+            <i class="fa-solid fa-triangle-exclamation"></i> View Missed
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span class="card-title"><i class="fa-solid fa-layer-group"></i> Priority Queue</span></div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400);">Auto‑ranked patients by severity.</p>
+        <a asp-action="PriorityQueue" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-right-arrow-left"></i> View Queue</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><span class="card-title"><i class="fa-solid fa-list-check"></i> Task List</span></div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400);">Your daily to‑do items in one place.</p>
+        <a asp-action="TaskList" class="btn btn-primary btn-sm"><i class="fa-solid fa-clipboard-list"></i> Open Tasks</a>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+            .stat-card.clickable {
+                cursor: pointer;
+            }
+
+                .stat-card.clickable:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        /* Stat icon colours */
+        .red {
+            background: #e74c3c;
+        }
+
+        .orange {
+            background: #e67e22;
+        }
+
+        .green {
+            background: #27ae60;
+        }
+
+        .purple {
+            background: #8e44ad;
+        }
+
+        .blue {
+            background: #2980b9;
+        }
+
+        .yellow {
+            background: #f1c40f;
+            color: #333;
+        }
+
+        .teal {
+            background: #1abc9c;
+        }
+
+        .gold {
+            background: #f39c12;
+        }
+    </style>
+}

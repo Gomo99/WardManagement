@@ -1,0 +1,52 @@
+﻿@model DoctorVisit
+@{
+    ViewData["Title"] = "Reschedule Visit";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Reschedule Visit for {ViewBag.PatientName}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-calendar-check"></i> Reschedule Visit</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Folder
+    </a>
+</div>
+
+<form asp-action="RescheduleVisit" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="AdmissionId" />
+    <input type="hidden" asp-for="DoctorId" />
+    <input type="hidden" asp-for="IsActive" />
+    <input type="hidden" asp-for="IsContactRecord" />
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-clock"></i> New Visit Date & Time</span>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label asp-for="VisitDate" class="form-label">New Date & Time</label>
+                <input asp-for="VisitDate" type="datetime-local" class="form-control" 
+                       value="@Model.VisitDate.ToString("yyyy-MM-ddTHH:mm")" />
+                <span asp-validation-for="VisitDate" class="text-danger"></span>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fa-solid fa-circle-info"></i> The old visit timer will be reset. Start a new timer when the visit begins.
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-calendar-plus"></i> Reschedule
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

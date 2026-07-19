@@ -1,0 +1,244 @@
+﻿@model List<Vitals>
+@{
+    ViewData["Title"] = "Patient Progress Graphs";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Progress Graphs for {ViewBag.PatientName}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-chart-line"></i> Vital Sign Trends</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <div>
+        <a asp-action="PatientFolder" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-folder-open"></i> Back to Folder
+        </a>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No vital signs recorded yet.</div>
+}
+else
+{
+    <div class="row">
+        <!-- Temperature Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title"><i class="fa-solid fa-temperature-high"></i> Temperature (°C)</span></div>
+                <div class="card-body">
+                    <canvas id="tempChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blood Pressure Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title"><i class="fa-solid fa-heart-pulse"></i> Blood Pressure</span></div>
+                <div class="card-body">
+                    <canvas id="bpChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blood Sugar Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title"><i class="fa-solid fa-droplet"></i> Blood Sugar (mmol/L)</span></div>
+                <div class="card-body">
+                    <canvas id="sugarChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heart Rate Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title"><i class="fa-solid fa-heart"></i> Heart Rate (bpm)</span></div>
+                <div class="card-body">
+                    <canvas id="hrChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oxygen Saturation Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title"><i class="fa-solid fa-lungs"></i> SpO₂ (%)</span></div>
+                <div class="card-body">
+                    <canvas id="spo2Chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Prepare data from model (serialised as JSON)
+        const vitals = @Html.Raw(Json.Serialize(Model));
+
+        // Helper to format dates
+        const labels = vitals.map(v => new Date(v.dateRecorded).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }));
+
+        // ---- Temperature ----
+        const tempData = vitals.map(v => v.temperatureCelsius);
+        if (tempData.some(v => v !== null)) {
+            new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: tempData,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('tempChart').parentElement.innerHTML = '<p class="text-muted">No temperature records.</p>';
+        }
+
+        // ---- Blood Pressure ----
+        const systolic = [];
+        const diastolic = [];
+        vitals.forEach(v => {
+            if (v.bloodPressure) {
+                const parts = v.bloodPressure.split('/');
+                if (parts.length === 2) {
+                    const sys = parseInt(parts[0]);
+                    const dia = parseInt(parts[1]);
+                    if (!isNaN(sys) && !isNaN(dia)) {
+                        systolic.push(sys);
+                        diastolic.push(dia);
+                        return;
+                    }
+                }
+            }
+            systolic.push(null);
+            diastolic.push(null);
+        });
+        if (systolic.some(v => v !== null) || diastolic.some(v => v !== null)) {
+            new Chart(document.getElementById('bpChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Systolic',
+                            data: systolic,
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            fill: false,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Diastolic',
+                            data: diastolic,
+                            borderColor: 'rgb(255, 159, 64)',
+                            backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                            fill: false,
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('bpChart').parentElement.innerHTML = '<p class="text-muted">No blood pressure records.</p>';
+        }
+
+        // ---- Blood Sugar ----
+        const sugarData = vitals.map(v => v.bloodSugarMmolL);
+        if (sugarData.some(v => v !== null)) {
+            new Chart(document.getElementById('sugarChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Blood Sugar (mmol/L)',
+                        data: sugarData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('sugarChart').parentElement.innerHTML = '<p class="text-muted">No blood sugar records.</p>';
+        }
+
+        // ---- Heart Rate ----
+        const hrData = vitals.map(v => v.heartRateBpm);
+        if (hrData.some(v => v !== null)) {
+            new Chart(document.getElementById('hrChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Heart Rate (bpm)',
+                        data: hrData,
+                        borderColor: 'rgb(153, 102, 255)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('hrChart').parentElement.innerHTML = '<p class="text-muted">No heart rate records.</p>';
+        }
+
+        // ---- Oxygen Saturation ----
+        const spo2Data = vitals.map(v => v.oxygenSaturation);
+        if (spo2Data.some(v => v !== null)) {
+            new Chart(document.getElementById('spo2Chart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'SpO₂ (%)',
+                        data: spo2Data,
+                        borderColor: 'rgb(255, 205, 86)',
+                        backgroundColor: 'rgba(255, 205, 86, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('spo2Chart').parentElement.innerHTML = '<p class="text-muted">No oxygen saturation records.</p>';
+        }
+    </script>
+}

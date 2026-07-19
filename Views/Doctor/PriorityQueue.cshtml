@@ -1,0 +1,98 @@
+﻿@model List<(WARDMANAGEMENTSYSTEM.Models.Admission Admission, string Priority, int Score)>
+
+@{
+    ViewData["Title"] = "Patient Priority Queue";
+    ViewData["Breadcrumb"] = "<span class='page-title-bar'>Priority Queue</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-layer-group"></i> Patient Priority Queue</h1>
+        <p>Patients automatically ranked by severity based on latest vitals</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No active patients assigned to you.</div>
+}
+else
+{
+    // Group by priority for clear sections
+    var groups = Model.GroupBy(x => x.Priority).OrderByDescending(g => g.Key == "Critical" ? 4 : g.Key == "High" ? 3 : g.Key == "Medium" ? 2 : 1);
+
+    foreach (var group in groups)
+    {
+        string cardClass = group.Key switch
+        {
+            "Critical" => "border-danger bg-danger-light",
+            "High" => "border-warning bg-warning-light",
+            "Medium" => "border-info bg-info-light",
+            _ => "border-secondary bg-light"
+        };
+        string badgeClass = group.Key switch
+        {
+            "Critical" => "bg-danger",
+            "High" => "bg-warning text-dark",
+            "Medium" => "bg-info text-white",
+            _ => "bg-secondary"
+        };
+
+        <div class="priority-group mb-4">
+            <h4 class="mb-3">
+                <span class="badge @badgeClass fs-6 me-2">@group.Key</span>
+                <small class="text-muted">@group.Count() patient(s)</small>
+            </h4>
+
+            <div class="row">
+                @foreach (var item in group.OrderByDescending(x => x.Score))
+                {
+                    var adm = item.Admission;
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <a href="@Url.Action("PatientFolder", new { admissionId = adm.Id })" class="text-decoration-none">
+                            <div class="card priority-card @cardClass h-100">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">@adm.Patient?.FullName</h6>
+                                        <small class="text-muted">
+                                            @adm.Bed?.BedNumber (@adm.Bed?.Ward?.Name)
+                                            @if (adm.AdmissionDate != default)
+                                            {
+                                                <span class="ms-2">Adm: @adm.AdmissionDate.ToString("dd MMM")</span>
+                                            }
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge @badgeClass">@item.Priority</span>
+                                        <small class="text-muted d-block">score: @item.Score</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@section Styles {
+    <style>
+        .bg-danger-light { background-color: #fff5f5; }
+        .bg-warning-light { background-color: #fffbea; }
+        .bg-info-light { background-color: #f0f9ff; }
+
+        .priority-card {
+            border-left: 4px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .priority-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .priority-card .card-body {
+            padding: 1rem;
+        }
+    </style>
+}

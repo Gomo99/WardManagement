@@ -1,0 +1,58 @@
+﻿@model FollowUpAppointment
+@{
+    ViewData["Title"] = "Schedule Follow‑Up";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Follow‑Up for {ViewBag.PatientName}</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-calendar-plus"></i> Schedule Follow‑Up Appointment</h1>
+        <p>@ViewBag.PatientName</p>
+    </div>
+    <a asp-action="PatientFolder" asp-route-admissionId="@Model.AdmissionId" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Folder
+    </a>
+</div>
+
+<form asp-action="ScheduleFollowUp" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="AdmissionId" />
+    <input type="hidden" asp-for="PatientId" />
+    <input type="hidden" asp-for="CreatedByDoctorId" />
+
+    <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clock"></i> Appointment Details</span></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AppointmentDate" class="form-label">Date & Time</label>
+                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control"
+                           value="@Model.AppointmentDate.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Location" class="form-label">Location</label>
+                    <input asp-for="Location" class="form-control" placeholder="Outpatient Clinic" />
+                    <span asp-validation-for="Location" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AssignedDoctorId" class="form-label">Assign Doctor (optional)</label>
+                    <select asp-for="AssignedDoctorId" class="form-select" asp-items="ViewBag.Doctors">
+                        <option value="">-- Keep current doctor --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Schedule</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

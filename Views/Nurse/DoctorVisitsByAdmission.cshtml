@@ -1,56 +1,85 @@
-﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.DoctorVisit>
-@using WARDMANAGEMENTSYSTEM.AppStatus
+﻿@model List<DoctorVisit>
 @{
     ViewData["Title"] = "Doctor Visits";
-    ViewData["Breadcrumb"] = "<a href='/Nurse/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/Nurse/Patients'>Patients</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Doctor Visits</span>";
+    ViewData["Breadcrumb"] = $"<span class='page-title-bar'>Doctor Visits for {ViewBag.PatientName}</span>";
 }
+
 <div class="page-header">
-    <div class="page-header-title"><h1>Doctor Visits</h1><p>@ViewBag.PatientName</p></div>
-    <div style="display:flex; gap:8px;">
-        <a asp-action="RecordDoctorContact" asp-route-admissionId="@ViewBag.AdmissionId" class="btn btn-primary btn-sm"><i class="fa-solid fa-phone"></i> Record Contact</a>
-        <a asp-action="Patients" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-user-doctor"></i> Doctor Visits & Instructions</h1>
+        <p>@ViewBag.PatientName</p>
     </div>
+    <a asp-action="Patients" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Patients</a>
 </div>
 
-
-
-<div class="card">
-    @if (!Model.Any())
-    {
-        <div style="padding:40px; text-align:center;">No visits recorded.</div>
-    }
-    else
-    {
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Doctor</th>
-                        <th>Instructions</th>
-                        <th>Type</th>
-                        <th style="text-align:right;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var dv in Model)
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Doctor</th>
+            <th>Instructions</th>
+            <th>Status</th>
+            <th>Acknowledged By</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var visit in Model)
+        {
+            <tr>
+                <td>@visit.VisitDate.ToString("dd MMM HH:mm")</td>
+                <td>@(visit.Doctor?.FullName ?? visit.ExternalDoctorName ?? "—")</td>
+                <td>@(string.IsNullOrWhiteSpace(visit.Instructions) ? "—" : visit.Instructions)</td>
+                <td>
+                    @if (visit.InstructionStatus == "Completed")
                     {
-                        <tr>
-                            <td>@dv.VisitDate.ToString("g")</td>
-                            <td>@(dv.Doctor?.FullName ?? dv.ExternalDoctorName ?? "—")</td>
-                            <td>@dv.Instructions</td>
-                            <td>@(dv.IsContactRecord ? "Phone Contact" : "Visit")</td>
-                            <td style="text-align:right;">
-                                <a asp-action="DoctorVisitDetails" asp-route-id="@dv.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
-                                <a asp-action="EditDoctorVisit" asp-route-id="@dv.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
-                                <form asp-action="DeleteDoctorVisit" asp-route-id="@dv.Id" method="post" style="display:inline;">
-                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="return confirm('Deactivate this visit?')"><i class="fa-solid fa-ban"></i></button>
-                                </form>
-                            </td>
-                        </tr>
+                        <span class="badge bg-success">Completed</span>
                     }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+                    else if (visit.InstructionStatus == "Seen")
+                    {
+                        <span class="badge bg-info">Seen</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">New</span>
+                    }
+                </td>
+                <td>
+                    @if (visit.AcknowledgedBy != null)
+                    {
+                        <span>@visit.AcknowledgedBy.FullName</span>
+                        <br />
+
+                        <small>@visit.AcknowledgedAt?.ToString("HH:mm")</small>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </td>
+                <td>
+                    @if (!string.IsNullOrEmpty(visit.Instructions))
+                    {
+                        @if (visit.InstructionStatus != "Completed")
+                        {
+                            @if (visit.InstructionStatus != "Seen")
+                            {
+                                <form asp-action="AcknowledgeSeen" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="visitId" value="@visit.Id" />
+                                    <button type="submit" class="btn btn-outline-info btn-sm"><i class="fa-solid fa-eye"></i> Seen</button>
+                                </form>
+                            }
+                            <form asp-action="CompleteInstruction" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="visitId" value="@visit.Id" />
+                                <button type="submit" class="btn btn-outline-success btn-sm"><i class="fa-solid fa-check"></i> Complete</button>
+                            </form>
+                        }
+                    }
+                    <a asp-action="DoctorVisitDetails" asp-route-id="@visit.Id" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-circle-info"></i></a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
