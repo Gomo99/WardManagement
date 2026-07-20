@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Adjust Stock";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Adjust Stock</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-pen-to-square"></i> Adjust Stock</h1>
+        <p>Manually correct inventory quantities</p>
+    </div>
+    <a asp-action="Consumables" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Consumables
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-boxes-stacked" style="color:var(--teal); margin-right:8px;"></i>Adjustment Details</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="AdjustStock" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="consumableId">Consumable <span class="required">*</span></label>
+                    <select name="consumableId" asp-items="ViewBag.Consumables" class="form-select">
+                        <option value="">-- Select Consumable --</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="quantityChange">Quantity Change <span class="required">*</span></label>
+                    <input type="number" name="quantityChange" class="form-control" placeholder="e.g. -5 for removal, 3 for addition" required />
+                    <small class="text-muted">Use negative numbers for removals (e.g., -5) and positive for additions (e.g., 3).</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="reason">Reason <span class="required">*</span></label>
+                    <select name="reason" class="form-select">
+                        <option value="">-- Select Reason --</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Expired">Expired</option>
+                        <option value="Lost">Lost</option>
+                        <option value="Count Error">Count Error</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Adjustment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

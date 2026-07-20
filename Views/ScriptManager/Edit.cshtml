@@ -1,4 +1,5 @@
-﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
+﻿@using WARDMANAGEMENTSYSTEM.AppStatus
+@model WARDMANAGEMENTSYSTEM.Models.Prescription
 @{
     ViewData["Title"] = "Edit Prescription";
     ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/AllScripts'>All Scripts</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Edit</span>";
@@ -51,6 +52,11 @@
                     <input asp-for="PrescribedDate" class="form-control" type="datetime-local" />
                 </div>
 
+
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Priority" class="form-label">Priority</label>
+                    <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<PrescriptionPriority>()"></select>
+                </div>
                 <div style="display:flex; gap:12px; margin-top:12px;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
                     <a asp-action="AllScripts" class="btn btn-outline">Cancel</a>

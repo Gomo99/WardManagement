@@ -1,0 +1,109 @@
+﻿@{
+    ViewData["Title"] = "Monthly Usage Report";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Monthly Usage</span>";
+
+    int selectedYear = ViewBag.SelectedYear;
+    var labels = ViewBag.ChartLabels as string[];
+    var datasets = ViewBag.ChartDatasets as IEnumerable<dynamic>;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-chart-column"></i> Monthly Usage Report</h1>
+        <p>@selectedYear</p>
+    </div>
+    <div>
+        <a asp-action="MonthlyUsageReport" asp-route-year="@(selectedYear - 1)" asp-route-consumableId="@ViewBag.ConsumableId" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-chevron-left"></i> @(selectedYear - 1)
+        </a>
+        <a asp-action="MonthlyUsageReport" asp-route-year="@(selectedYear + 1)" asp-route-consumableId="@ViewBag.ConsumableId" class="btn btn-outline-secondary btn-sm ms-1">
+            @(selectedYear + 1) <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        <a asp-action="MonthlyUsageReport" class="btn btn-outline-secondary btn-sm ms-1">This Year</a>
+        <a asp-action="Dashboard" class="btn btn-secondary btn-sm ms-2">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="MonthlyUsageReport" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1">Consumable</label>
+                <select name="consumableId" asp-items="ViewBag.Consumables" class="form-select" style="width:220px;">
+                    <option value="">-- All --</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1">Year</label>
+                <input type="number" name="year" class="form-control" value="@selectedYear" style="width:100px;" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="card">
+    <div class="card-body">
+        <canvas id="monthlyChart" height="300"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = @Html.Raw(Json.Serialize(labels));
+        const datasets = @Html.Raw(Json.Serialize(datasets));
+
+        // Generate a color per dataset
+        const colors = [
+            'rgb(54, 162, 235)',   // blue
+            'rgb(255, 99, 132)',   // red
+            'rgb(75, 192, 192)',   // green
+            'rgb(255, 159, 64)',   // orange
+            'rgb(153, 102, 255)',  // purple
+            'rgb(255, 205, 86)',   // yellow
+            'rgb(201, 203, 207)'   // grey
+        ];
+
+        const chartDatasets = datasets.map((ds, index) => ({
+            label: ds.label,
+            data: ds.data,
+            backgroundColor: colors[index % colors.length],
+            borderColor: colors[index % colors.length],
+            borderWidth: 1
+        }));
+
+        if (labels.length > 0) {
+            new Chart(document.getElementById('monthlyChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: chartDatasets
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Units Used' }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Monthly Consumption – @selectedYear'
+                        }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('monthlyChart').parentElement.innerHTML = '<p class="text-muted">No usage data for this period.</p>';
+        }
+    </script>
+}

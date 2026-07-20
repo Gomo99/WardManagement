@@ -1,0 +1,30 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Scripts by Patient";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Scripts by Patient</span>";
+}
+<div class="page-header">
+    <h1><i class="fa-solid fa-users"></i> Prescriptions per Patient</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+<form method="get" asp-action="ScriptsByPatient" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto"><label>From</label><input type="date" name="fromDate" class="form-control" value="@ViewBag.From?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><label>To</label><input type="date" name="toDate" class="form-control" value="@ViewBag.To?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
+</form>
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No data found.</div>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Patient</th><th>Count</th></tr></thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr><td>@row.GetType().GetProperty("Patient")?.GetValue(row)</td><td>@row.GetType().GetProperty("Count")?.GetValue(row)</td></tr>
+            }
+        </tbody>
+    </table>
+}

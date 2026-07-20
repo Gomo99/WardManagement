@@ -2,13 +2,20 @@
     ViewData["Title"] = "Script Manager Dashboard";
     ViewData["Breadcrumb"] = "<span class='page-title-bar'>Dashboard</span>";
 }
+
 <div class="page-header">
     <div class="page-header-title">
         <h1>Script Manager Dashboard</h1>
         <p>Prescription processing and delivery tracking</p>
     </div>
+    <div>
+        <span style="font-size:.8rem; color:var(--gray-400);">
+            <i class="fa-regular fa-clock"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </span>
+    </div>
 </div>
 
+<!-- Stats Grid -->
 <div class="stat-grid" style="margin-bottom:32px;">
     <div class="stat-card">
         <div class="stat-icon gold"><i class="fa-solid fa-file-prescription"></i></div>
@@ -18,10 +25,17 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon navy"><i class="fa-solid fa-truck"></i></div>
+        <div class="stat-icon navy"><i class="fa-solid fa-truck-fast"></i></div>
         <div>
             <div class="stat-value">@ViewBag.ForwardedCount</div>
-            <div class="stat-label">Forwarded to Pharmacy</div>
+            <div class="stat-label">Pending Pharmacy</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fa-solid fa-box-open"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.DispensedCount</div>
+            <div class="stat-label">Ready for Collection</div>
         </div>
     </div>
     <div class="stat-card">
@@ -31,8 +45,79 @@
             <div class="stat-label">Delivered</div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.DelayedCount</div>
+            <div class="stat-label">Delayed (>3 days)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon danger"><i class="fa-solid fa-ban"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.RejectedCount</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+    </div>
 </div>
 
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:var(--orange);"></i>
+            <span class="card-title">Missing Medications</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Partially delivered prescriptions with outstanding quantities.</p>
+        <a asp-action="MissingMedicationAlerts" class="btn btn-outline-danger btn-sm">
+            <i class="fa-solid fa-list"></i> View Alerts
+        </a>
+    </div>
+</div>
+
+<!-- Daily Summary -->
+<h4 style="margin-bottom:16px;"><i class="fa-solid fa-calendar-day"></i> Today's Summary</h4>
+<div class="stat-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+        <div class="stat-icon gold"><i class="fa-solid fa-file-prescription"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayNew</div>
+            <div class="stat-label">New Scripts</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon navy"><i class="fa-solid fa-arrows-spin"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayProcessed</div>
+            <div class="stat-label">Processed</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayDelivered</div>
+            <div class="stat-label">Delivered</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fa-solid fa-hourglass-half"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayPending</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon danger"><i class="fa-solid fa-ban"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.TodayRejected</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick‑link cards -->
 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
     <div class="card">
         <div class="card-header"><span class="card-title"><i class="fa-solid fa-file-prescription"></i> New Scripts</span></div>
@@ -57,4 +142,83 @@
     </div>
 </div>
 
-<p><strong>Ready for collection:</strong> @ViewBag.DispensedCount</p>
+
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-qrcode"></i> Verify Medication</span>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400);">Scan a medication barcode to verify medicine, patient, and quantity.</p>
+        <a asp-action="VerifyBarcode" class="btn btn-primary btn-sm"><i class="fa-solid fa-camera"></i> Open Scanner</a>
+    </div>
+</div>
+
+
+
+@section Styles {
+    <style>
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .gold {
+            background: #f39c12;
+        }
+
+        .navy {
+            background: #2c3e50;
+        }
+
+        .teal {
+            background: #1abc9c;
+        }
+
+        .green {
+            background: #27ae60;
+        }
+
+        .orange {
+            background: #e67e22;
+        }
+
+        .danger {
+            background: #e74c3c;
+        }
+    </style>
+}

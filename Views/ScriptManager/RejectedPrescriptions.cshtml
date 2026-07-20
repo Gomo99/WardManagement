@@ -1,0 +1,30 @@
+﻿@model List<Prescription>
+@{
+    ViewData["Title"] = "Rejected Prescriptions";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Rejected Prescriptions</span>";
+}
+<div class="page-header">
+    <h1><i class="fa-solid fa-ban"></i> Rejected Prescriptions</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+<form method="get" asp-action="RejectedPrescriptions" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto"><label>From</label><input type="date" name="fromDate" class="form-control" value="@ViewBag.From?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><label>To</label><input type="date" name="toDate" class="form-control" value="@ViewBag.To?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
+</form>
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No rejected prescriptions.</div>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Patient</th><th>Medication</th><th>Prescribed</th><th>Notes</th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr><td>@p.Admission?.Patient?.FullName</td><td>@p.Medication?.Name</td><td>@p.PrescribedDate.ToString("dd MMM yyyy")</td><td>@p.Notes</td></tr>
+            }
+        </tbody>
+    </table>
+}

@@ -15,14 +15,25 @@
     </div>
 </div>
 
+<!-- Top‑row stat cards -->
 <div class="stat-grid" style="margin-bottom:32px;">
+    <!-- Total Stock -->
     <div class="stat-card">
-        <div class="stat-icon teal"><i class="fa-solid fa-box-open"></i></div>
+        <div class="stat-icon teal"><i class="fa-solid fa-cubes"></i></div>
         <div>
-            <div class="stat-value">@ViewBag.ActiveConsumablesCount</div>
-            <div class="stat-label">Active Consumables</div>
+            <div class="stat-value">@ViewBag.TotalStock</div>
+            <div class="stat-label">Total Stock (units)</div>
         </div>
     </div>
+    <!-- Low Stock Items -->
+    <div class="stat-card">
+        <div class="stat-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div>
+            <div class="stat-value">@ViewBag.LowStockItems</div>
+            <div class="stat-label">Low Stock Items</div>
+        </div>
+    </div>
+    <!-- Pending Orders -->
     <div class="stat-card">
         <div class="stat-icon gold"><i class="fa-solid fa-clipboard-list"></i></div>
         <div>
@@ -30,15 +41,34 @@
             <div class="stat-label">Pending Orders</div>
         </div>
     </div>
+    <!-- Delivered Today -->
     <div class="stat-card">
-        <div class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="stat-icon green"><i class="fa-solid fa-truck-fast"></i></div>
         <div>
-            <div class="stat-value">@ViewBag.StockTakesCount</div>
-            <div class="stat-label">Stock Takes</div>
+            <div class="stat-value">@ViewBag.DeliveredToday</div>
+            <div class="stat-label">Delivered Today</div>
         </div>
     </div>
 </div>
 
+<!-- Stock take due -->
+@if (ViewBag.StockTakeDue != null)
+{
+    <div class="alert alert-warning d-flex align-items-center" style="margin-bottom:24px;">
+        <i class="fa-solid fa-clipboard-check me-2 fs-5"></i>
+        <span>Weekly Stock Take: @ViewBag.StockTakeDue</span>
+        <a asp-action="TakeStock" class="btn btn-sm btn-warning ms-3">Start Stock Take</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-success d-flex align-items-center" style="margin-bottom:24px;">
+        <i class="fa-solid fa-circle-check me-2 fs-5"></i>
+        <span>Weekly stock take is up to date.</span>
+    </div>
+}
+
+<!-- Quick‑link cards (unchanged) -->
 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px;">
     <div class="card">
         <div class="card-header">
@@ -83,3 +113,203 @@
         </div>
     </div>
 </div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-qrcode" style="color:var(--navy);"></i>
+            <span class="card-title">Scan QR Code</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Scan a consumable’s QR code with your camera.</p>
+        <a asp-action="ScanQR" class="btn btn-primary btn-sm"><i class="fa-solid fa-camera"></i> Open Scanner</a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-print" style="color:var(--gray-dark);"></i>
+            <span class="card-title">Print QR Codes</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Generate and print QR codes for all consumables.</p>
+        <a asp-action="PrintQRCodes" class="btn btn-primary btn-sm"><i class="fa-solid fa-print"></i> Print Codes</a>
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-print" style="color:var(--gray-dark);"></i>
+            <span class="card-title">Stock Take Sheet</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Print a blank sheet to record physical counts manually.</p>
+        <a asp-action="PrintStockTakeSheet" class="btn btn-primary btn-sm"><i class="fa-solid fa-print"></i> Print Sheet</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-calendar-week" style="color:var(--orange);"></i>
+            <span class="card-title">Weekly Consumption</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View this week's usage totals.</p>
+        <a asp-action="WeeklyConsumptionReport" class="btn btn-primary btn-sm"><i class="fa-solid fa-chart-bar"></i> View Report</a>
+    </div>
+</div>
+
+
+
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-print" style="color:var(--navy);"></i>
+            <span class="card-title">Stock Report</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Printable overview of current stock levels.</p>
+        <a asp-action="StockReport" class="btn btn-primary btn-sm"><i class="fa-solid fa-print"></i> View Report</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-arrow-down-short-wide" style="color:var(--danger);"></i>
+            <span class="card-title">Record Usage</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Log consumables used in the ward.</p>
+        <a asp-action="RecordUsage" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen"></i> Record</a>
+        <a asp-action="ConsumptionHistory" class="btn btn-outline btn-sm ms-1">History</a>
+    </div>
+</div>
+
+
+
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-chart-simple" style="color:#8e44ad;"></i>
+            <span class="card-title">Variance Report</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View shortages and overages from stock takes.</p>
+        <a asp-action="VarianceReport" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> View Report</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-hourglass-half" style="color:var(--warning);"></i>
+            <span class="card-title">Pending Requests</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View and manage orders awaiting fulfilment.</p>
+        <a asp-action="PendingRequests" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> View Pending</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color:var(--purple);"></i>
+            <span class="card-title">Stock History</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">View all stock movements (received, issued, adjustments).</p>
+        <a asp-action="StockHistory" class="btn btn-primary btn-sm"><i class="fa-solid fa-list"></i> View History</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#e74c3c;"></i>
+            <span class="card-title">Low Stock Alerts</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size:.82rem; color:var(--gray-400); margin-bottom:16px;">Items that are running low or out of stock.</p>
+        <a asp-action="LowStockAlerts" class="btn btn-outline-danger btn-sm">
+            <i class="fa-solid fa-list"></i> View Alerts
+        </a>
+    </div>
+</div>
+
+<!-- Additional inline CSS (optional, adjust to your existing styles) -->
+@section Styles {
+    <style>
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .stat-icon.teal {
+            background: #1abc9c;
+        }
+
+        .stat-icon.danger {
+            background: #e74c3c;
+        }
+
+        .stat-icon.gold {
+            background: #f39c12;
+        }
+
+        .stat-icon.green {
+            background: #27ae60;
+        }
+    </style>
+}

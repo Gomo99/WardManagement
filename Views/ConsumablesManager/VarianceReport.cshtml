@@ -1,0 +1,89 @@
+﻿@model List<StockTakeItem>
+@{
+    ViewData["Title"] = "Variance Report";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Variance Report</span>";
+    var stockTakeId = ViewBag.StockTakeId;
+    var stockTakeDate = ViewBag.StockTakeDate as DateTime?;
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-chart-simple"></i> Variance Report</h1>
+        <p>Stock Take #@stockTakeId — @stockTakeDate?.ToString("dd MMM yyyy")</p>
+    </div>
+    <a asp-action="StockTakes" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Stock Takes
+    </a>
+</div>
+
+<!-- Stock Take Selector -->
+<div class="card mb-3">
+    <div class="card-body" style="padding:14px 20px;">
+        <form method="get" asp-action="VarianceReport" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label mb-1">Select Stock Take</label>
+                <select name="stockTakeId" asp-items="ViewBag.StockTakes" class="form-control" style="width:220px;">
+                    <option value="">-- Latest --</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> View</button>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No items recorded for this stock take.</div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Consumable</th>
+                    <th style="text-align:right;">Expected (System)</th>
+                    <th style="text-align:right;">Actual (Counted)</th>
+                    <th style="text-align:right;">Difference</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    int diff = item.ActualQuantity - item.SystemQuantity;
+                    string cssClass = "";
+                    string sign = "";
+                    if (diff < 0)
+                    {
+                        cssClass = "text-danger";
+                        sign = "";
+                    }
+                    else if (diff > 0)
+                    {
+                        cssClass = "text-success";
+                        sign = "+";
+                    }
+
+                    <tr>
+                        <td>@item.Consumable?.Name</td>
+                        <td style="text-align:right;">@item.SystemQuantity</td>
+                        <td style="text-align:right;">@item.ActualQuantity</td>
+                        <td style="text-align:right;" class="@cssClass">@sign@diff</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="mt-3">
+        @{
+            int totalShort = Model.Sum(i => Math.Min(i.ActualQuantity - i.SystemQuantity, 0));
+            int totalOver = Model.Sum(i => Math.Max(i.ActualQuantity - i.SystemQuantity, 0));
+        }
+        <div class="alert alert-light border">
+            <strong>Total Shortages:</strong> <span class="text-danger">@totalShort</span> &nbsp;&nbsp;
+            <strong>Total Overages:</strong> <span class="text-success">+@totalOver</span>
+        </div>
+    </div>
+}

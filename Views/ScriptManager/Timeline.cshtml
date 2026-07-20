@@ -1,0 +1,95 @@
+﻿@using WARDMANAGEMENTSYSTEM.ViewModel
+@model List<TimelineEntry>
+@{
+    ViewData["Title"] = "Prescription Timeline";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Timeline</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-timeline"></i> Prescription Journey</h1>
+        <p>@ViewBag.PatientName – @ViewBag.Medication</p>
+    </div>
+    <a asp-action="AllScripts" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Scripts
+    </a>
+</div>
+
+<div class="timeline">
+    @foreach (var entry in Model)
+    {
+        string color = entry.Status switch
+        {
+            "Completed" => "#27ae60",
+            "Active" => "#2980b9",
+            "Pending" => "#bdc3c7",
+            _ => "#e74c3c"
+        };
+
+        <div class="timeline-item">
+            <div class="timeline-icon" style="background-color: @color;">
+                <i class="fa-solid @entry.Icon"></i>
+            </div>
+            <div class="timeline-content">
+                <div class="timeline-header">
+                    <h5 class="mb-0">@entry.Step</h5>
+                    <span class="badge" style="background-color: @color;">@entry.Status</span>
+                </div>
+                @if (!string.IsNullOrEmpty(entry.Date))
+                {
+                    <small class="text-muted">@entry.Date</small>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 40px;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .timeline-icon {
+        position: absolute;
+        left: -40px;
+        top: 4px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        z-index: 1;
+    }
+
+    .timeline-content {
+        background: #fff;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>

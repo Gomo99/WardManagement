@@ -1,0 +1,68 @@
+﻿@model List<Prescription>
+@{
+    ViewData["Title"] = "Missing Medication Alerts";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Missing Medications</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-triangle-exclamation"></i> Missing Medication Alerts</h1>
+        <p>Prescriptions awaiting further delivery</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> All partially delivered prescriptions have been fully received. No missing medications.
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Medication</th>
+                    <th>Prescribed</th>
+                    <th>Received</th>
+                    <th>Missing</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var script in Model)
+                {
+                    int missing = script.QuantityPrescribed - script.QuantityReceived;
+                    <tr>
+                        <td>@script.Admission?.Patient?.FullName</td>
+                        <td>
+                            @script.Medication?.Name
+                            @if (script.IsStat)
+                            {
+                                <span class="badge bg-danger ms-1">STAT</span>
+                            }
+                        </td>
+                        <td>@script.QuantityPrescribed</td>
+                        <td>@script.QuantityReceived</td>
+                        <td><span class="text-danger fw-bold">@missing</span></td>
+                        <td><span class="badge bg-warning text-dark">Partially Delivered</span></td>
+                        <td>
+                            <a asp-action="ReceiveScript" asp-route-id="@script.Id" class="btn btn-sm btn-outline-success">
+                                <i class="fa-solid fa-truck"></i> Receive
+                            </a>
+                            <a asp-action="Details" asp-route-id="@script.Id" class="btn btn-sm btn-outline-secondary ms-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

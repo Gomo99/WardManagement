@@ -1,49 +1,128 @@
-﻿@model WARDMANAGEMENTSYSTEM.Models.Prescription
-@using WARDMANAGEMENTSYSTEM.AppStatus
+﻿@model Prescription
 @{
-    ViewData["Title"] = "Receive & Verify Script";
-    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/AllScripts'>All Scripts</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Receive</span>";
+    ViewData["Title"] = "Receive Medication";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Receive</span>";
+    int remaining = ViewBag.Remaining;
 }
+
 <div class="page-header">
     <div class="page-header-title">
-        <h1>Receive Medication</h1>
-        <p>Verify and confirm delivery</p>
+        <h1><i class="fa-solid fa-box-open"></i> Receive Medication</h1>
+        <p>Prescription #@Model.Id — @Model.Medication?.Name</p>
     </div>
-    <a asp-action="AllScripts" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a asp-action="ReadyForCollection" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Collection
+    </a>
 </div>
 
-<div style="max-width:500px;">
-    <div class="card">
-        <div class="card-header"><span class="card-title"><i class="fa-solid fa-clipboard-check"></i> Verify Against Script</span></div>
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div style="max-width:700px;">
+    <div class="card mb-4">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-file-prescription"></i> Prescription Details</span>
+        </div>
         <div class="card-body">
-            <div style="background:var(--gray-50); border-radius:8px; padding:14px; margin-bottom:20px;">
-                <h4>@Model.Medication?.Name</h4>
-                <table style="font-size:.875rem;">
-                    <tr><td>Patient:</td><td>@Model.Admission?.Patient.FullName</td></tr>
-                    <tr><td>Dosage:</td><td>@Model.Dosage</td></tr>
-                    <tr><td>Frequency:</td><td>@Model.Frequency</td></tr>
-                    <tr><td>Duration:</td><td>@Model.Duration</td></tr>
-                    <tr><td>Prescribed:</td><td>@Model.PrescribedDate.ToString("g")</td></tr>
-                </table>
-            </div>
-
-            <p>Confirm that the medication received from pharmacy matches the prescription above.</p>
-
-            <form asp-action="ReceiveScriptConfirmed" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Confirm Receipt & Mark Delivered</button>
-            </form>
-
-
-            <form asp-action="RejectScript" method="post" style="display:inline; margin-left:10px;">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <div class="input-group">
-                    <input type="text" name="rejectionReason" class="form-control" placeholder="Reason for rejection" required />
-                    <button type="submit" class="btn btn-danger">Reject</button>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Patient:</strong> @Model.Admission?.Patient?.FullName<br />
+                    <strong>Medication:</strong> @Model.Medication?.Name<br />
+                    <strong>Dosage:</strong> @Model.Dosage<br />
+                    <strong>Frequency:</strong> @Model.Frequency<br />
                 </div>
-            </form>
+                <div class="col-md-6">
+                    <strong>Prescribed Quantity:</strong> @Model.QuantityPrescribed<br />
+                    <strong>Already Received:</strong> @Model.QuantityReceived<br />
+                    <strong>Remaining:</strong> @remaining<br />
+                    <strong>Status:</strong> <span class="badge bg-info">@Model.ScriptStatus</span><br />
+                </div>
+            </div>
         </div>
     </div>
+
+    @if (remaining > 0)
+    {
+        <form asp-action="ReceiveScriptConfirmed" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-truck"></i> Receive This Delivery</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="quantityReceived">Quantity Being Received Now</label>
+                            <input type="number" name="quantityReceived" class="form-control" min="1" max="@remaining" value="@remaining" required />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h5 class="mb-3"><i class="fa-solid fa-check-double"></i> Verification Checklist</h5>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="chkPatient" checked disabled />
+                        <label class="form-check-label" for="chkPatient">
+                            ✅ Correct patient – <strong>@Model.Admission?.Patient?.FullName</strong>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="chkMedicine" />
+                        <label class="form-check-label" for="chkMedicine">
+                            ✅ Correct medicine – <strong>@Model.Medication?.Name</strong>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="chkDosage" />
+                        <label class="form-check-label" for="chkDosage">
+                            ✅ Correct dosage – <strong>@Model.Dosage</strong>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="chkQuantity" />
+                        <label class="form-check-label" for="chkQuantity">
+                            ✅ Correct quantity
+                        </label>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="expiryDate">Expiry Date</label>
+                            <input type="date" name="expiryDate" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="batchNumber">Batch Number</label>
+                            <input type="text" name="batchNumber" class="form-control" placeholder="e.g. B123456" />
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="chkExpiry" />
+                        <label class="form-check-label" for="chkExpiry">
+                            ✅ Expiry date and batch number recorded
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fa-solid fa-check-circle"></i> Confirm Receipt
+                </button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <i class="fa-solid fa-circle-check"></i> This prescription has been fully received.
+        </div>
+        <a asp-action="AllScripts" class="btn btn-primary">Back to All Scripts</a>
+    }
 </div>

@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "Scan QR Code";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Scan QR Code</span>";
+}
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-qrcode"></i> Scan Consumable QR Code</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted">Point your camera at a consumable’s QR code to open its details.</p>
+        <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+        <div id="result" class="mt-3 text-success fw-bold text-center"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            // Stop scanner after first success
+            html5QrcodeScanner.clear();
+
+            // The QR code should contain a full URL like .../DetailsConsumable/123
+            // Extract the numeric ID at the end of the URL
+            const match = decodedText.match(/\/(\d+)$/);
+            if (match) {
+                const id = match[1];
+                // Redirect to details page
+                window.location.href = '@Url.Action("DetailsConsumable", "ConsumablesManager")/' + id;
+            } else {
+                document.getElementById('result').innerText = 'Invalid QR code. Could not find consumable ID.';
+            }
+        }
+
+        function onScanFailure(error) {
+            // ignore scan failures
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            /* verbose= */ false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+}

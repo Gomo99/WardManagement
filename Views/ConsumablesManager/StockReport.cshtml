@@ -1,0 +1,177 @@
+﻿@model List<Consumable>
+@{
+    Layout = null; // clean print layout
+    ViewData["Title"] = "Stock Report";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Stock Report – @DateTime.Now.ToString("dd MMM yyyy")</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 30px;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #1a5276;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        th {
+            background-color: #f4f6f8;
+            text-align: left;
+            padding: 8px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .low {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .out {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .badge-warning {
+            background: #f39c12;
+            color: #333;
+        }
+
+        .badge-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .no-print {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .print-btn {
+            background: #2980b9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="report-header">
+        <h1>Ward Management System</h1>
+        <h2>Stock Report</h2>
+        <p>Generated on @DateTime.Now.ToString("dd MMMM yyyy HH:mm")</p>
+    </div>
+
+    @{
+        int totalItems = Model.Count;
+        int lowStock = Model.Count(c => c.QuantityOnHand > 0 && c.QuantityOnHand <= c.ReorderLevel);
+        int outOfStock = Model.Count(c => c.QuantityOnHand == 0);
+        int inStock = totalItems - lowStock - outOfStock;
+    }
+
+    <div style="display:flex; gap:30px; margin-bottom:20px; justify-content:center;">
+        <div><strong>In Stock:</strong> @inStock</div>
+        <div><strong>Low Stock:</strong> <span class="low">@lowStock</span></div>
+        <div><strong>Out of Stock:</strong> <span class="out">@outOfStock</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Consumable</th>
+                <th class="text-right">Stock On Hand</th>
+                <th class="text-right">Reorder Level</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                string status = "In Stock";
+                string css = "";
+                if (item.QuantityOnHand == 0)
+                {
+                    status = "Out of Stock";
+                    css = "out";
+                }
+                else if (item.QuantityOnHand <= item.ReorderLevel)
+                {
+                    status = "Low Stock";
+                    css = "low";
+                }
+
+                <tr>
+                    <td>@item.Name</td>
+                    <td class="text-right @css">@item.QuantityOnHand</td>
+                    <td class="text-right">@item.ReorderLevel</td>
+                    <td>
+                        @if (item.QuantityOnHand == 0)
+                        {
+                            <span class="badge badge-danger">Out of Stock</span>
+                        }
+                        else if (item.QuantityOnHand <= item.ReorderLevel)
+                        {
+                            <span class="badge badge-warning">Low Stock</span>
+                        }
+                        else
+                        {
+                            <span>In Stock</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
+        &nbsp;
+        <a asp-action="Dashboard" class="print-btn" style="background:#7f8c8d;">Back to Dashboard</a>
+    </div>
+
+</body>
+</html>

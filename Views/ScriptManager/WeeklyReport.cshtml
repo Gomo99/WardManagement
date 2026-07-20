@@ -1,0 +1,32 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Weekly Prescription Report";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Weekly Report</span>";
+}
+<div class="page-header">
+    <h1><i class="fa-solid fa-chart-bar"></i> Weekly Prescriptions – @ViewBag.Year</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+<form method="get" asp-action="WeeklyReport" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label">Year</label>
+        <input type="number" name="year" class="form-control" value="@ViewBag.Year" style="width:100px;" />
+    </div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
+</form>
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No data found.</div>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Week Starting</th><th>Prescriptions</th></tr></thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr><td>@row.GetType().GetProperty("WeekStart")?.GetValue(row)?.ToString("dd MMM yyyy")</td><td>@row.GetType().GetProperty("Count")?.GetValue(row)</td></tr>
+            }
+        </tbody>
+    </table>
+}

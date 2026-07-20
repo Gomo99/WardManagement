@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using WARDMANAGEMENTSYSTEM.AppStatus;
 
 namespace WARDMANAGEMENTSYSTEM.Models
@@ -18,5 +19,19 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public int ReorderLevel { get; set; } = 5;
 
         public Status IsActive { get; set; } = Status.Active;
+
+        public int? MaximumQuantity { get; set; }
+        public int? ReorderQuantity { get; set; }
+
+        // Dynamically suggested order amount
+        [NotMapped]
+        public int SuggestedOrderQuantity =>
+            ReorderQuantity ?? (MaximumQuantity.HasValue
+                ? MaximumQuantity.Value - QuantityOnHand
+                : (ReorderLevel + 10));
+
+        // In Consumable.cs, add this line:
+        public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+
     }
 }

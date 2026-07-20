@@ -1,0 +1,52 @@
+﻿@model Prescription
+@{
+    ViewData["Title"] = "Barcode Verification Result";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ScriptManager/VerifyBarcode'>Scan</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Result</span>";
+}
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-check-double"></i> Verification Result</h1>
+    <p>Prescription #@Model.Id</p>
+    <a asp-action="VerifyBarcode" class="btn btn-secondary btn-sm"><i class="fa-solid fa-camera"></i> Scan Again</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <tr>
+                <th style="width: 200px;">Medicine</th>
+                <td>
+                    <i class="fa-solid fa-circle-check text-success"></i>
+                    @Model.Medication?.Name
+                </td>
+            </tr>
+            <tr>
+                <th>Patient</th>
+                <td>
+                    <i class="fa-solid fa-circle-check text-success"></i>
+                    @Model.Admission?.Patient?.FullName
+                </td>
+            </tr>
+            <tr>
+                <th>Dosage</th>
+                <td>@Model.Dosage</td>
+            </tr>
+            <tr>
+                <th>Prescribed Quantity</th>
+                <td>@Model.QuantityPrescribed</td>
+            </tr>
+            <tr>
+                <th>Received Quantity</th>
+                <td>@Model.QuantityReceived</td>
+            </tr>
+            <tr>
+                <th>Status</th>
+                <td><span class="badge bg-info">@Model.ScriptStatus</span></td>
+            </tr>
+        </table>
+
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-primary">
+            <i class="fa-solid fa-file-prescription"></i> View Full Details
+        </a>
+    </div>
+</div>

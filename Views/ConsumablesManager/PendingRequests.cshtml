@@ -1,0 +1,96 @@
+﻿@model List<ConsumableOrder>
+@{
+    ViewData["Title"] = "Pending Requests";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Pending Requests</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-hourglass-half"></i> Pending Requests</h1>
+        <p>Orders waiting to be fulfilled</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> No pending requests. All orders have been fulfilled.
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Consumable</th>
+                    <th>Status</th>
+                    <th>Requested</th>
+                    <th>Quantity</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td><strong>#@order.Id</strong></td>
+                        <td>@order.Consumable?.Name</td>
+                        <td><span class="badge bg-warning text-dark">Pending</span></td>
+                        <td>@order.RequestDate.ToString("ddd, dd MMM yyyy HH:mm")</td>
+                        <td>@order.QuantityRequested</td>
+                        <td>@(string.IsNullOrEmpty(order.Reason) ? "—" : order.Reason)</td>
+                        <td>
+                            <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-outline-info">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a asp-action="EditOrder" asp-route-id="@order.Id" class="btn btn-sm btn-outline-secondary">
+                                <i class="fa-solid fa-pen"></i>Edit
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="cancelOrder(@order.Id, '@order.Consumable?.Name')">
+                                <i class="fa-solid fa-ban"></i> Cancel
+                            </button>
+                            <form asp-action="DeleteOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this request?')">
+                                    <i class="fa-solid fa-xmark"></i>Delete Order
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @section Scripts {
+        <script>
+            function cancelOrder(orderId, itemName) {
+                const reason = prompt(`Cancel request for "${itemName}"?\n\nEnter reason (optional):`);
+                if (reason !== null) {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = '@Url.Action("CancelOrder")';
+                    form.innerHTML = `
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="${orderId}" />
+                        <input type="hidden" name="cancelReason" value="${reason}" />
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+        </script>
+    }
+}

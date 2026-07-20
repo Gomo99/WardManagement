@@ -1,0 +1,31 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Pharmacy Turnaround Time";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Turnaround Time</span>";
+}
+<div class="page-header">
+    <h1><i class="fa-solid fa-stopwatch"></i> Turnaround Time</h1>
+    <p>Average: @ViewBag.AvgHours.ToString("F1") hours</p>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+<form method="get" asp-action="TurnaroundTime" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto"><label>From</label><input type="date" name="fromDate" class="form-control" value="@ViewBag.From?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><label>To</label><input type="date" name="toDate" class="form-control" value="@ViewBag.To?.ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
+</form>
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No data found.</div>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Prescription ID</th><th>Medication</th><th>Forwarded</th><th>Received</th><th>Hours</th></tr></thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr><td>@row.GetType().GetProperty("Id")?.GetValue(row)</td><td>@row.GetType().GetProperty("Name")?.GetValue(row)</td><td>@row.GetType().GetProperty("Forwarded")?.GetValue(row)?.ToString("dd MMM HH:mm")</td><td>@row.GetType().GetProperty("Received")?.GetValue(row)?.ToString("dd MMM HH:mm")</td><td>@row.GetType().GetProperty("Duration")?.GetValue(row)</td></tr>
+            }
+        </tbody>
+    </table>
+}

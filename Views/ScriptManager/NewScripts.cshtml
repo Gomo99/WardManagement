@@ -42,6 +42,7 @@
                         <th>Prescribed</th>
                         <th>Status</th>
                         <th style="text-align:right;">Actions</th>
+                        <th>Priority</th>
                     </tr>
                 </thead>
 
@@ -49,6 +50,12 @@
                 <tbody>
                     @foreach (var script in Model)
                     {
+                        // Check allergy
+                        var medicationName = script.Medication?.Name?.Trim();
+                        bool hasAllergy = !string.IsNullOrEmpty(medicationName) &&
+                        script.Admission?.AdmissionAllergies?
+                        .Any(aa => aa.Allergy.Name.Trim().Equals(medicationName, StringComparison.OrdinalIgnoreCase)) == true;
+
                         <tr>
                             <td>
                                 <div style="display:flex; align-items:center; gap:8px;">
@@ -56,7 +63,15 @@
                                     <span style="font-weight:600; color:var(--navy);">@script.Admission?.Patient.FullName</span>
                                 </div>
                             </td>
-                            <td>@script.Medication?.Name</td>
+                            <td>
+                                @script.Medication?.Name
+                                @if (hasAllergy)
+                                {
+                                    <span class="badge bg-danger ms-1" title="Patient is allergic to this medication!">
+                                        <i class="fa-solid fa-skull-crossbones"></i> Allergy
+                                    </span>
+                                }
+                            </td>
                             <td>@script.Dosage</td>
                             <td>@script.PrescribedDate.ToString("dd MMM yyyy")</td>
                             <td><span class="badge badge-gold">@script.ScriptStatus</span></td>
@@ -65,10 +80,21 @@
                                 <a asp-action="Edit" asp-route-id="@script.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
                                 <form asp-action="ForwardToPharmacy" asp-route-id="@script.Id" method="post" style="display:inline;">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"
-                                            onclick="return confirm('Forward this prescription to pharmacy?')">
-                                        <i class="fa-solid fa-paper-plane"></i> Forward
-                                    </button>
+                                    @if (hasAllergy)
+                                    {
+                                        <button type="submit" class="btn btn-outline btn-sm"
+                                                style="color:var(--danger); border-color:var(--danger);"
+                                                onclick="return confirm('⚠ WARNING: Patient is allergic to @medicationName. Forward anyway?')">
+                                            <i class="fa-solid fa-paper-plane"></i> Forward
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);"
+                                                onclick="return confirm('Forward this prescription to pharmacy?')">
+                                            <i class="fa-solid fa-paper-plane"></i> Forward
+                                        </button>
+                                    }
                                 </form>
                                 <form asp-action="DeleteScript" asp-route-id="@script.Id" method="post" style="display:inline;">
                                     @Html.AntiForgeryToken()
@@ -84,9 +110,24 @@
                                     </button>
                                 </form>
                             </td>
+                            <td>
+                                @{
+                                    string priorityBadge = script.Priority switch
+                                    {
+                                        PrescriptionPriority.Emergency => "bg-danger",
+                                        PrescriptionPriority.Urgent => "bg-warning text-dark",
+                                        PrescriptionPriority.Normal => "bg-info text-dark",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @priorityBadge">@script.Priority</span>
+                            </td>
                         </tr>
                     }
                 </tbody>
+
+
+
             </table>
         </div>
     }

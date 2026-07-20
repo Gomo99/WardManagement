@@ -1,0 +1,130 @@
+﻿@model List<Consumable>
+@{
+    Layout = null; // no chrome, pure print layout
+    ViewData["Title"] = "Stock Take Sheet";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Stock Take Sheet – @DateTime.Now.ToString("dd MMM yyyy")</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #1a5276;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        th {
+            background-color: #f4f6f8;
+            text-align: left;
+            padding: 8px;
+            border-bottom: 2px solid #000;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .empty-cell {
+            background-color: #fafafa;
+            min-width: 120px;
+        }
+
+        .signature-section {
+            margin-top: 60px;
+        }
+
+        .signature-line {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+            .signature-line div {
+                width: 45%;
+                border-top: 1px solid #000;
+                padding-top: 8px;
+            }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Ward Management System</h1>
+        <h2>Stock Take Sheet</h2>
+        <p>Date: @DateTime.Now.ToString("dd MMMM yyyy")</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Consumable</th>
+                <th class="text-right">System Quantity</th>
+                <th class="text-right">Physical Quantity</th>
+                <th class="text-right">Difference</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td class="text-right">@item.QuantityOnHand</td>
+                    <td class="text-right empty-cell"></td>
+                    <td class="text-right empty-cell"></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="signature-section">
+        <p><strong>Notes:</strong> ____________________________________________________________</p>
+        <div class="signature-line">
+            <div>Counted by: ________________________</div>
+            <div>Checked by: ________________________</div>
+        </div>
+    </div>
+
+    <div class="no-print" style="margin-top: 30px; text-align: center;">
+        <button onclick="window.print()" style="background: #2980b9; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 6px; cursor: pointer;">
+            🖨️ Print Sheet
+        </button>
+        &nbsp;
+        <a asp-action="Dashboard" style="background: #7f8c8d; color: white; padding: 10px 20px; font-size: 16px; border-radius: 6px; text-decoration: none;">
+            Back to Dashboard
+        </a>
+    </div>
+
+</body>
+</html>

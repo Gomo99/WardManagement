@@ -38,6 +38,12 @@
                     <label asp-for="IsUrgent" class="form-check-label">Mark as urgent</label>
                 </div>
 
+                <div class="mb-3">
+                    <label asp-for="Reason" class="form-label">Reason for Request</label>
+                    <input asp-for="Reason" class="form-control" placeholder="e.g. Low Stock, Par Stock Refill, New Item" />
+                    <span asp-validation-for="Reason" class="text-danger"></span>
+                </div>
+
 
                 <div style="display:flex; gap:12px; margin-top:4px;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Place Order</button>

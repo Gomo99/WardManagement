@@ -1,0 +1,70 @@
+﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Consumable>
+@{
+    ViewData["Title"] = "Low Stock Alerts";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Low Stock Alerts</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-triangle-exclamation"></i> Low Stock Alerts</h1>
+        <p>Items at or below their reorder level</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i> All items are sufficiently stocked! No low stock alerts.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i> The following items need attention:
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Current Stock</th>
+                    <th>Minimum (Reorder)</th>
+                    <th>Suggested Order</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    string rowClass = item.QuantityOnHand == 0 ? "table-danger" : "table-warning";
+                    string statusBadge = item.QuantityOnHand == 0 ? "bg-danger" : "bg-warning text-dark";
+                    string statusText = item.QuantityOnHand == 0 ? "Out of Stock" : "Low Stock";
+
+                    <tr class="@rowClass">
+                        <td><strong>@item.Name</strong></td>
+                        <td>@item.QuantityOnHand</td>
+                        <td>@item.ReorderLevel</td>
+                        <td>@item.SuggestedOrderQuantity</td>
+                        <td>
+                            <a asp-action="RequestConsumable"
+                               asp-route-consumableId="@item.Id"
+                               asp-route-quantity="@item.SuggestedOrderQuantity"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fa-solid fa-truck-fast"></i> Request @item.SuggestedOrderQuantity
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

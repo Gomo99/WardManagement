@@ -76,6 +76,13 @@
                                         <i class="fa-solid fa-ban"></i>
                                     </button>
                                 </form>
+
+                                <a asp-action="PrintPrescription" asp-route-id="@script.Id" asp-route-copy="pharmacy" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fa-solid fa-print"></i> Pharmacy Copy
+                                </a>
+                                <a asp-action="PrintPrescription" asp-route-id="@script.Id" asp-route-copy="patient" class="btn btn-sm btn-outline-secondary ms-1" target="_blank">
+                                    <i class="fa-solid fa-print"></i> Patient Copy
+                                </a>
                             </td>
                         </tr>
                     }

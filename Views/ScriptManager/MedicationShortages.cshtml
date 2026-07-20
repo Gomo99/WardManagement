@@ -1,0 +1,25 @@
+﻿@model List<Prescription>
+@{
+    ViewData["Title"] = "Medication Shortages";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Medication Shortages</span>";
+}
+<div class="page-header">
+    <h1><i class="fa-solid fa-triangle-exclamation"></i> Medication Shortages</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+@if (!Model.Any())
+{
+    <div class="alert alert-success">No shortages.</div>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Patient</th><th>Medication</th><th>Prescribed Qty</th><th>Received Qty</th><th>Missing</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr><td>@p.Admission?.Patient?.FullName</td><td>@p.Medication?.Name</td><td>@p.QuantityPrescribed</td><td>@p.QuantityReceived</td><td>@(p.QuantityPrescribed - p.QuantityReceived)</td><td>@p.ScriptStatus</td></tr>
+            }
+        </tbody>
+    </table>
+}

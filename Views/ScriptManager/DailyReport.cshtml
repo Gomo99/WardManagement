@@ -1,0 +1,44 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Daily Prescription Report";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Daily Report</span>";
+}
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-chart-bar"></i> Daily Prescriptions</h1>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">Back</a>
+</div>
+
+<!-- Date filters -->
+<form method="get" asp-action="DailyReport" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="form-label">From</label>
+        <input type="date" name="fromDate" class="form-control" value="@ViewBag.From?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label">To</label>
+        <input type="date" name="toDate" class="form-control" value="@ViewBag.To?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No data found.</div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr><th>Date</th><th>Prescriptions</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr><td>@((row.GetType().GetProperty("Date")?.GetValue(row) as DateTime?)?.ToString("dd MMM yyyy"))</td><td>@row.GetType().GetProperty("Count")?.GetValue(row)</td></tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,57 @@
+﻿@{
+    ViewData["Title"] = "Record Usage";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Record Usage</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-arrow-down-short-wide"></i> Record Usage</h1>
+        <p>Issue items from ward stock</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-box-open" style="color:var(--teal); margin-right:8px;"></i>Issue Consumable</span>
+        </div>
+        <div class="card-body">
+            <form asp-action="RecordUsage" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="consumableId">Consumable <span class="required">*</span></label>
+                    <select name="consumableId" asp-items="ViewBag.Consumables" class="form-select">
+                        <option value="">-- Select Consumable --</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="quantityUsed">Quantity Used <span class="required">*</span></label>
+                    <input type="number" name="quantityUsed" class="form-control" min="1" placeholder="e.g. 20" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="notes">Notes (optional)</label>
+                    <input type="text" name="notes" class="form-control" placeholder="e.g. Used in Ward A" />
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Record Usage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

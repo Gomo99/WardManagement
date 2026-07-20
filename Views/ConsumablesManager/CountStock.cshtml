@@ -1,63 +1,99 @@
 ﻿@model IEnumerable<WARDMANAGEMENTSYSTEM.Models.Consumable>
 @{
-    ViewData["Title"] = "Count Stock";
-    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/StockTakes'>Stock Takes</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Count</span>";
+    ViewData["Title"] = "Weekly Stock Take";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/StockTakes'>Stock Takes</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Count Stock</span>";
     int stockTakeId = ViewBag.StockTakeId;
     DateTime stockTakeDate = ViewBag.StockTakeDate;
 }
 
 <div class="page-header">
     <div class="page-header-title">
-        <h1>Physical Stock Count</h1>
-        <p>Stock Take #@stockTakeId — @stockTakeDate.ToString("dd MMMM yyyy")</p>
+        <h1><i class="fa-solid fa-clipboard-check"></i> Weekly Stock Take</h1>
+        <p>Stock Take #@stockTakeId – @stockTakeDate.ToString("dd MMMM yyyy")</p>
     </div>
-    <a asp-action="StockTakes" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a asp-action="StockTakes" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to List
+    </a>
 </div>
 
-@if (TempData["ErrorMessage"] != null)
+@if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> @TempData["ErrorMessage"]</div>
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
-<div class="card">
-    <div class="card-body">
-        <form asp-action="SaveStockCount" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="stockTakeId" value="@stockTakeId" />
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No active consumables found.</div>
+}
+else
+{
+    <form asp-action="SaveStockCount" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="stockTakeId" value="@stockTakeId" />
 
+        <div class="card">
             <div class="table-wrap">
-                <table>
+                <table class="table">
                     <thead>
                         <tr>
                             <th>Consumable</th>
-                            <th>System Quantity</th>
-                            <th>Actual Count <span class="required">*</span></th>
+                            <th style="text-align:right;">System Qty</th>
+                            <th style="text-align:right;">Actual Qty</th>
+                            <th style="text-align:right;">Difference</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var cons in Model)
+                        @foreach (var item in Model)
                         {
                             <tr>
-                                <td>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <i class="fa-solid fa-box-open" style="color:var(--teal);"></i>
-                                        <span>@cons.Name</span>
-                                    </div>
+                                <td>@item.Name</td>
+                                <td style="text-align:right;">@item.QuantityOnHand</td>
+                                <td style="text-align:right;">
+                                    <input type="number"
+                                           name="actualQuantities[@item.Id]"
+                                           value="@item.QuantityOnHand"
+                                           class="form-control actual-qty"
+                                           style="width:100px; text-align:right;"
+                                           data-system-qty="@item.QuantityOnHand"
+                                           data-consumable-id="@item.Id" />
                                 </td>
-                                <td>@cons.QuantityOnHand</td>
-                                <td>
-                                    <input type="number" name="actualQuantities[@cons.Id]" class="form-control" min="0" value="@cons.QuantityOnHand" style="width:100px;" />
+                                <td style="text-align:right;" class="diff-cell" id="diff-@item.Id">
+                                    0
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            <div style="display:flex; gap:12px; margin-top:16px;">
-                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Save Stock Count</button>
-                <a asp-action="StockTakes" class="btn btn-outline">Cancel</a>
-            </div>
-        </form>
-    </div>
-</div>
+        <div class="text-end mt-3">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Stock Count</button>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const inputs = document.querySelectorAll('.actual-qty');
+            inputs.forEach(input => {
+                const systemQty = parseInt(input.dataset.systemQty, 10);
+                const consumableId = input.dataset.consumableId;
+                const diffCell = document.getElementById(`diff-${consumableId}`);
+
+                function updateDiff() {
+                    const actual = parseInt(input.value, 10) || 0;
+                    const diff = actual - systemQty;
+                    diffCell.textContent = diff;
+                    if (diff < 0) diffCell.style.color = 'red';
+                    else if (diff > 0) diffCell.style.color = 'green';
+                    else diffCell.style.color = '';
+                }
+
+                input.addEventListener('input', updateDiff);
+                updateDiff(); // initial calculation
+            });
+        });
+    </script>
+}

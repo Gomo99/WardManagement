@@ -6,6 +6,7 @@
         ForwardedToPharmacy,
         Dispensed,
         Delivered,
+        PartiallyDelivered,
         Rejected
     }
 }

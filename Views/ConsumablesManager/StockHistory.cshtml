@@ -1,0 +1,83 @@
+﻿@using WARDMANAGEMENTSYSTEM.AppStatus
+@model List<StockMovement>
+@{
+    ViewData["Title"] = "Stock History";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Stock History</span>";
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-clock-rotate-left"></i> Stock History</h1>
+        <p>@(ViewBag.ConsumableName != null ? "Movements for " + ViewBag.ConsumableName : "All consumables")</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
+
+<!-- Filter by consumable -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="StockHistory" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label mb-1">Filter by Consumable</label>
+                <select name="consumableId" asp-items="ViewBag.Consumables" class="form-control" style="width:200px;">
+                    <option value="">-- All --</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+            <a asp-action="StockHistory" class="btn btn-outline-secondary btn-sm">Clear</a>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No stock movements recorded yet.</div>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Consumable</th>
+                    <th>Type</th>
+                    <th>Change</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model)
+                {
+                    string badgeClass = m.MovementType switch
+                    {
+                        MovementType.Received => "bg-success",
+                        MovementType.Issued => "bg-danger",
+                        MovementType.Adjustment => "bg-warning text-dark",
+                        MovementType.StockTakeCorrection => "bg-info text-dark",
+                        _ => "bg-secondary"
+                    };
+
+                    <tr>
+                        <td>@m.MovementDate.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@m.Consumable?.Name</td>
+                        <td><span class="badge @badgeClass">@m.MovementType</span></td>
+                        <td>
+                            @if (m.QuantityChange >= 0)
+                            {
+                                <span class="text-success">+@m.QuantityChange</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">@m.QuantityChange</span>
+                            }
+                        </td>
+                        <td>@m.Reason</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

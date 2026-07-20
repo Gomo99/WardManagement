@@ -1,0 +1,63 @@
+﻿@model dynamic
+@{
+    ViewData["Title"] = "Weekly Consumption Report";
+    ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Weekly Consumption</span>";
+
+    var weekStart = ViewBag.WeekStart as DateTime?;
+    var weekEnd = ViewBag.WeekEnd as DateTime?;
+    var prevWeek = weekStart?.AddDays(-7);
+    var nextWeek = weekStart?.AddDays(7);
+}
+
+<div class="page-header">
+    <div class="page-header-title">
+        <h1><i class="fa-solid fa-calendar-week"></i> Weekly Consumption Report</h1>
+        <p>@weekStart?.ToString("dd MMM yyyy") – @weekEnd?.ToString("dd MMM yyyy")</p>
+    </div>
+    <div>
+        <a asp-action="WeeklyConsumptionReport" asp-route-weekStart="@prevWeek?.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-chevron-left"></i> Previous Week
+        </a>
+        <a asp-action="WeeklyConsumptionReport" class="btn btn-outline-secondary btn-sm ms-1">
+            Current Week
+        </a>
+        @if (nextWeek <= DateTime.Today)
+        {
+            <a asp-action="WeeklyConsumptionReport" asp-route-weekStart="@nextWeek?.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm ms-1">
+                Next Week <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        }
+        <a asp-action="Dashboard" class="btn btn-secondary btn-sm ms-2">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+@if (Model == null || !((IEnumerable<dynamic>)Model).Any())
+{
+    <div class="alert alert-info">No usage recorded for this week.</div>
+}
+else
+{
+    <div class="card">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumable</th>
+                        <th class="text-right">Total Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.ConsumableName</td>
+                            <td class="text-right">@item.TotalUsed</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,227 @@
+﻿@model Prescription
+@{
+    Layout = null;
+    string copyType = ViewBag.CopyType ?? "pharmacy";
+    string title = copyType == "patient" ? "Patient Copy" : "Pharmacy Copy";
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var detailsUrl = $"{baseUrl}/ScriptManager/Details/{Model.Id}";
+    var qrCodeUrl = $"https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl={Uri.EscapeDataString(detailsUrl)}";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Prescription – @title</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 30px;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #1a5276;
+            padding-bottom: 15px;
+        }
+
+            .header h1 {
+                margin: 0;
+                color: #1a5276;
+            }
+
+            .header p {
+                margin: 4px 0;
+                color: #666;
+            }
+
+        .copy-title {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #1a5276;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+            .section h2 {
+                background: #d4e6f1;
+                padding: 8px 12px;
+                font-size: 1rem;
+                margin-bottom: 8px;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #1a5276;
+            width: 150px;
+        }
+
+        .rx-box {
+            border: 2px solid #000;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+            .rx-box .drug {
+                font-size: 1.4rem;
+                font-weight: bold;
+            }
+
+            .rx-box .instructions {
+                margin-top: 8px;
+            }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            border-top: 1px solid #ccc;
+            padding-top: 15px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .signature-line {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+            .signature-line div {
+                width: 45%;
+                border-top: 1px solid #000;
+                padding-top: 8px;
+            }
+
+        .qr-container {
+            text-align: right;
+            margin-top: -60px;
+        }
+
+            .qr-container img {
+                width: 100px;
+                height: 100px;
+            }
+
+        .no-print {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .print-btn {
+            background: #2980b9;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Ward Management System</h1>
+        <p>123 Hospital Street, Your City</p>
+        <p>Tel: (012) 345-6789</p>
+    </div>
+
+    <div class="copy-title">
+        @title
+        <div class="qr-container">
+            <img src="@qrCodeUrl" alt="QR" />
+        </div>
+    </div>
+
+    <!-- Patient & Prescription Details -->
+    <div class="section">
+        <h2>Patient & Prescription Information</h2>
+        <table>
+            <tr><td class="label">Patient Name:</td><td>@Model.Admission?.Patient?.FullName</td></tr>
+            <tr><td class="label">Admission #:</td><td>@Model.AdmissionId</td></tr>
+            <tr><td class="label">Date Prescribed:</td><td>@Model.PrescribedDate.ToString("dd MMM yyyy HH:mm")</td></tr>
+            <tr><td class="label">Prescribed By:</td><td>Dr. @Model.Admission?.Doctor?.FullName</td></tr>
+            <tr><td class="label">Status:</td><td>@Model.ScriptStatus</td></tr>
+        </table>
+    </div>
+
+    <!-- The Prescription (Rx) -->
+    <div class="section">
+        <h2>Medication</h2>
+        <div class="rx-box">
+            <div class="drug">@Model.Medication?.Name</div>
+            <div>Dosage: @Model.Dosage</div>
+            <div>Frequency: @Model.Frequency</div>
+            <div>Duration: @Model.Duration</div>
+            <div>Quantity Prescribed: @Model.QuantityPrescribed</div>
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="instructions">Notes: @Model.Notes</div>
+            }
+        </div>
+    </div>
+
+    @if (copyType == "pharmacy")
+    {
+        <div class="section">
+            <h2>Pharmacy Use Only</h2>
+            <table>
+                <tr><td class="label">Batch Number:</td><td>________________________</td></tr>
+                <tr><td class="label">Expiry Date:</td><td>________________________</td></tr>
+                <tr><td class="label">Quantity Dispensed:</td><td>________________________</td></tr>
+                <tr><td class="label">Pharmacist Signature:</td><td>________________________</td></tr>
+            </table>
+        </div>
+        <div class="signature-line">
+            <div>Dispensed by: ________________________</div>
+            <div>Checked by: ________________________</div>
+        </div>
+    }
+    else
+    {
+        <div class="section">
+            <h2>Instructions for Patient</h2>
+            <p>Take this medication as directed by your doctor. If you experience any side effects, contact the ward immediately.</p>
+            <p>Keep out of reach of children. Store in a cool, dry place.</p>
+        </div>
+    }
+
+    <div class="footer">
+        This prescription was generated electronically on @DateTime.Now.ToString("dd MMM yyyy HH:mm").
+    </div>
+
+    <div class="no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print @title</button>
+        &nbsp;
+        <a asp-action="AllScripts" class="print-btn" style="background:#7f8c8d; text-decoration:none;">Back to Scripts</a>
+    </div>
+
+</body>
+</html>

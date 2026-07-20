@@ -1,0 +1,42 @@
+﻿@{
+    ViewData["Title"] = "Verify Medication Barcode";
+    ViewData["Breadcrumb"] = "<a href='/ScriptManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Barcode Verification</span>";
+}
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-qrcode"></i> Verify Medication</h1>
+    <p>Scan the barcode / QR code on the medication package</p>
+    <a asp-action="Dashboard" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+        <div id="result" class="mt-3 text-center"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            html5QrcodeScanner.clear();
+
+            // Expecting a URL ending with /ScriptManager/Details/123
+            const match = decodedText.match(/\/ScriptManager\/Details\/(\d+)/);
+            if (match) {
+                window.location.href = '@Url.Action("VerifyBarcodeResult", "ScriptManager")/' + match[1];
+            } else {
+                document.getElementById('result').innerHTML = '<div class="alert alert-danger">Invalid barcode. Could not find prescription ID.</div>';
+            }
+        }
+
+        function onScanFailure(error) { /* ignore */ }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+}

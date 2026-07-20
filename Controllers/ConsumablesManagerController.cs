@@ -39,9 +39,53 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             int? managerId = GetCurrentManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
-            ViewBag.ActiveConsumablesCount = await _context.Consumables.CountAsync(c => c.IsActive == Status.Active);
-            ViewBag.PendingOrdersCount = await _context.ConsumableOrders.CountAsync(o => o.OrderStatus == OrderStatus.Ordered && o.IsActive == Status.Active);
-            ViewBag.StockTakesCount = await _context.StockTakes.CountAsync(s => s.IsActive == Status.Active);
+            // Total consumables (active)
+            ViewBag.ActiveConsumablesCount = await _context.Consumables
+                .CountAsync(c => c.IsActive == Status.Active);
+
+            // Total stock on hand (sum of all active consumables)
+            ViewBag.TotalStockOnHand = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active)
+                .SumAsync(c => c.QuantityOnHand);
+
+            // Low stock items (QuantityOnHand <= ReorderLevel)
+            ViewBag.LowStockCount = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active && c.QuantityOnHand <= c.ReorderLevel)
+                .CountAsync();
+
+            // Pending orders (status = Ordered and active)
+            ViewBag.PendingOrdersCount = await _context.ConsumableOrders
+                .CountAsync(o => o.OrderStatus == OrderStatus.Ordered && o.IsActive == Status.Active);
+
+            // Orders delivered today
+            var today = DateTime.Today;
+            ViewBag.OrdersDeliveredToday = await _context.ConsumableOrders
+                .Where(o => o.OrderStatus == OrderStatus.Complete
+                            && o.IsActive == Status.Active
+                            && o.ReceivedDate.HasValue
+                            && o.ReceivedDate.Value.Date == today)
+                .CountAsync();
+
+            // Weekly stock take due / last stock take info
+            var lastStockTake = await _context.StockTakes
+                .Where(s => s.IsActive == Status.Active)
+                .OrderByDescending(s => s.DateTaken)
+                .FirstOrDefaultAsync();
+
+            if (lastStockTake == null)
+            {
+                ViewBag.StockTakeDue = "Due (no stock take recorded)";
+            }
+            else
+            {
+                var daysSinceLast = (DateTime.Today - lastStockTake.DateTaken.Date).Days;
+                ViewBag.LastStockTakeDate = lastStockTake.DateTaken.ToString("dd MMM yyyy");
+                if (daysSinceLast >= 7)
+                    ViewBag.StockTakeDue = $"Due (last was {ViewBag.LastStockTakeDate})";
+                else
+                    ViewBag.StockTakeDue = $"Next due after {ViewBag.LastStockTakeDate}";
+            }
+
             return View();
         }
 
@@ -188,13 +232,22 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         }
 
         // CREATE – GET
+        // REPLACE the existing RequestConsumable (GET) method with this version
         [HttpGet]
-        public IActionResult RequestConsumable()
+        public IActionResult RequestConsumable(int? consumableId, int? quantity)
         {
             ViewBag.Consumables = new SelectList(
                 _context.Consumables.Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name),
-                "Id", "Name");
-            return View();
+                "Id", "Name", consumableId);
+
+            // Pre‑fill quantity if provided (e.g. from LowStockAlerts)
+            var model = new ConsumableOrder
+            {
+                ConsumableId = consumableId ?? 0,
+                QuantityRequested = quantity ?? 0
+            };
+
+            return View(model);
         }
 
         // CREATE – POST
@@ -343,6 +396,7 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
         // ==================================================================
 
         // GET – show order and allow entering received quantity
+        // GET – show order and allow entering received quantity
         [HttpGet]
         public async Task<IActionResult> ReceiveConsumable(int orderId)
         {
@@ -351,25 +405,30 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
 
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId &&
-                                         o.OrderStatus == OrderStatus.Fulfilled &&
-                                         o.CreatedByEmployeeId == managerId);
+                .FirstOrDefaultAsync(o => o.Id == orderId
+                                         && (o.OrderStatus == OrderStatus.Ordered || o.OrderStatus == OrderStatus.PartiallyFulfilled)
+                                         && o.IsActive == Status.Active
+                                         && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
+
             return View(order);
         }
 
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived)
+        public async Task<IActionResult> ReceiveConsumable(int orderId, int quantityReceived, string? notes)
         {
             int? managerId = GetCurrentManagerId();
             if (managerId == null) return RedirectToAction("Login", "Account");
 
             var order = await _context.ConsumableOrders
                 .Include(o => o.Consumable)
-                .FirstOrDefaultAsync(o => o.Id == orderId &&
-                                         o.OrderStatus == OrderStatus.Fulfilled &&
-                                         o.CreatedByEmployeeId == managerId);
+                .Include(o => o.Supplier) // include supplier for display
+                .FirstOrDefaultAsync(o => o.Id == orderId
+                                         && (o.OrderStatus == OrderStatus.Ordered || o.OrderStatus == OrderStatus.PartiallyFulfilled)
+                                         && o.IsActive == Status.Active
+                                         && o.CreatedByEmployeeId == managerId);
             if (order == null) return NotFound();
 
             if (quantityReceived <= 0)
@@ -378,15 +437,56 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
                 return RedirectToAction(nameof(ReceiveConsumable), new { orderId });
             }
 
+            int previousReceived = order.QuantityReceived ?? 0;
+            int totalReceived = previousReceived + quantityReceived;
+
+            // Update stock
             order.Consumable.QuantityOnHand += quantityReceived;
-            order.OrderStatus = OrderStatus.Complete;
             order.ReceivedDate = DateTime.Now;
-            order.QuantityReceived = quantityReceived;
+            order.QuantityReceived = totalReceived;
+
+            // Determine status
+            if (totalReceived >= order.QuantityRequested)
+            {
+                order.OrderStatus = OrderStatus.Complete;
+                order.MissingQuantity = 0;
+            }
+            else
+            {
+                order.OrderStatus = OrderStatus.PartiallyFulfilled;
+                order.MissingQuantity = order.QuantityRequested - totalReceived;
+            }
+
+            // Append delivery notes
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                string managerName = (await _context.Employees.FindAsync(managerId))?.FullName ?? "Unknown";
+                string deliveryNote = $"Received by {managerName} on {DateTime.Now:dd MMM yyyy HH:mm}: {notes}";
+                order.Notes = string.IsNullOrEmpty(order.Notes) ? deliveryNote : $"{order.Notes} | {deliveryNote}";
+            }
+
+            // Record stock movement
+            _context.StockMovements.Add(new StockMovement
+            {
+                ConsumableId = order.ConsumableId,
+                QuantityChange = quantityReceived,
+                MovementType = MovementType.Received,
+                Reason = $"Received from order #{order.Id}",
+                MovementDate = DateTime.Now,
+                ConsumableOrderId = order.Id
+            });
+
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Received {quantityReceived} units. Stock updated.";
+            int outstanding = order.QuantityRequested - (order.QuantityReceived ?? 0);
+            string msg = $"Received {quantityReceived} units. Total received: {order.QuantityReceived} of {order.QuantityRequested}.";
+            if (outstanding > 0) msg += $" Outstanding: {outstanding}.";
+
+            TempData["SuccessMessage"] = msg;
             return RedirectToAction(nameof(Orders));
         }
+
+
 
         // ==================================================================
         //  TAKE STOCK (Weekly physical count)
@@ -645,5 +745,461 @@ namespace WARDMANAGEMENTSYSTEM.Controllers
             TempData["SuccessMessage"] = "Received order restored; stock has been re‑added.";
             return RedirectToAction(nameof(ReceivedOrders));
         }
+
+        // ==================================================================
+        //  LOW STOCK ALERTS – items below reorder level
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> LowStockAlerts()
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var lowStockItems = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active && c.QuantityOnHand <= c.ReorderLevel)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(lowStockItems);
+        }
+
+
+        // ==================================================================
+        //  PENDING REQUESTS – only "Ordered" orders
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> PendingRequests()
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var pending = await _context.ConsumableOrders
+                .Include(o => o.Consumable)
+                .Where(o => o.OrderStatus == OrderStatus.Ordered
+                            && o.IsActive == Status.Active
+                            && o.CreatedByEmployeeId == managerId)
+                .OrderByDescending(o => o.RequestDate)
+                .ToListAsync();
+
+            return View(pending);
+        }
+
+        // ==================================================================
+        //  CANCEL ORDER (soft delete with reason)
+        // ==================================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(int id, string cancelReason)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var order = await _context.ConsumableOrders
+                .FirstOrDefaultAsync(o => o.Id == id
+                                          && o.OrderStatus == OrderStatus.Ordered
+                                          && o.IsActive == Status.Active
+                                          && o.CreatedByEmployeeId == managerId);
+            if (order == null)
+            {
+                TempData["ErrorMessage"] = "Request not found or cannot be cancelled.";
+                return RedirectToAction(nameof(PendingRequests));
+            }
+
+            // Record cancellation reason (append to existing reason if any)
+            string note = string.IsNullOrWhiteSpace(cancelReason) ? "Cancelled" : $"Cancelled: {cancelReason}";
+            order.Reason = string.IsNullOrEmpty(order.Reason) ? note : $"{order.Reason} | {note}";
+
+            order.IsActive = Status.Inactive;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Request cancelled.";
+            return RedirectToAction(nameof(PendingRequests));
+        }
+
+
+
+        // ==================================================================
+        //  VARIANCE REPORT – shortages / overages from a stock take
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> VarianceReport(int? stockTakeId)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            StockTake? stockTake = null;
+
+            if (stockTakeId.HasValue)
+            {
+                stockTake = await _context.StockTakes
+                    .FirstOrDefaultAsync(s => s.Id == stockTakeId.Value
+                                             && s.IsActive == Status.Active
+                                             && s.CreatedByEmployeeId == managerId);
+            }
+            else
+            {
+                // Default to the latest active stock take for the manager
+                stockTake = await _context.StockTakes
+                    .Where(s => s.IsActive == Status.Active && s.CreatedByEmployeeId == managerId)
+                    .OrderByDescending(s => s.DateTaken)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (stockTake == null)
+            {
+                TempData["ErrorMessage"] = "No stock take found. Please perform a stock take first.";
+                return RedirectToAction(nameof(StockTakes));
+            }
+
+            // Load items with consumable details
+            var items = await _context.StockTakeItems
+                .Include(si => si.Consumable)
+                .Where(si => si.StockTakeId == stockTake.Id)
+                .OrderBy(si => si.Consumable.Name)
+                .ToListAsync();
+
+            ViewBag.StockTakeId = stockTake.Id;
+            ViewBag.StockTakeDate = stockTake.DateTaken;
+
+            // Dropdown for selecting other stock takes
+            ViewBag.StockTakes = new SelectList(
+                await _context.StockTakes
+                    .Where(s => s.IsActive == Status.Active && s.CreatedByEmployeeId == managerId)
+                    .OrderByDescending(s => s.DateTaken)
+                    .ToListAsync(),
+                "Id", "DateTaken", stockTake.Id);
+
+            return View(items);
+        }
+
+
+        // ==================================================================
+        //  ADJUST STOCK – manual inventory correction
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> AdjustStock(int? consumableId)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            // Dropdown of active consumables
+            ViewBag.Consumables = new SelectList(
+                await _context.Consumables.Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name).ToListAsync(),
+                "Id", "Name", consumableId);
+
+            // Pre-select if coming from a specific consumable
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdjustStock(int consumableId, int quantityChange, string reason)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var consumable = await _context.Consumables.FindAsync(consumableId);
+            if (consumable == null || consumable.IsActive != Status.Active)
+            {
+                TempData["ErrorMessage"] = "Invalid consumable.";
+                return RedirectToAction(nameof(AdjustStock));
+            }
+
+            if (quantityChange == 0)
+            {
+                TempData["ErrorMessage"] = "Quantity change cannot be zero.";
+                return RedirectToAction(nameof(AdjustStock));
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Please provide a reason.";
+                return RedirectToAction(nameof(AdjustStock));
+            }
+
+            // Update stock
+            consumable.QuantityOnHand += quantityChange;
+            if (consumable.QuantityOnHand < 0) consumable.QuantityOnHand = 0;
+
+            // Record movement
+            _context.StockMovements.Add(new StockMovement
+            {
+                ConsumableId = consumableId,
+                QuantityChange = quantityChange,
+                MovementType = MovementType.Adjustment,
+                Reason = reason,
+                MovementDate = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Stock adjusted by {quantityChange}. New quantity: {consumable.QuantityOnHand}.";
+            return RedirectToAction(nameof(Consumables));
+        }
+
+
+        // ==================================================================
+        //  RECORD USAGE (issue items from stock)
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> RecordUsage(int? consumableId)
+        {
+            ViewBag.Consumables = new SelectList(
+                await _context.Consumables.Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name).ToListAsync(),
+                "Id", "Name", consumableId);
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecordUsage(int consumableId, int quantityUsed, string? notes)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var consumable = await _context.Consumables.FindAsync(consumableId);
+            if (consumable == null || consumable.IsActive != Status.Active)
+            {
+                TempData["ErrorMessage"] = "Invalid consumable.";
+                return RedirectToAction(nameof(RecordUsage));
+            }
+
+            if (quantityUsed <= 0)
+            {
+                TempData["ErrorMessage"] = "Quantity must be positive.";
+                return RedirectToAction(nameof(RecordUsage));
+            }
+
+            if (quantityUsed > consumable.QuantityOnHand)
+            {
+                TempData["ErrorMessage"] = "Not enough stock on hand.";
+                return RedirectToAction(nameof(RecordUsage));
+            }
+
+            // Deduct stock
+            consumable.QuantityOnHand -= quantityUsed;
+
+            // Record movement
+            _context.StockMovements.Add(new StockMovement
+            {
+                ConsumableId = consumableId,
+                QuantityChange = -quantityUsed,   // negative for issue
+                MovementType = MovementType.Issued,
+                Reason = string.IsNullOrWhiteSpace(notes) ? "Issued for use" : notes,
+                MovementDate = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"{quantityUsed} {consumable.Name} issued. Remaining: {consumable.QuantityOnHand}.";
+            return RedirectToAction(nameof(ConsumptionHistory));
+        }
+
+
+
+        // ==================================================================
+        //  CONSUMPTION HISTORY – daily usage summary
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> ConsumptionHistory(int? consumableId, DateTime? fromDate, DateTime? toDate)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var movements = _context.StockMovements
+                .Include(m => m.Consumable)
+                .Where(m => m.MovementType == MovementType.Issued)
+                .AsQueryable();
+
+            if (consumableId.HasValue && consumableId > 0)
+                movements = movements.Where(m => m.ConsumableId == consumableId.Value);
+
+            if (fromDate.HasValue)
+                movements = movements.Where(m => m.MovementDate >= fromDate.Value);
+            if (toDate.HasValue)
+                movements = movements.Where(m => m.MovementDate <= toDate.Value.Date.AddDays(1));
+
+            var list = await movements
+                .OrderByDescending(m => m.MovementDate)
+                .ToListAsync();
+
+            // Daily summary (for display)
+            var dailySummary = list
+                .GroupBy(m => new { m.MovementDate.Date, m.Consumable?.Name })
+                .Select(g => new
+                {
+                    Date = g.Key.Date,
+                    Consumable = g.Key.Name,
+                    TotalUsed = g.Sum(m => -m.QuantityChange)   // quantityChange is negative
+                })
+                .OrderByDescending(d => d.Date)
+                .ToList();
+
+            ViewBag.Consumables = new SelectList(
+                await _context.Consumables.Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name).ToListAsync(),
+                "Id", "Name", consumableId);
+            ViewBag.DailySummary = dailySummary;
+
+            return View(list);   // pass the raw movements for detail
+        }
+
+
+        // ==================================================================
+        //  STOCK REPORT – printable stock overview
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> StockReport()
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var consumables = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(consumables);
+        }
+
+
+        // ==================================================================
+        //  WEEKLY CONSUMPTION REPORT – total used this week
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> WeeklyConsumptionReport(DateTime? weekStart)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            // Default to this Monday
+            var today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+            var startOfWeek = weekStart ?? today.AddDays(-diff).Date;
+            var endOfWeek = startOfWeek.AddDays(7);
+
+            var usage = await _context.StockMovements
+                .Include(m => m.Consumable)
+                .Where(m => m.MovementType == MovementType.Issued
+                            && m.MovementDate >= startOfWeek
+                            && m.MovementDate < endOfWeek)
+                .GroupBy(m => new { m.ConsumableId, m.Consumable.Name })
+                .Select(g => new
+                {
+                    ConsumableName = g.Key.Name,
+                    TotalUsed = g.Sum(m => -m.QuantityChange)   // quantityChange is negative
+                })
+                .OrderBy(x => x.ConsumableName)
+                .ToListAsync();
+
+            ViewBag.WeekStart = startOfWeek;
+            ViewBag.WeekEnd = endOfWeek.AddDays(-1); // last day
+
+            return View(usage);
+        }
+
+
+        // ==================================================================
+        //  MONTHLY USAGE REPORT – usage trends per month
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> MonthlyUsageReport(int? consumableId, int? year)
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            int selectedYear = year ?? DateTime.Today.Year;
+
+            // Base query: issued movements for the selected year
+            var issued = _context.StockMovements
+                .Include(m => m.Consumable)
+                .Where(m => m.MovementType == MovementType.Issued
+                            && m.MovementDate.Year == selectedYear);
+
+            // Filter by consumable if selected
+            if (consumableId.HasValue && consumableId > 0)
+                issued = issued.Where(m => m.ConsumableId == consumableId.Value);
+
+            // Group by month and consumable, then aggregate
+            var monthlyData = await issued
+                .GroupBy(m => new { m.MovementDate.Month, m.Consumable.Name })
+                .Select(g => new
+                {
+                    Month = g.Key.Month,
+                    ConsumableName = g.Key.Name,
+                    TotalUsed = g.Sum(m => -m.QuantityChange)   // negative -> positive
+                })
+                .ToListAsync();
+
+            // Build chart data for all months (1..12) per consumable
+            var labels = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+            var datasets = monthlyData
+                .GroupBy(d => d.ConsumableName)
+                .Select(g => new
+                {
+                    Label = g.Key ?? "All",
+                    Data = Enumerable.Range(1, 12).Select(m => g.Where(x => x.Month == m).Sum(x => x.TotalUsed)).ToList()
+                })
+                .ToList();
+
+            // Pass chart data to the view
+            ViewBag.ChartLabels = labels;
+            ViewBag.ChartDatasets = datasets;
+            ViewBag.SelectedYear = selectedYear;
+            ViewBag.ConsumableId = consumableId;
+
+            // Dropdowns
+            ViewBag.Consumables = new SelectList(
+                await _context.Consumables.Where(c => c.IsActive == Status.Active).OrderBy(c => c.Name).ToListAsync(),
+                "Id", "Name", consumableId);
+
+            return View();
+        }
+
+
+        // ==================================================================
+        //  PRINTABLE STOCK TAKE SHEET – for manual counting
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> PrintStockTakeSheet()
+        {
+            int? managerId = GetCurrentManagerId();
+            if (managerId == null) return RedirectToAction("Login", "Account");
+
+            var consumables = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(consumables);
+        }
+
+
+        // ==================================================================
+        //  SCAN QR CODE – opens camera to scan
+        // ==================================================================
+        [HttpGet]
+        public IActionResult ScanQR()
+        {
+            return View();
+        }
+
+        // ==================================================================
+        //  PRINT QR CODES – printable sheet with QR codes for all active items
+        // ==================================================================
+        [HttpGet]
+        public async Task<IActionResult> PrintQRCodes()
+        {
+            var consumables = await _context.Consumables
+                .Where(c => c.IsActive == Status.Active)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return View(consumables);
+        }
+
+
     }
 }

@@ -40,16 +40,28 @@
                 <thead>
                     <tr>
                         <th>Consumable</th>
-                        <th>Quantity Requested</th>
+                        <th>Qty Requested</th>
                         <th>Status</th>
                         <th>Request Date</th>
                         <th>Received</th>
+                        <th>Missing</th>                     <!-- NEW column -->
                         <th style="text-align:right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var order in Model)
                     {
+                        int received = order.QuantityReceived ?? 0;
+                        int outstanding = order.QuantityRequested - received;
+                        string statusClass = order.OrderStatus switch
+                        {
+                            OrderStatus.Ordered => "badge badge-gold",
+                            OrderStatus.PartiallyFulfilled => "badge badge-warning",
+                            OrderStatus.Complete => "badge badge-success",
+                            OrderStatus.Cancelled => "badge badge-danger",
+                            _ => "badge badge-secondary"
+                        };
+
                         <tr>
                             <td>
                                 <div style="display:flex; align-items:center; gap:8px;">
@@ -59,23 +71,27 @@
                             </td>
                             <td>@order.QuantityRequested</td>
                             <td>
-                                @{
-                                    string badgeClass = order.OrderStatus switch
-                                    {
-                                        OrderStatus.Ordered => "badge badge-gold",
-                                        OrderStatus.PartiallyComplete => "badge badge-warning",
-                                        OrderStatus.Complete => "badge badge-success",
-                                        OrderStatus.Cancelled => "badge badge-danger",
-                                        _ => "badge badge-secondary"
-                                    };
-                                }
-                                <span class="@badgeClass"><span class="badge-dot"></span> @order.OrderStatus</span>
+                                <span class="@statusClass"><span class="badge-dot"></span> @order.OrderStatus</span>
                             </td>
                             <td>@order.RequestDate.ToString("dd MMM yyyy")</td>
                             <td>
-                                @if (order.QuantityReceived.HasValue)
+                                @if (received > 0)
                                 {
-                                    <span>@order.QuantityReceived on @order.ReceivedDate?.ToString("dd MMM")</span>
+                                    <span>@received on @order.ReceivedDate?.ToString("dd MMM")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (order.OrderStatus == OrderStatus.PartiallyFulfilled)
+                                {
+                                    <span class="text-danger">@outstanding</span>
+                                }
+                                else if (order.OrderStatus == OrderStatus.Complete)
+                                {
+                                    <span class="text-success">✅ 0</span>
                                 }
                                 else
                                 {
@@ -86,9 +102,19 @@
                                 <div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;">
                                     <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
 
+                                    @if (order.OrderStatus == OrderStatus.Ordered || order.OrderStatus == OrderStatus.PartiallyFulfilled)
+                                    {
+                                        if (order.OrderStatus == OrderStatus.Ordered && order.IsActive == Status.Active)
+                                        {
+                                            <a asp-action="EditOrder" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+                                        }
+                                        <a asp-action="ReceiveConsumable" asp-route-orderId="@order.Id" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
+                                            <i class="fa-solid fa-truck"></i> Receive
+                                        </a>
+                                    }
+
                                     @if (order.OrderStatus == OrderStatus.Ordered && order.IsActive == Status.Active)
                                     {
-                                        <a asp-action="EditOrder" asp-route-id="@order.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
                                         <form asp-action="DeleteOrder" asp-route-id="@order.Id" method="post" style="display:inline;">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);"
@@ -105,13 +131,6 @@
                                                 <i class="fa-solid fa-rotate-left"></i>
                                             </button>
                                         </form>
-                                    }
-
-                                    @if (order.OrderStatus == OrderStatus.Ordered)
-                                    {
-                                        <a asp-action="ReceiveConsumable" asp-route-orderId="@order.Id" class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);">
-                                            <i class="fa-solid fa-truck"></i> Receive
-                                        </a>
                                     }
                                 </div>
                             </td>

@@ -1,51 +1,89 @@
-﻿@model WARDMANAGEMENTSYSTEM.Models.ConsumableOrder
+﻿@model ConsumableOrder
 @{
-    ViewData["Title"] = "Receive Consumable";
+    ViewData["Title"] = "Receive Delivery";
     ViewData["Breadcrumb"] = "<a href='/ConsumablesManager/Dashboard'>Dashboard</a> <span class='breadcrumb-sep'>/</span> <a href='/ConsumablesManager/Orders'>Orders</a> <span class='breadcrumb-sep'>/</span> <span class='page-title-bar'>Receive</span>";
+    var managerName = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity?.Name ?? "Current User";
 }
 
 <div class="page-header">
     <div class="page-header-title">
-        <h1>Receive Stock</h1>
+        <h1>Receive Delivery</h1>
         <p>Order #@Model.Id — @Model.Consumable?.Name</p>
     </div>
     <a asp-action="Orders" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back</a>
 </div>
 
-<div style="max-width:560px;">
-    <div class="card">
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div style="max-width:600px;">
+    <!-- Order Details Card -->
+    <div class="card mb-4">
         <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-truck" style="color:var(--teal); margin-right:8px;"></i>Confirm Delivery</span>
+            <span class="card-title"><i class="fa-solid fa-box" style="color:var(--teal); margin-right:8px;"></i>Order Details</span>
         </div>
         <div class="card-body">
-            <div style="margin-bottom:20px; background:var(--gray-50); padding:14px; border-radius:8px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.875rem;">
-                    <div>
-                        <strong>Consumable:</strong> @Model.Consumable?.Name
-                    </div>
-                    <div>
-                        <strong>Requested Quantity:</strong> @Model.QuantityRequested
-                    </div>
-                    <div>
-                        <strong>Current Stock:</strong> @Model.Consumable?.QuantityOnHand
-                    </div>
-                    <div>
-                        <strong>Reorder Level:</strong> @Model.Consumable?.ReorderLevel
-                    </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:.875rem;">
+                <div><strong>Consumable:</strong> @Model.Consumable?.Name</div>
+                <div><strong>Current Stock:</strong> @Model.Consumable?.QuantityOnHand</div>
+                <div><strong>Ordered Quantity:</strong> @Model.QuantityRequested</div>
+                <div><strong>Reorder Level:</strong> @Model.Consumable?.ReorderLevel</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Notes Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-clipboard-list" style="color:var(--warning); margin-right:8px;"></i>Delivery Notes</span>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Received By</label>
+                    <input class="form-control" value="@managerName" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Supplier</label>
+                    <input class="form-control" value="@(Model.Supplier?.FullName ?? "Hospital Store")" readonly />
                 </div>
             </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold">Date</label>
+                <input class="form-control" value="@DateTime.Today.ToString("dd MMM yyyy")" readonly />
+            </div>
+        </div>
+    </div>
 
+    <!-- Receive Form -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-truck" style="color:var(--teal); margin-right:8px;"></i>Confirm Receipt</span>
+        </div>
+        <div class="card-body">
             <form asp-action="ReceiveConsumable" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="orderId" value="@Model.Id" />
 
-                <div class="form-group">
+                <div class="form-group mb-3">
                     <label class="form-label" for="quantityReceived">Quantity Received <span class="required">*</span></label>
-                    <input type="number" name="quantityReceived" class="form-control" min="1" placeholder="Enter actual quantity delivered" required />
+                    <input type="number" name="quantityReceived" class="form-control" min="1" max="@Model.QuantityRequested" placeholder="Enter actual quantity delivered" required />
+                    <small class="text-muted">Max: @Model.QuantityRequested</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label" for="notes">Comments</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="e.g. 5 boxes damaged, all items intact"></textarea>
                 </div>
 
                 <div class="alert alert-info" style="margin-bottom:16px;">
-                    <i class="fa-solid fa-circle-info"></i> This will update the stock level for <strong>@Model.Consumable?.Name</strong>. Please verify the physical count before confirming.
+                    <i class="fa-solid fa-circle-info"></i> The actual quantity received will be added to the stock.
                 </div>
 
                 <div style="display:flex; gap:12px;">

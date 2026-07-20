@@ -13,6 +13,7 @@ namespace WARDMANAGEMENTSYSTEM.Data
         public DbSet<UserDevice> UserDevices { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Ward> Wards { get; set; }
+        public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<HospitalLocation> HospitalLocations { get; set; }
         public DbSet<Bed> Beds { get; set; }
         public DbSet<FollowUpAppointment> FollowUpAppointments { get; set; }

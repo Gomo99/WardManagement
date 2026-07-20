@@ -42,5 +42,26 @@ namespace WARDMANAGEMENTSYSTEM.Models
         public Employee? ScriptManager { get; set; }
 
         public bool IsStat { get; set; } = false;
+
+        public DateTime? DeliveredAt { get; set; }
+
+        // Add this inside your Prescription class:
+        // In Prescription.cs, add:
+        public DateTime? ForwardedAt { get; set; }
+        public int? ForwardedByScriptManagerId { get; set; }
+
+        // Verification fields
+        public DateTime? ExpiryDate { get; set; }
+        [StringLength(50)]
+        public string? BatchNumber { get; set; }
+        public DateTime? VerifiedAt { get; set; }
+        public int? VerifiedByEmployeeId { get; set; }
+        [ForeignKey(nameof(VerifiedByEmployeeId))]
+        public Employee? VerifiedBy { get; set; }
+
+        public int QuantityPrescribed { get; set; } = 1;   // default to 1 if not specified
+        public int QuantityReceived { get; set; } = 0;
+
+        public PrescriptionPriority Priority { get; set; } = PrescriptionPriority.Normal;
     }
 }

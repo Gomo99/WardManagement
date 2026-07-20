@@ -38,6 +38,23 @@
     </div>
 </div>
 
+<!-- Stock level summary -->
+@{
+    int sufficient = Model.Count(c => c.QuantityOnHand > c.ReorderLevel);
+    int low = Model.Count(c => c.QuantityOnHand > 0 && c.QuantityOnHand <= c.ReorderLevel);
+    int outOfStock = Model.Count(c => c.QuantityOnHand == 0);
+}
+<div class="d-flex gap-3 mb-3 flex-wrap">
+    <span class="badge fs-6" style="background-color:#d4edda; color:#155724;">
+        🟢 @sufficient Sufficient
+    </span>
+    <span class="badge fs-6" style="background-color:#fff3cd; color:#856404;">
+        🟡 @low Low
+    </span>
+    <span class="badge fs-6" style="background-color:#f8d7da; color:#721c24;">
+        🔴 @outOfStock Out of Stock
+    </span>
+</div>
 
 <div class="card">
     @if (!Model.Any())
@@ -55,7 +72,7 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Stock On Hand</th>
+                        <th>Stock Level</th>
                         <th>Reorder Level</th>
                         <th>Status</th>
                         <th style="text-align:right;">Actions</th>
@@ -64,7 +81,26 @@
                 <tbody>
                     @foreach (var cons in Model)
                     {
-                        <tr>
+                        // Determine stock level and row class
+                        string stockClass;
+                        string dotColor;
+                        if (cons.QuantityOnHand == 0)
+                        {
+                            stockClass = "table-danger";
+                            dotColor = "var(--danger)";
+                        }
+                        else if (cons.QuantityOnHand <= cons.ReorderLevel)
+                        {
+                            stockClass = "table-warning";
+                            dotColor = "var(--warning)";
+                        }
+                        else
+                        {
+                            stockClass = "";
+                            dotColor = "var(--success)";
+                        }
+
+                        <tr class="@stockClass">
                             <td>
                                 <div style="display:flex; align-items:center; gap:10px;">
                                     <div style="width:32px; height:32px; border-radius:8px; background:var(--teal-lt); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:.85rem;">
@@ -74,14 +110,10 @@
                                 </div>
                             </td>
                             <td>
-                                @if (cons.QuantityOnHand <= cons.ReorderLevel)
-                                {
-                                    <span class="badge badge-warning">@cons.QuantityOnHand (low)</span>
-                                }
-                                else
-                                {
-                                    <span>@cons.QuantityOnHand</span>
-                                }
+                                <span style="display:inline-flex; align-items:center; gap:6px;">
+                                    <span style="width:10px; height:10px; border-radius:50%; background:@dotColor; display:inline-block;"></span>
+                                    @cons.QuantityOnHand on hand
+                                </span>
                             </td>
                             <td>@cons.ReorderLevel</td>
                             <td>
@@ -117,6 +149,10 @@
                                             </button>
                                         </form>
                                     }
+                                    <a asp-action="AdjustStock" asp-route-id="@cons.Id" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen-to-square"></i> Adjust Stock</a>
+                                    <a href="@Url.Action("DetailsConsumable", new { id = cons.Id })" title="View Details">
+                                        <i class="fa-solid fa-qrcode" style="color: #2980b9; margin-left: 8px;"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -126,3 +162,16 @@
         </div>
     }
 </div>
+
+@section Styles {
+    <style>
+        /* Bootstrap-like table row colours (if not already globally available) */
+        .table-danger {
+            background-color: #f8d7da !important;
+        }
+
+        .table-warning {
+            background-color: #fff3cd !important;
+        }
+    </style>
+}

@@ -1,0 +1,89 @@
+﻿@model List<Consumable>
+@{
+    Layout = null;
+    ViewData["Title"] = "QR Codes for Consumables";
+    // Build base URL from the current request
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Consumable QR Codes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            padding: 16px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+            .card h4 {
+                margin: 8px 0 4px;
+                font-size: 1rem;
+            }
+
+            .card p {
+                margin: 0 0 8px;
+                color: #666;
+            }
+
+        img {
+            width: 120px;
+            height: 120px;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align:center;">Ward Consumables – QR Codes</h2>
+    <p style="text-align:center;">Scan to open details and update stock</p>
+
+    <div class="grid">
+        @foreach (var item in Model)
+        {
+            var detailUrl = $"{baseUrl}/ConsumablesManager/DetailsConsumable/{item.Id}";
+            var qrCodeUrl = $"https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl={Uri.EscapeDataString(detailUrl)}";
+
+            <div class="card">
+                <img src="@qrCodeUrl" alt="QR for @item.Name" />
+                <h4>@item.Name</h4>
+                <p>Stock: @item.QuantityOnHand</p>
+            </div>
+        }
+    </div>
+
+    <div class="no-print" style="margin-top: 30px; text-align: center;">
+        <button onclick="window.print()" style="background: #2980b9; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 6px; cursor: pointer;">
+            🖨️ Print QR Codes
+        </button>
+        &nbsp;
+        <a asp-action="Dashboard" style="background: #7f8c8d; color: white; padding: 10px 20px; font-size: 16px; border-radius: 6px; text-decoration: none;">
+            Back to Dashboard
+        </a>
+    </div>
+
+</body>
+</html>
